@@ -5,7 +5,8 @@ import './index.css'
 import { createContext, useState } from 'react'
 
 
-export const server = 'http://localhost:4002'
+export const server = import.meta.env.VITE_QUESTION_BANK_API
+
 export const Context = createContext({ isAuthenticated: false, isLoading: false });
 const Appwrapper = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
