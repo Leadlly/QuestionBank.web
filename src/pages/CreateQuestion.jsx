@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
-import { server } from '../main';
+import { server, Context } from '../main';
 import toast from 'react-hot-toast';
 
 const CreateQuestion = () => {
+   
+    const {setIsLoading, isLoading} = useContext(Context)
 
     const [standard, setStandard] = useState()
 
@@ -16,45 +18,59 @@ const CreateQuestion = () => {
     const [topic, setTopic] = useState()
     const [topicList, setTopicList] = useState()
 
-    const getSubject = async() => {
+
+    const getSubject = async(standard) => {
         try {
-          const {data} = await axios.get(`${server}/api/get/subject?standard=${standard}`)
+          const {data} = await axios.get(`${server}/api/get/subject?standard=${standard}`, {
+            withCredentials: true
+          })
           setSubjectList(data.subjectList)
         } catch (error) {
             console.log(error)
         }
     }
-    useEffect(() => {
-        getSubject()
-    }, [standard])
 
-    const getChapters = async() => {
+
+    const getChapters = async(subject) => {
         try {
-          const {data} = await axios.get(`${server}/api/get/chapter?subjectName=${subject}&standard=${standard}`)
+          const {data} = await axios.get(`${server}/api/get/chapter?subjectName=${subject}&standard=${standard}`, {
+            withCredentials: true
+          })
           setChapterList(data.chapters)
         } catch (error) {
             console.log(error)
         }
     }
-    useEffect(() => {
-        getChapters()
-    }, [subject])
 
-    const getTopics = async() => {
+    const getTopics = async(chapter) => {
         try {
-          const {data} = await axios.get(`${server}/api/get/topic?subjectName=${subject}&standard=${standard}&chapterName=${chapter}`)
+          const {data} = await axios.get(`${server}/api/get/topic?subjectName=${subject}&standard=${standard}&chapterName=${chapter}`, {
+            withCredentials: true
+          })
           setTopicList(data.topics)
         } catch (error) {
             console.log(error)
         }
     }
-    useEffect(() => {
-        getTopics()
-    }, [chapter])
+
+    
+    const resetFields = (form) => {
+      const questionInput = form.querySelector('[name="question"]');
+      if (questionInput) {
+          questionInput.value = '';
+      }
+  
+      const optionInputs = form.querySelectorAll('[name^="option"]');
+      optionInputs.forEach(input => {
+          input.value = '';
+      });
+  
+  };
 
     const handleFormSubmit = async(event) => {
+   
         event.preventDefault();
-      
+        
         console.log("inside the function")
         const formData = new FormData(event.target);
         const data = {};
@@ -89,21 +105,23 @@ const CreateQuestion = () => {
           console.log(formattedData);  
 
          try {
+          setIsLoading(true)
             const response = await axios.post(`${server}/api/create/question`, formattedData, {
                 headers: {
                    "Content-Type": "application/json"
-                } 
+                },
+                withCredentials: true 
               })
-              console.log(response)
               toast.success(response.data.message)
+              setIsLoading(false)
          } catch (error) {
-            console.log(error)
+            setIsLoading(false)
             toast.error(error.response.data.message)
          }
-
-          event.target.reset();
+         resetFields(event.target);
       };
     
+     
 
   return (
     <main className=" p-4 ">
@@ -114,7 +132,11 @@ const CreateQuestion = () => {
             name="standard"
             id="standard"
             className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-            onChange={e => setStandard(e.target.value)}
+            value={standard}
+            onChange={async(e) => {
+              setStandard(e.target.value);
+              getSubject(e.target.value);
+            }}
             required
           >
             <option value="" disabled selected>
@@ -138,7 +160,11 @@ const CreateQuestion = () => {
             name="subject"
             id="subject"
             className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-            onChange={e => setSubject(e.target.value)}
+            value={subject}
+            onChange={e => {
+              setSubject(e.target.value);
+              getChapters(e.target.value);
+            }}
             required
           >
             <option value="" disabled selected>
@@ -162,7 +188,11 @@ const CreateQuestion = () => {
             name="chapter"
             id="chapter"
             className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-            onChange={e => setChapter(e.target.value)}
+            value={chapter}
+            onChange={e => {
+              setChapter(e.target.value);
+              getTopics(e.target.value);
+            }}
             required
           >
             <option value="" disabled selected>
@@ -186,6 +216,7 @@ const CreateQuestion = () => {
             name="topic"
             id="topic"
             className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+            value={topic}
             onChange={e => setTopic(e.target.value)}
             required
           >
@@ -233,6 +264,8 @@ const CreateQuestion = () => {
             id="question"
             className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
             placeholder=" "
+            // value={ques}
+            // onChange={e => setQues(e.target.value)}
             required
           />
           <label
@@ -333,12 +366,18 @@ const CreateQuestion = () => {
           </div>
          
         </div>
-        <button
+      { isLoading ? <button
+          type="submit"
+          disabled
+          className="text-white bg-gray-500 hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-800"
+        >
+          Submit
+        </button> : <button
           type="submit"
           className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
         >
           Submit
-        </button>
+        </button>}
       </form>
     </main>
   )

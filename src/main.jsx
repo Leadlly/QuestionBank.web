@@ -2,12 +2,34 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
+import { createContext, useState } from 'react'
 
 
 export const server = 'http://localhost:4002'
+export const Context = createContext({ isAuthenticated: false, isLoading: false });
+const Appwrapper = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [profile, setProfile] = useState({});
+
+  return (
+    <Context.Provider
+      value={{
+        isAuthenticated,
+        setIsAuthenticated,
+        isLoading,
+        setIsLoading,
+        profile,
+        setProfile,
+      }}
+    >
+      <App />
+    </Context.Provider>
+  );
+};
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <Appwrapper />
   </React.StrictMode>,
 )

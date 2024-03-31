@@ -4,19 +4,18 @@ import toast from "react-hot-toast";
 import "../styles/login.scss";
 import { Link, Navigate } from "react-router-dom";
 import { server } from "../main";
-// import { Context } from "../main";
+import { Context } from "../main";
 // import Spinner from "./Spinner";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const isLoading = false
-  // const { isAuthenticated, setIsAuthenticated, isLoading, setIsLoading } =
-  //   useContext(Context);
+  const { isAuthenticated, setIsAuthenticated, isLoading, setIsLoading } =
+    useContext(Context);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    // setIsLoading(true);
+    setIsLoading(true);
     try {
       const { data } = await axios.post(
         `${server}/api/user/login`,
@@ -28,19 +27,21 @@ const Login = () => {
           headers: {
             "Content-Type": "application/json",
           },
+          withCredentials: true
         },
       );
       toast.success(data.message);
-      // setIsLoading(false);
-      // setIsAuthenticated(true);
+      setIsLoading(false);
+      setIsAuthenticated(true);
     } catch (error) {
       toast.error(error.response.data.message);
-      // setIsLoading(false);
-      // setIsAuthenticated(false);
+      setIsLoading(false);
+      setIsAuthenticated(false);
     }
   };
 
-  // if (isAuthenticated) return <Navigate to={"/"} />;
+  // console.log(isAuthenticated, "auth2")
+  if (isAuthenticated) return <Navigate to={"/"} />;
 
   return (
     <>
@@ -63,7 +64,7 @@ const Login = () => {
             required
           />
           <input type="checkbox" id="" />
-          <input type="submit" id="" value="Login" />
+          {isLoading ? <input type="submit" disabled value="Login" /> :  <input type="submit" id="" value="Login" />}
           <p>
             Didnt have account? <Link to="/signup">SignUp</Link>
           </p>

@@ -4,17 +4,19 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import "../styles/login.scss";
 import { server } from "../main";
-// import { Context } from "../main";
+import { Context } from "../main";
+
 const SignUp = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const isLoading = false
-//   const { isAuthenticated, setIsAuthenticated, isLoading, setIsLoading } =
-//     useContext(Context);
+
+  const [message, setMesasge] = useState("")
+  const { isAuthenticated, setIsAuthenticated, isLoading, setIsLoading } =
+    useContext(Context);
   const handleSignUp = async (e) => {
     e.preventDefault();
-    // setIsLoading(true);
+    setIsLoading(true);
     try {
       const { data } = await axios.post(
         `${server}/api/user/register`,
@@ -27,22 +29,27 @@ const SignUp = () => {
           headers: {
             "Content-Type": "application/json",
           },
+          withCredentials: true
         },
       );
       toast.success(data.message);
-    //   setIsLoading(false);
+      setMesasge(data.message)
+      setIsLoading(false);
+      setName('')
+      setEmail('')
+      setPassword('')
     //   setIsAuthenticated(true);
     } catch (error) {
       toast.error(error.response.data.message);
     //   setIsAuthenticated(false);
-    //   setIsLoading(false);
+      setIsLoading(false);
     }
   };
 //   if (isAuthenticated) return <Navigate to={"/"} />;
 
   return (
     <>
-        <div id="signin_page">
+        <div id="signin_page" className="flex flex-col">
       <div className="signin-box">
         <h2>Welcome to leadlly</h2>
         <form onSubmit={handleSignUp}>
@@ -65,12 +72,13 @@ const SignUp = () => {
             onChange={(e) => setPassword(e.target.value)}
           />
           <input type="checkbox" id="" />
-          <input type="submit" id="" value="Signup" />
+          {isLoading ? <input type="submit" disabled value="Login" /> :  <input type="submit" id="" value="Login" />}
           <p>
-            Already have account? <Link to="/login">Login</Link>
+            Already have account? <Link to="/">Login</Link>
           </p>
         </form>
       </div>
+      <h2 className="m-10 text-green-500">{message}</h2>
     </div>
     </>
   );
