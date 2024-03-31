@@ -17,7 +17,6 @@ const CreateSubject = () => {
     const handleFormSubmit = async(event) => {
         event.preventDefault();
       
-        console.log("inside the function")
         const formData = new FormData(event.target);
         const data = {};
       
@@ -33,14 +32,12 @@ const CreateSubject = () => {
           }
         }
       
-        console.log(data, "===> data")
 
         const formattedData = {
             subjectName: data.subject,
             standard: data.standard,
           };
-        
-          console.log(formattedData);  
+         
 
          try {
             setIsLoading(true)

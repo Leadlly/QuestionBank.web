@@ -36,7 +36,6 @@ const CreateChapter = () => {
     const handleFormSubmit = async(event) => {
         event.preventDefault();
       
-        console.log("inside the function")
         const formData = new FormData(event.target);
         const data = {};
       
@@ -52,7 +51,6 @@ const CreateChapter = () => {
           }
         }
       
-        console.log(data, "===> data")
 
         const formattedData = {
             subjectName: data.subject,
@@ -64,7 +62,6 @@ const CreateChapter = () => {
             ]
           };
         
-          console.log(formattedData);  
 
          try {
             setIsLoading(true)

@@ -16,7 +16,6 @@ function App() {
  
   const {isAuthenticated, setIsAuthenticated, setProfile} = useContext(Context)
 
-  console.log(isAuthenticated)
   useEffect(() =>{
     (async() => {
      try {

@@ -50,7 +50,6 @@ const CreateTopic = () => {
     const handleFormSubmit = async(event) => {
         event.preventDefault();
       
-        console.log("inside the function")
         const formData = new FormData(event.target);
         const data = {};
       
@@ -66,7 +65,6 @@ const CreateTopic = () => {
           }
         }
       
-        console.log(data, "===> data")
 
         const formattedData = {
             subjectName: data.subject,
@@ -75,7 +73,6 @@ const CreateTopic = () => {
             topics: [data.topic]
           };
         
-          console.log(formattedData);  
 
          try {
             setIsLoading(true)

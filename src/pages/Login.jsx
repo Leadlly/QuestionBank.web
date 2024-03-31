@@ -40,7 +40,6 @@ const Login = () => {
     }
   };
 
-  // console.log(isAuthenticated, "auth2")
   if (isAuthenticated) return <Navigate to={"/"} />;
 
   return (

@@ -71,7 +71,6 @@ const CreateQuestion = () => {
    
         event.preventDefault();
         
-        console.log("inside the function")
         const formData = new FormData(event.target);
         const data = {};
       
@@ -87,7 +86,6 @@ const CreateQuestion = () => {
           }
         }
       
-        console.log(data, "===> data")
 
         const formattedData = {
             question: data.question,
@@ -102,7 +100,6 @@ const CreateQuestion = () => {
             level: data.level
           };
         
-          console.log(formattedData);  
 
          try {
           setIsLoading(true)
