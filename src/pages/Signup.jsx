@@ -72,7 +72,7 @@ const SignUp = () => {
             onChange={(e) => setPassword(e.target.value)}
           />
           <input type="checkbox" id="" />
-          {isLoading ? <input type="submit" disabled value="Login" /> :  <input type="submit" id="" value="Login" />}
+          {isLoading ? <input type="submit" disabled value="SignUp" /> :  <input type="submit" id="" value="SignUp" />}
           <p>
             Already have account? <Link to="/">Login</Link>
           </p>
