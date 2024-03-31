@@ -1,0 +1,42 @@
+
+
+@mixin flex {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#signin_page {
+  @include flex;
+  // border: 2px solid red;
+  height: 90vh;
+}
+.signin-box {
+  @include flex;
+  flex-direction: column;
+  border: 1px solid rgb(231, 231, 231);
+  padding: 20px;
+  //    max-width: 600px;
+  width: 400px;
+  
+
+  form {
+    @include flex;
+    flex-direction: column;
+    border-bottom: 1px solid rgb(212, 212, 212);
+    width: 80%;
+    padding: 20px 10px;
+    input {
+      padding: 10px 10px;
+      width: 90%;
+      margin: 5px;
+   color: black;
+      outline: none;
+      &[type="submit"] {
+        background-color: rgb(19, 167, 130);
+        color: white;
+        cursor: pointer;
+      }
+    }
+  }
+}
