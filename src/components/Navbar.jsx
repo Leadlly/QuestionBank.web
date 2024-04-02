@@ -66,6 +66,8 @@ const Navbar = () => {
                 >
                   Home
                 </Link>
+                {profile.role === 'admin' && 
+                <>
                 <Link
                   to="/subject"
                   className="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium"
@@ -84,6 +86,8 @@ const Navbar = () => {
                 >
                   Topic
                 </Link>
+                </>
+                }
               </div>
             </div>
           </div>
