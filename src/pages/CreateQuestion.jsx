@@ -29,6 +29,10 @@ const CreateQuestion = () => {
     }
   };
 
+  useEffect(() => {
+    fetchUser()
+  }, [])
+
   const getSubject = async (standard) => {
     try {
       const { data } = await axios.get(
@@ -139,7 +143,7 @@ const CreateQuestion = () => {
 
   return (
     <main className=" p-4 ">
-      <h1 className="text-center m-10">Question Bank leadlly</h1>
+      <h1 className="text-center m-10">Create Questions</h1>
       <form className="max-w-md mx-auto" onSubmit={handleFormSubmit}>
         <div className="relative z-0 w-full mb-5 group">
           <select
