@@ -1,13 +1,15 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
-import './index.css'
-import { createContext, useState } from 'react'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.jsx";
+import "./index.css";
+import { createContext, useState } from "react";
 
+export const server = import.meta.env.VITE_QUESTION_BANK_API;
 
-export const server = import.meta.env.VITE_QUESTION_BANK_API
-
-export const Context = createContext({ isAuthenticated: false, isLoading: false });
+export const Context = createContext({
+  isAuthenticated: false,
+  isLoading: false,
+});
 const Appwrapper = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,8 +31,8 @@ const Appwrapper = () => {
   );
 };
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Appwrapper />
   </React.StrictMode>,
-)
+);

@@ -27,7 +27,7 @@ const Login = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          withCredentials: true
+          withCredentials: true,
         },
       );
       toast.success(data.message);
@@ -45,37 +45,40 @@ const Login = () => {
   return (
     <>
       <div id="signin_page">
-      <div className="signin-box">
-        <h2>Welcome to leadlly</h2>
-        <form onSubmit={handleLogin}>
-          <input
-            type="email"
-            placeholder="Enter you email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Enter you password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <input type="checkbox" id="" />
-          {isLoading ? <input type="submit" disabled value="Login" /> :  <input type="submit" id="" value="Login" />}
-          <p>
-            Didnt have account? <Link to="/signup">SignUp</Link>
-          </p>
-        </form>
+        <div className="signin-box">
+          <h2>Welcome to leadlly</h2>
+          <form onSubmit={handleLogin}>
+            <input
+              type="email"
+              placeholder="Enter you email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <input
+              type="password"
+              placeholder="Enter you password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <input type="checkbox" id="" />
+            {isLoading ? (
+              <input type="submit" disabled value="Login" />
+            ) : (
+              <input type="submit" id="" value="Login" />
+            )}
+            <p>
+              Didnt have account? <Link to="/signup">SignUp</Link>
+            </p>
+          </form>
+        </div>
       </div>
-    </div>
     </>
   );
 };
 
 export default Login;
-
 
 // import React, { useState } from "react";
 // import { Link, Navigate } from "react-router-dom";
