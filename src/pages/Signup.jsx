@@ -40,7 +40,8 @@ const SignUp = () => {
       setPassword("");
       //   setIsAuthenticated(true);
     } catch (error) {
-      toast.error(error.response.data.message);
+      
+      toast.error(error.response.data.message || "Something went wrong");
       //   setIsAuthenticated(false);
       setIsLoading(false);
     }
@@ -72,7 +73,7 @@ const SignUp = () => {
               onChange={(e) => setPassword(e.target.value)}
             />
             <input type="checkbox" id="" />
-            {isLoading ? (
+            {isLoading === true ? (
               <input type="submit" disabled value="SignUp" />
             ) : (
               <input type="submit" id="" value="SignUp" />

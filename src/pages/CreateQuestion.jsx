@@ -17,6 +17,10 @@ const CreateQuestion = () => {
   const [topic, setTopic] = useState();
   const [topicList, setTopicList] = useState();
 
+  const [options, setOptions] = useState(['']);
+  const [correctOptions, setCorrectOptions] = useState(['']);
+  // console.log(options)
+
   const fetchUser = async () => {
     try {
       // Let's say we're fetching data from an API
@@ -75,17 +79,48 @@ const CreateQuestion = () => {
     }
   };
 
+
+
+    // Function to handle input change
+    const handleInputChange = (index, event) => {
+      const newOptions = [...options]; 
+      newOptions[index] = event.target.value; 
+
+      if (index === options.length - 1 && event.target.value !== '' && options.length < 4) {
+        newOptions.push(''); // Add another empty option to the array
+      }
+      setOptions(newOptions); 
+    };
+  
+    // Function to add a new input field (option)
+    const addOption = () => {
+      setOptions([...options, '']); 
+    };
+
+    const handleSelectionChange = (index, event) => {
+      const newCorrectOptions = [...correctOptions];
+      newCorrectOptions[index] = event.target.value;
+      setCorrectOptions(newCorrectOptions);
+    };
+  
+    // Add new select for correct option
+    const addCorrectOption = () => {
+      if (correctOptions.length < options.length) {
+        setCorrectOptions([...correctOptions, '']);
+      }
+    };
+
   const resetFields = (form) => {
     const questionInput = form.querySelector('[name="question"]');
     if (questionInput) {
       questionInput.value = "";
     }
 
-    const optionInputs = form.querySelectorAll('[name^="option"]');
-    optionInputs.forEach((input) => {
-      input.value = "";
-    });
+    setOptions([''])
+    setCorrectOptions([''])
   };
+
+
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
@@ -105,11 +140,12 @@ const CreateQuestion = () => {
       }
     }
 
+    console.log(data)
     const formattedData = {
       question: data.question,
       options: {
-        all: data.option.map((el) => el),
-        correct: [data.correct_option],
+        all: options,
+        correct: correctOptions,
       },
       standard: data.standard,
       subject: data.subject,
@@ -117,6 +153,8 @@ const CreateQuestion = () => {
       topic: data.topic,
       level: data.level,
     };
+
+    console.log(formattedData)
 
     try {
       setIsLoading(true);
@@ -136,10 +174,13 @@ const CreateQuestion = () => {
       fetchUser();
     } catch (error) {
       setIsLoading(false);
-      toast.error(error.response.data.message);
+      toast.error(error.response.data.message || "Something went wrong");
     }
     resetFields(event.target);
   };
+
+
+  
 
   return (
     <main className=" p-4 ">
@@ -299,96 +340,63 @@ const CreateQuestion = () => {
             Add Questions
           </label>
         </div>
-        <div className="grid md:grid-cols-2 md:gap-6">
-          <div className="relative z-0 w-full mb-5 group">
-            <input
-              type="text"
-              name="option"
-              id="floating_first_name"
-              className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-              placeholder=" "
-              required
-            />
-            <label
-              htmlFor="option"
-              className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
-            >
-              Option 1
-            </label>
-          </div>
-          <div className="relative z-0 w-full mb-5 group">
-            <input
-              type="text"
-              name="option"
-              id="option"
-              className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-              placeholder=" "
-              required
-            />
-            <label
-              htmlFor="option"
-              className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
-            >
-              Option 2
-            </label>
-          </div>
-          <div className="relative z-0 w-full mb-5 group">
-            <input
-              type="text"
-              name="option"
-              id="option"
-              className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-              placeholder=" "
-              required
-            />
-            <label
-              htmlFor="option"
-              className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
-            >
-              Option 3
-            </label>
-          </div>
-          <div className="relative z-0 w-full mb-5 group">
-            <input
-              type="text"
-              name="option"
-              id="option"
-              className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-              placeholder=" "
-              required
-            />
-            <label
-              htmlFor="option"
-              className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
-            >
-              Option 4
-            </label>
-          </div>
-          <div
-            className="border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
-            //   onClick={}
+       {options.map((option, index) => (
+        <div key={index} className="relative z-0 w-full mb-5 group">
+          <input
+            type="text"
+            name={`option${index}`}
+            value={option}
+            onChange={(e) => handleInputChange(index, e)}
+            className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+            placeholder=" "
+          />
+          <label
+            htmlFor={`option${index}`}
+            className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
           >
-            Add more options
-          </div>
+            Option {index + 1}
+          </label>
         </div>
-        <div className="grid md:grid-cols-2 md:gap-6">
-          <div className="relative z-0 w-full mb-5 group">
-            <input
-              type="text"
-              name="correct_option"
-              id="correct_option"
-              className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-              placeholder=" "
-              required
-            />
-            <label
-              htmlFor="correct_option"
-              className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
-            >
-              Correct Option
-            </label>
-          </div>
+      ))}
+      <div
+        className="border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
+        onClick={addOption}
+      >
+        Add more options
+      </div>
+  
+         {correctOptions.map((correctOption, index) => (
+        <div key={index} className="relative z-0 w-full mb-5 group">
+          <select
+            name={`correct_option_${index}`}
+            value={correctOption}
+            onChange={(e) => handleSelectionChange(index, e)}
+            className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+          >
+            <option value="" disabled>
+              Select Correct Option
+            </option>
+            {options.filter(opt => opt).map((name, optIndex) => (
+              <option key={optIndex} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <label
+            htmlFor={`correct_option_${index}`}
+            className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+          >
+            Correct Option
+          </label>
         </div>
+      ))}
+
+      <div
+        className="border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
+        onClick={addCorrectOption}
+      >
+        Add More Correct Options
+      </div>
         {isLoading ? (
           <button
             type="submit"

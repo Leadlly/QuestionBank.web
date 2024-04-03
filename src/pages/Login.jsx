@@ -28,13 +28,13 @@ const Login = () => {
             "Content-Type": "application/json",
           },
           withCredentials: true,
-        },
+        }
       );
       toast.success(data.message);
       setIsLoading(false);
       setIsAuthenticated(true);
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response.data.message || "Something went wrong");
       setIsLoading(false);
       setIsAuthenticated(false);
     }
@@ -63,8 +63,14 @@ const Login = () => {
               required
             />
             <input type="checkbox" id="" />
-            {isLoading ? (
-              <input type="submit" disabled value="Login" />
+            {isLoading === true ? (
+              <input
+                type="submit"
+                disabled
+                id=""
+                value="Login"
+                className="bg-slate-600"
+              />
             ) : (
               <input type="submit" id="" value="Login" />
             )}
