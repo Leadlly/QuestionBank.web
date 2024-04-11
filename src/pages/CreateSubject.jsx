@@ -1,7 +1,9 @@
-import React, { useEffect, useState, useContext } from "react";
+import {  useState, useContext } from "react";
 import axios from "axios";
 import { server, Context } from "../main";
 import toast from "react-hot-toast";
+import {Select} from 'antd'
+import { standards } from "../components/Options";
 
 const CreateSubject = () => {
   const { setIsLoading, isLoading } = useContext(Context);
@@ -33,7 +35,7 @@ const CreateSubject = () => {
 
     const formattedData = {
       subjectName: data.subject,
-      standard: data.standard,
+      standard: standard,
     };
 
     try {
@@ -56,6 +58,7 @@ const CreateSubject = () => {
       toast.error(error.response.data.message || "Something went wrong");
     }
 
+    setStandard(standard)
     resetFields(event.target);
   };
 
@@ -63,25 +66,29 @@ const CreateSubject = () => {
     <main className=" p-4 ">
       <h1 className="text-center m-10">Create Subject</h1>
       <form className="max-w-md mx-auto" onSubmit={handleFormSubmit}>
-        <div className="relative z-0 w-full mb-5 group">
-          <select
-            name="standard"
-            id="standard"
-            className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-            onChange={(e) => setStandard(e.target.value)}
-            required
-          >
-            <option value="" disabled selected>
-              Select standard
-            </option>
-            <option value="10">Class 10</option>
-            <option value="11">Class 11</option>
-            <option value="12">Class 12</option>
-            <option value="12+">Class 12+</option>
-          </select>
+        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+           
+          <Select
+            showSearch
+            style={{ width: 200 }}
+            placeholder="Select Standard"
+            optionFilterProp="children"
+            filterOption={(input, option) =>
+              (option?.label ?? "").includes(input)
+            }
+            // filterSort={(optionA, optionB) =>
+            //   (optionA?.label ?? "")
+            //     .toLowerCase()
+            //     .localeCompare((optionB?.label ?? "").toLowerCase())
+            // }
+            value={standard}
+            onChange={(value) => {
+              setStandard(value);
+            }}
+            options={standards}
+          />
           <label
-            htmlFor="standard"
-            className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+            className=" text-gray-500 text-sm dark:text-gray-400 "
           >
             Standard
           </label>
@@ -104,12 +111,12 @@ const CreateSubject = () => {
           </label>
         </div>
 
-        <div
+        {/* <div
           className="border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
           //   onClick={}
         >
           Add more subjects
-        </div>
+        </div> */}
         {/* </div> */}
 
         {isLoading ? (
