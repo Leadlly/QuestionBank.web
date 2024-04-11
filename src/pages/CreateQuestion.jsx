@@ -26,6 +26,8 @@ const CreateQuestion = () => {
 
   const [options, setOptions] = useState([""]);
   const [correctOptions, setCorrectOptions] = useState([""]);
+
+  const [nestedSubtopics, setNestedSubtopics] = useState({});
   // console.log(options)
 
   const fetchUser = async () => {
@@ -95,8 +97,19 @@ const CreateQuestion = () => {
           withCredentials: true,
         }
       );
-      console.log(data)
       setSubTopicList(data.subtopics);
+      // If nested subtopics exist, initialize an empty object for them
+      if (data.subtopics && data.subtopics.length > 0) {
+        const nestedSubtopicsObj = {};
+        data.subtopics.forEach((subtopic) => {
+          if (subtopic.subtopics && subtopic.subtopics.length > 0) {
+            nestedSubtopicsObj[subtopic.name] = '';
+          }
+        });
+        setNestedSubtopics(nestedSubtopicsObj);
+   
+      }
+      setSubTopic('')
     } catch (error) {
       console.log(error);
     }
@@ -175,7 +188,7 @@ const CreateQuestion = () => {
       subject: subject,
       chapter: chapter,
       topic: topic,
-      subtopics: [{name: subTopic, subtopics: []}],
+      subtopics: subTopic ? [{ name: subTopic, subtopics: [] }] : [],
       level: level,
     };
 
@@ -332,37 +345,69 @@ const CreateQuestion = () => {
             Topic
           </label>
         </div>
-       
-        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+        {
+          subTopicList && subTopicList.length > 0 &&  <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
           
-            <Select
-            showSearch
-            style={{ width: 200 }}
-            placeholder="Select Subtopic"
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option.label.toLowerCase().includes(input.toLowerCase())
-            }
-            filterSort={(optionA, optionB) =>
-              optionA.label.toLowerCase().localeCompare(optionB.label.toLowerCase())
-            }
-            onChange={(value) => {
-              // setChapter(value);
-              setSubTopic(value);
-            }}
-            value={subTopic}
-            options={
-              subTopicList &&
-              subTopicList?.map((el) => ({ value: el.name, label: el.name }))
-            }
-            required
-          />
-          <label
-            className=" text-gray-500 text-sm dark:text-gray-400 "
-          >
-            Subtopic
-          </label>
-        </div>
+          <Select
+          showSearch
+          style={{ width: 200 }}
+          placeholder="Select Subtopic"
+          optionFilterProp="children"
+          filterOption={(input, option) =>
+            option.label.toLowerCase().includes(input.toLowerCase())
+          }
+          filterSort={(optionA, optionB) =>
+            optionA.label.toLowerCase().localeCompare(optionB.label.toLowerCase())
+          }
+          onChange={(value) => {
+            // setChapter(value);
+            setSubTopic(value);
+          }}
+          value={subTopic}
+          options={
+            subTopicList &&
+            subTopicList?.map((el) => ({ value: el.name, label: el.name }))
+          }
+        />
+        <label
+          className=" text-gray-500 text-sm dark:text-gray-400 "
+        >
+          Subtopic
+        </label>
+      </div>
+        }
+       
+        {Object.entries(nestedSubtopics).map(([subtopicName, nestedSubtopic]) => (
+  <div key={subtopicName} className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+    <Select
+      showSearch
+      style={{ width: 200 }}
+      placeholder={`Select ${subtopicName} Subtopic`}
+      optionFilterProp="children"
+      filterOption={(input, option) =>
+        option.label.toLowerCase().includes(input.toLowerCase())
+      }
+      filterSort={(optionA, optionB) =>
+        optionA.label.toLowerCase().localeCompare(optionB.label.toLowerCase())
+      }
+      onChange={(value) => {
+        const updatedNestedSubtopics = { ...nestedSubtopics };
+        updatedNestedSubtopics[subtopicName] = value;
+        setNestedSubtopics(updatedNestedSubtopics);
+      }}
+      value={nestedSubtopic}
+      options={
+        subTopicList &&
+        subTopicList.map((el) => ({ value: el.name, label: el.name }))
+      }
+    />
+    <label
+      className="text-gray-500 text-sm dark:text-gray-400"
+    >
+      {subtopicName} Subtopic
+    </label>
+  </div>
+))}
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
           
            <Select
