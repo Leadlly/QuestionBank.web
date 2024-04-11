@@ -10,6 +10,7 @@ import Navbar from "./components/Navbar";
 import CreateChapter from "./pages/CreateChapter";
 import CreateTopic from "./pages/CreateTopic";
 import CreateSubject from "./pages/CreateSubject";
+import CreateSubtopic from "./pages/CreateSubtopic";
 import Requests from "./pages/Requests";
 import Profile from "./pages/Profile";
 
@@ -51,6 +52,11 @@ function App() {
           exact
           path="/topic"
           element={isAuthenticated ? <CreateTopic /> : <Login />}
+        />
+        <Route
+          exact
+          path="/subtopic"
+          element={isAuthenticated ? <CreateSubtopic /> : <Login />}
         />
         <Route
           exact

@@ -1,9 +1,10 @@
-import React, { useContext } from "react";
-import { Link } from "react-router-dom";
+import { useContext } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Context } from "../main";
 
 const Navbar = () => {
   const { isAuthenticated, profile } = useContext(Context);
+  const location = useLocation();
   return (
     <nav className="bg-gray-800">
       <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
@@ -61,30 +62,42 @@ const Navbar = () => {
               <div className="flex space-x-4">
                 <Link
                   to="/"
-                  className="bg-gray-900 text-white rounded-md px-3 py-2 text-sm font-medium"
+                  className={`text-white hover:bg-gray-700 rounded-md px-3 py-2 text-sm font-medium ${
+                    location.pathname === "/" ? "bg-gray-900" : ""
+                  }`}
                   aria-current="page"
                 >
                   Home
                 </Link>
-                {profile.role === 'admin' && 
+                {profile?.role === 'admin' && 
                 <>
                 <Link
                   to="/subject"
-                  className="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium"
-                >
+                  className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
+                    location.pathname === "/subject" ? "bg-gray-900" : ""
+                  }`}                >
                   Subject
                 </Link>
                 <Link
                   to="/chapter"
-                  className="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium"
-                >
+                  className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
+                    location.pathname === "/chapter" ? "bg-gray-900" : ""
+                  }`}                >
                   Chapter
                 </Link>
                 <Link
                   to="/topic"
-                  className="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium"
-                >
+                  className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
+                    location.pathname === "/topic" ? "bg-gray-900" : ""
+                  }`}                >
                   Topic
+                </Link>
+                <Link
+                  to="/subtopic"
+                  className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
+                    location.pathname === "/subtopic" ? "bg-gray-900" : ""
+                  }`}                >
+                  Sub Topic
                 </Link>
                 </>
                 }
@@ -191,6 +204,12 @@ const Navbar = () => {
             className="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
           >
             Topic
+          </Link>
+          <Link
+            to="/subtopic"
+            className="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+          >
+            Sub Topic
           </Link>
         </div>
       </div>
