@@ -30,9 +30,11 @@ const Appwrapper = () => {
     </Context.Provider>
   );
 };
-
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <Appwrapper />
-  </React.StrictMode>,
-);
+const rootContainer = document.getElementById("root");
+if (!rootContainer.hasChildNodes()) {
+  ReactDOM.createRoot(rootContainer).render(
+    <React.StrictMode>
+      <Appwrapper />
+    </React.StrictMode>
+  );
+}

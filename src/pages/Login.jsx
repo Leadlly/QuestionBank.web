@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import { useState, useContext } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import "../styles/login.scss";
@@ -62,17 +62,16 @@ const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <input type="checkbox" id="" />
+            <input type="checkbox" />
             {isLoading === true ? (
               <input
                 type="submit"
                 disabled
-                id=""
                 value="Login"
                 className="bg-slate-600"
               />
             ) : (
-              <input type="submit" id="" value="Login" />
+              <input type="submit" value="Login" />
             )}
             <p>
               Didnt have account? <Link to="/signup">SignUp</Link>

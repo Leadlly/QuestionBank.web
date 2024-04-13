@@ -27,13 +27,61 @@
       padding: 10px 10px;
       width: 90%;
       margin: 5px;
-      color: black;
+      color: rgb(255, 253, 253);
       outline: none;
       &[type="submit"] {
-        background-color: rgb(19, 167, 130);
-        color: white;
+        background-color: rgb(3, 12, 10);
+        color: rgb(0, 0, 0);
         cursor: pointer;
       }
+    }
+  }
+}
+.question_box{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+
+  .box{
+    background-color: #0b1d39;
+    width: 35rem;
+  }
+  .heading{
+    overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  }
+
+  .options {
+    display: flex;
+    align-items: center;
+
+    .option {
+      margin: 8px;
+
+      
+      .option input[type="radio"] {
+        display: none; 
+        
+      }
+      span{
+          margin-left: 8px;
+      }
+      .option-text {
+        display: inline-block;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+
+        .option-text:hover {
+          background-color: #f0f0f0;
+        }
+      }
+      .option input[type="radio"]:checked + .option-text {
+              background-color: #007bff;
+              color: white;
+        }
     }
   }
 }
