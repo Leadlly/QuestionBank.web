@@ -74,7 +74,7 @@ const CreateChapter = () => {
 
   return (
     <main className=" p-4 ">
-      <h1 className="text-center m-10 text-gray-600">Create Chapter</h1>
+      <h1 className="text-center m-10 text-white-600">Create Chapter</h1>
       <form className="max-w-md mx-auto" onSubmit={handleFormSubmit}>
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
           
@@ -99,7 +99,7 @@ const CreateChapter = () => {
             options={standards}
           />
           <label
-            className=" text-gray-500 text-sm dark:text-gray-400 "
+            className=" text-white-500 text-sm dark:text-white-400 "
           >
             Standard
           </label>
@@ -130,7 +130,7 @@ const CreateChapter = () => {
 
           <label
             htmlFor="subject"
-            className=" text-gray-500 text-sm dark:text-gray-400 "
+            className=" text-white-500 text-sm dark:text-white-400 "
           >
             Subject
           </label>
@@ -146,14 +146,14 @@ const CreateChapter = () => {
               type="text"
               name={`chapter-${index}`}
               id={`chapter-${index}`}
-              className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-gray-500 focus:outline-none focus:ring-0 focus:border-gray-600 peer"
+              className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
               placeholder=" "
               value={chapter.name}
               onChange={(e) => handleChapterChange(index, e.target.value)}
             />
               <label
             htmlFor="chapter"
-            className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-gray-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+            className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
           >
             Add Chapter
           </label>
@@ -162,7 +162,7 @@ const CreateChapter = () => {
         </div>
 
         <div
-          className="border text-gray-600 mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
+          className="border text-white-600 mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
           onClick={handleAddChapter}
         >
           Add more chapters

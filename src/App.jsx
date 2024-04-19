@@ -21,7 +21,6 @@ function App() {
   useEffect(() => {
     (async () => {
       try {
-        // Let's say we're fetching data from an API
         const { data } = await axios.get(`${server}/api/user/profile`, {
           withCredentials: true,
         });
@@ -76,8 +75,9 @@ function App() {
         <Route
           exact
           path="/signup"
-          element={isAuthenticated ? <CreateQuestion /> : <SignUp />}
+          element={ <SignUp />}
         />
+       
       </Routes>
       <Toaster />
     </Router>

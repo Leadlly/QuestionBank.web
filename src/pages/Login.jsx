@@ -5,7 +5,6 @@ import "../styles/login.scss";
 import { Link, Navigate } from "react-router-dom";
 import { server } from "../main";
 import { Context } from "../main";
-// import Spinner from "./Spinner";
 
 const Login = () => {
   const [email, setEmail] = useState("");

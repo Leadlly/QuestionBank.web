@@ -146,7 +146,7 @@ const CreateSubtopic = () => {
             options={standards}
           />
           <label
-            className=" text-gray-500 text-sm dark:text-gray-400 "
+            className=" text-white-500 text-sm dark:text-white-400 "
           >
             Standard
           </label>
@@ -178,7 +178,7 @@ const CreateSubtopic = () => {
 
           <label
             htmlFor="subject"
-            className=" text-gray-500 text-sm dark:text-gray-400 "
+            className=" text-white-500 text-sm dark:text-white-400 "
           >
             Subject
           </label>
@@ -209,7 +209,7 @@ const CreateSubtopic = () => {
           />
           <label
             htmlFor="chapter"
-            className=" text-gray-500 text-sm dark:text-gray-400 "
+            className=" text-white-500 text-sm dark:text-white-400 "
           >
             Chapter
           </label>
@@ -237,7 +237,7 @@ const CreateSubtopic = () => {
             required
           />
           <label
-            className=" text-gray-500 text-sm dark:text-gray-400 "
+            className=" text-white-500 text-sm dark:text-white-400 "
           >
             Topic
           </label>
@@ -251,7 +251,7 @@ const CreateSubtopic = () => {
       type="text"
       name="subtopic"
       id={`subtopic-${index}`}
-      className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-gray-500 focus:outline-none focus:ring-0 focus:border-gray-600 peer"
+      className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
       placeholder=" "
       value={subtopic.name}
       onChange={(e) => {
@@ -263,7 +263,7 @@ const CreateSubtopic = () => {
     />
     <label
       htmlFor={`subtopic-${index}`}
-      className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-gray-600 peer-focus:dark:text-gray-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+      className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
     >
       Add Subtopic
     </label>
@@ -287,7 +287,7 @@ const CreateSubtopic = () => {
         ) : (
           <button
             type="submit"
-            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-gray-800"
+            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-white-800"
           >
             Submit
           </button>

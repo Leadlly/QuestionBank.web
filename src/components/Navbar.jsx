@@ -1,19 +1,52 @@
 import { useContext, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 import { Context } from "../main";
+import { Button } from "antd";
+import { server } from "../main";
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isAuthenticated, profile } = useContext(Context);
+  const { isAuthenticated, profile, setProfile } = useContext(Context);
   const location = useLocation();
+  const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Function to handle the logout process
+const handleLogout = async () => {
+  try {
+    const { data } = await axios.get(
+      `${server}/api/user/logout`,
+     
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        withCredentials: true,
+      }
+    );
+
+    if (data.success) {
+      setProfile();
+      navigate("/signup");
+    } else {
+      console.error("Logout failed:", data.message);
+    }
+  } catch (error) {
+    console.error("Failed to log out:", error);
+  }
+};
+
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+
   return (
     <nav className="bg-gray-800">
       <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
           <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
+            {/* Mobile menu button */}
             <button
               type="button"
               onClick={toggleMenu}
@@ -21,7 +54,6 @@ const Navbar = () => {
               aria-controls="mobile-menu"
               aria-expanded={isMenuOpen}
             >
-              <span className="absolute -inset-0.5"></span>
               <span className="sr-only">Open main menu</span>
 
               <svg
@@ -41,6 +73,7 @@ const Navbar = () => {
             </button>
           </div>
 
+          {/* Logo and navigation links */}
           <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
             <div className="flex flex-shrink-0 items-center">
               <img
@@ -61,42 +94,54 @@ const Navbar = () => {
                   Home
                 </Link>
 
-
-                {profile?.role === 'admin' && 
-                <>
-                <Link
-                  to="/subject"
-                  className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
-                    location.pathname === "/subject" ? "bg-gray-900" : ""
-                  }`}                >
-                  Subject
-                </Link>
-                <Link
-                  to="/chapter"
-                  className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
-                    location.pathname === "/chapter" ? "bg-gray-900" : ""
-                  }`}                >
-                  Chapter
-                </Link>
-                <Link
-                  to="/topic"
-                  className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
-                    location.pathname === "/topic" ? "bg-gray-900" : ""
-                  }`}                >
-                  Topic
-                </Link>
-                <Link
-                  to="/subtopic"
-                  className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
-                    location.pathname === "/subtopic" ? "bg-gray-900" : ""
-                  }`}                >
-                  Sub Topic
-                </Link>
-                </>
-                }
+                {/* Conditional links for admin users */}
+                {profile?.role === "admin" && (
+                  <>
+                    <Link
+                      to="/subject"
+                      className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
+                        location.pathname === "/subject" ? "bg-gray-900" : ""
+                      }`}
+                    >
+                      Subject
+                    </Link>
+                    <Link
+                      to="/chapter"
+                      className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
+                        location.pathname === "/chapter" ? "bg-gray-900" : ""
+                      }`}
+                    >
+                      Chapter
+                    </Link>
+                    <Link
+                      to="/topic"
+                      className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
+                        location.pathname === "/topic" ? "bg-gray-900" : ""
+                      }`}
+                    >
+                      Topic
+                    </Link>
+                    <Link
+                      to="/subtopic"
+                      className={`text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium ${
+                        location.pathname === "/subtopic" ? "bg-gray-900" : ""
+                      }`}
+                    >
+                      Sub Topic
+                    </Link> 
+                    <Button
+                      className={`text-black-300 hover:bg-gray-700 hover:text-white rounded-md px-5 py-0 text-sm font-medium `}
+                      onClick={handleLogout}
+                    >
+                      Log Out
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Notification button and user menu */}
           <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
             {profile?.role === "admin" && (
               <Link to="/request">
@@ -104,7 +149,6 @@ const Navbar = () => {
                   type="button"
                   className="relative rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
                 >
-                  <span className="absolute -inset-1.5"></span>
                   <span className="sr-only">View notifications</span>
                   <svg
                     className="h-6 w-6"
@@ -120,17 +164,15 @@ const Navbar = () => {
                       d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
                     />
                   </svg>
-                  {profile.requests.filter(
-                    (request) => request.status === "Not Verified",
+                  {profile?.requests?.filter(
+                    (request) => request.status === "Not Verified"
                   ).length > 0 && (
-                    <span className="bg-red-500 text-white text-[13px] px-1  rounded-[100%] absolute my-[-10px]">
-                      {
-                        profile.requests.filter(
-                          (request) => request.status === "Not Verified",
-                        ).length
-                      }
+                    <span className="bg-red-500 text-white text-[13px] px-1 rounded-[100%] absolute my-[-10px]">
+                      {profile.requests.filter(
+                        (request) => request.status === "Not Verified"
+                      ).length}
                     </span>
-                  )}{" "}
+                  )}
                 </button>
               </Link>
             )}
@@ -145,7 +187,6 @@ const Navbar = () => {
                     aria-expanded="false"
                     aria-haspopup="true"
                   >
-                    <span className="absolute -inset-1.5"></span>
                     <span className="sr-only">Open user menu</span>
                     {isAuthenticated ? (
                       <img
@@ -159,18 +200,12 @@ const Navbar = () => {
                   </button>
                 </Link>
               </div>
-
-              {/* <div className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
-    
-            <a href="#" className="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="user-menu-item-0">Your Profile</a>
-            <a href="#" className="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="user-menu-item-1">Settings</a>
-            <a href="#" className="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="user-menu-item-2">Sign out</a>
-          </div> */}
             </div>
           </div>
         </div>
       </div>
 
+      {/* Mobile menu */}
       <div
         className={`sm:hidden ${isMenuOpen ? "" : "hidden"}`}
         id="mobile-menu"
@@ -185,30 +220,42 @@ const Navbar = () => {
           >
             Home
           </Link>
-          <Link
-            to="/subject"
-            className="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-          >
-            Subject
-          </Link>
-          <Link
-            to="/chapter"
-            className="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-          >
-            Chapter
-          </Link>
-          <Link
-            to="/topic"
-            className="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-          >
-            Topic
-          </Link>
-          <Link
-            to="/subtopic"
-            className="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-          >
-            Sub Topic
-          </Link>
+
+          {/* Conditional mobile menu links for admin users */}
+          {profile?.role === "admin" && (
+            <>
+              <Link
+                to="/subject"
+                className="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+              >
+                Subject
+              </Link>
+              <Link
+                to="/chapter"
+                className="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+              >
+                Chapter
+              </Link>
+              <Link
+                to="/topic"
+                className="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+              >
+                Topic
+              </Link>
+              <Link
+                to="/subtopic"
+                className="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+              >
+                Sub Topic
+              </Link>
+              <Button
+                onClick={handleLogout}
+                className="text-black-300 hover:bg-gray-700 hover:text-white rounded-md px-5 py-0 text-sm font-medium"
+              >
+                Log Out
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </nav>

@@ -1,5 +1,5 @@
-import React, { useState, useContext } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { useState, useContext } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import "../styles/login.scss";
@@ -12,7 +12,7 @@ const SignUp = () => {
   const [password, setPassword] = useState("");
 
   const [message, setMesasge] = useState("");
-  const { isAuthenticated, setIsAuthenticated, isLoading, setIsLoading } =
+  const { isLoading, setIsLoading } =
     useContext(Context);
   const handleSignUp = async (e) => {
     e.preventDefault();
