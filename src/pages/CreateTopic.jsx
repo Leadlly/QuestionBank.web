@@ -1,82 +1,59 @@
-import  {  useState, useContext } from "react";
-import axios from "axios";
-import { server, Context } from "../main";
+import { useEffect, useState } from "react";
+// import axios from "axios";
+// import { server } from "../main";
 import toast from "react-hot-toast";
-import {Select} from 'antd'
+import { Select } from "antd";
 import { standards } from "../components/Options";
+import { useDispatch, useSelector } from "react-redux";
+import { createTopic } from "../actions/topicAction";
+import { getSubjects } from "../actions/subjectAction";
+import { getChapters } from "../actions/chapterAction";
 
 const CreateTopic = () => {
-  const { setIsLoading, isLoading } = useContext(Context);
   const [standard, setStandard] = useState();
+  const dispatch = useDispatch();
+    const { isLoading,  } = useSelector((state) => state.topic); 
+
+    const { subjectList } = useSelector((state) => state.getSubject); 
+    const { chapterList } = useSelector((state) => state.getChapter); 
 
   const [subject, setSubject] = useState();
-  const [subjectList, setSubjectList] = useState();
+  // const [subjectList, setSubjectList] = useState();
 
   const [chapter, setChapter] = useState();
-  const [chapterList, setChapterList] = useState();
-  const [topics, setTopics] = useState([{ name: "", subtopics: [] }]); // Array of topics
+  // const [chapterList, setChapterList] = useState();
+  const [topics, setTopics] = useState([{ name: "", subtopics: [] }]); 
 
 
-  const getSubject = async (standard) => {
-    try {
-      const { data } = await axios.get(
-        `${server}/api/get/subject?standard=${standard}`,
-        {
-          withCredentials: true,
-        },
-      );
-      setSubjectList(data.subjectList);
-    } catch (error) {
-      console.log(error);
+  useEffect(() => {
+    if (standard) {
+      dispatch(getSubjects(standard));
     }
-  };
-
-  const getChapters = async (subject) => {
-    try {
-      const { data } = await axios.get(
-        `${server}/api/get/chapter?subjectName=${subject}&standard=${standard}`,
-        {
-          withCredentials: true,
-        },
-      );
-      setChapterList(data.chapters);
-    } catch (error) {
-      console.log(error);
+    if (subject && standard) {
+    dispatch(getChapters(subject, standard))
     }
-  };
+  }, [standard, dispatch, subject])
 
 
- 
+
   const handleFormSubmit = async (event) => {
     event.preventDefault();
 
-     const formattedData = {
+    const formattedData = {
       subjectName: subject,
       standard: standard,
       chapterName: chapter,
-      topics: topics
+      topics: topics,
     };
 
-    try {
-      setIsLoading(true);
-      const response = await axios.post(
-        `${server}/api/create/topic`,
-        formattedData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        },
-      );
-      setIsLoading(false);
-      toast.success(response.data.message);
-    } catch (error) {
-      setIsLoading(false);
-      toast.error(error.response.data.message || "Something went wrong");
-    }
+    dispatch(createTopic(formattedData));
 
-     setTopics([{name: ''}])
+    if (!isLoading) {
+
+      toast.success("Topic added successfully!");
+  }
+
+    setTopics([{ name: "" }]);
   };
 
   const handleTopicChange = (index, value) => {
@@ -93,99 +70,101 @@ const CreateTopic = () => {
     <main className=" p-4 ">
       <h1 className="text-center m-10">Create Topic</h1>
       <form className="max-w-md mx-auto" onSubmit={handleFormSubmit}>
-      <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-         
-         <Select
-           showSearch
-           style={{ width: 200 }}
-           placeholder="Select Standard"
-           optionFilterProp="children"
-           filterOption={(input, option) =>
-             (option?.label ?? "").includes(input)
-           }
-          //  filterSort={(optionA, optionB) =>
-          //    (optionA?.label ?? "")
-          //      .toLowerCase()
-          //      .localeCompare((optionB?.label ?? "").toLowerCase())
-          //  }
-           onChange={(value) => {
-             setStandard(value);
-             getSubject(value);
-           }}
-           options={standards}
-         />
-         <label
-           htmlFor="standard"
-           className=" text-white-500 text-sm dark:text-white-400 "
-         >
-           Subject
-         </label>
-       </div>
+        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+        <Select
+    showSearch
+    style={{ width: 200 }}
+    placeholder="Select Standard"
+    optionFilterProp="children"
+    filterOption={(input, option) =>
+        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+    }
+    onChange={(value) => {
+        setStandard(value);
+        // getSubject(value);
+    }}
+    options={standards}
+/>
 
-       <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-         <Select
-           showSearch
-           style={{ width: 200 }}
-           placeholder="Select Subject"
-           optionFilterProp="children"
-           filterOption={(input, option) =>
-             option.label.toLowerCase().includes(input.toLowerCase())
-           }
-           filterSort={(optionA, optionB) =>
-             optionA.label.toLowerCase().localeCompare(optionB.label.toLowerCase())
-           }
-           onChange={(value) => {
-             setSubject(value);
-             getChapters(value);
-           }}
-           value={subject}
-           options={
-             subjectList &&
-             subjectList.map((name) => ({ value: name, label: name }))
-           }
-           required
-         />
+          <label
+            htmlFor="standard"
+            className=" text-white-500 text-sm dark:text-white-400 "
+          >
+            Standard
+          </label>
+        </div>
 
-         <label
-           htmlFor="subject"
-           className=" text-white-500 text-sm dark:text-white-400 "
-         >
-           Subject
-         </label>
-       </div>
-       <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-        
+        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
           <Select
-           showSearch
-           style={{ width: 200 }}
-           placeholder="Select Chapter"
-           optionFilterProp="children"
-           filterOption={(input, option) =>
-             option.label.toLowerCase().includes(input.toLowerCase())
-           }
-           filterSort={(optionA, optionB) =>
-             optionA.label.toLowerCase().localeCompare(optionB.label.toLowerCase())
-           }
-           onChange={(value) => {
-             setChapter(value);
-           }}
-           value={chapter}
-           options={
-             chapterList &&
-             chapterList?.map((name) => ({ value: name, label: name }))
-           }
-           required
-         />
-         <label
-           htmlFor="chapter"
-           className=" text-white-500 text-sm dark:text-white-400 "
-         >
-           Chapter
-         </label>
-       </div>
+            showSearch
+            style={{ width: 200 }}
+            placeholder="Select Subject"
+            optionFilterProp="children"
+            filterOption={(input, option) =>
+              option.label.toLowerCase().includes(input.toLowerCase())
+            }
+            filterSort={(optionA, optionB) =>
+              optionA.label
+                .toLowerCase()
+                .localeCompare(optionB.label.toLowerCase())
+            }
+            onChange={(value) => {
+              setSubject(value);
+              getChapters(value);
+            }}
+            value={subject}
+            options={
+              subjectList &&
+              subjectList.map((name) => ({ value: name, label: name }))
+            }
+            required
+          />
+
+          <label
+            htmlFor="subject"
+            className=" text-white-500 text-sm dark:text-white-400 "
+          >
+            Subject
+          </label>
+        </div>
+        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+          <Select
+            showSearch
+            style={{ width: 200 }}
+            placeholder="Select Chapter"
+            optionFilterProp="children"
+            filterOption={(input, option) =>
+              option.label.toLowerCase().includes(input.toLowerCase())
+            }
+            filterSort={(optionA, optionB) =>
+              optionA.label
+                .toLowerCase()
+                .localeCompare(optionB.label.toLowerCase())
+            }
+            onChange={(value) => {
+              setChapter(value);
+            }}
+            value={chapter}
+            options={
+              chapterList &&
+              chapterList.map((chapter) => ({
+                value: chapter.name,
+                label: chapter.name,
+                key: chapter._id,
+              }))
+            }
+          />
+
+          <label
+            htmlFor="chapter"
+            className=" text-white-500 text-sm dark:text-white-400 "
+          >
+            Chapter
+          </label>
+        </div>
         <div className="relative z-0 w-full mb-5 group">
-        {topics.map((topic, index) => (
-          <div
+          {topics.map((topic, index) => (
+            <div
             key={index}
             className="relative z-0 w-full mb-5 group flex flex-col-reverse"
           >
@@ -198,15 +177,14 @@ const CreateTopic = () => {
               value={topic.name}
               onChange={(e) => handleTopicChange(index, e.target.value)}
             />
-              <label
-            htmlFor="topic"
-            className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
-          >
-            Add Topic
-          </label>
-          </div>
-        ))}
-       
+            <label
+              htmlFor="topic"
+              className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+            >
+              Add Topic
+            </label>
+            </div>
+          ))}
         </div>
 
         <div

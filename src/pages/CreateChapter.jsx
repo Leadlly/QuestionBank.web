@@ -1,33 +1,28 @@
-import { useState, useContext } from "react";
-import axios from "axios";
-import { server, Context } from "../main";
+import { useEffect, useState } from "react";
+// import axios from "axios";
+// import { server } from "../main";
 import toast from "react-hot-toast";
 import {Select} from 'antd'
 import { standards } from "../components/Options";
+import { useDispatch, useSelector } from "react-redux";
+import { createChapter } from "../actions/chapterAction";
+import { getSubjects } from "../actions/subjectAction";
 
 const CreateChapter = () => {
-  const { setIsLoading, isLoading } = useContext(Context);
   const [standard, setStandard] = useState();
+  const dispatch = useDispatch();
+  const { isLoading  } = useSelector((state) => state.chapter); 
+  const { subjectList} = useSelector((state) => state.getSubject);
 
   const [subject, setSubject] = useState();
-  const [subjectList, setSubjectList] = useState();
-  const [chapters, setChapters] = useState([{ name: "" }]); // Array of chapters
+  const [chapters, setChapters] = useState([{ name: "" }]); 
 
 
-  const getSubject = async (standard) => {
-    try {
-      const { data } = await axios.get(
-        `${server}/api/get/subject?standard=${standard}`,
-        {
-          withCredentials: true,
-        },
-      );
-      setSubjectList(data.subjectList);
-    } catch (error) {
-      console.log(error);
+  useEffect(() => {
+    if (standard) {
+      dispatch(getSubjects(standard));
     }
-  };
-
+  }, [standard, dispatch]);
 
 
 
@@ -39,25 +34,11 @@ const CreateChapter = () => {
       standard: standard,
       chapters: chapters
     };
+    dispatch(createChapter(formattedData))
 
-    try {
-      setIsLoading(true);
-      const response = await axios.post(
-        `${server}/api/create/chapter`,
-        formattedData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        },
-      );
-      setIsLoading(false);
-      toast.success(response.data.message);
-    } catch (error) {
-      setIsLoading(false);
-      toast.error(error.response.data.message || "Something went wrong");
-    }
+    if (!isLoading) {
+      toast.success("Chapter added successfully!");
+  }
 
     setChapters([{name: ""}])
   };
@@ -94,7 +75,7 @@ const CreateChapter = () => {
             value={standard}
             onChange={(value) => {
               setStandard(value);
-              getSubject(value);
+              // getSubjects(value);
             }}
             options={standards}
           />
@@ -167,7 +148,7 @@ const CreateChapter = () => {
         >
           Add more chapters
         </div>
-        {/* </div> */}
+        
 
         {isLoading ? (
           <button

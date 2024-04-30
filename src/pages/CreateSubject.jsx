@@ -1,12 +1,14 @@
-import {  useState, useContext } from "react";
-import axios from "axios";
-import { server, Context } from "../main";
+import {  useState } from "react";
 import toast from "react-hot-toast";
 import {Select} from 'antd'
 import { standards } from "../components/Options";
+import { useDispatch, useSelector } from "react-redux";
+import { createSubject } from "../actions/subjectAction";
 
 const CreateSubject = () => {
-  const { setIsLoading, isLoading } = useContext(Context);
+  const dispatch = useDispatch();
+    const { isLoading } = useSelector((state) => state.createSubject); 
+
   const [standard, setStandard] = useState();
 
   const resetFields = (form) => {
@@ -38,25 +40,11 @@ const CreateSubject = () => {
       standard: standard,
     };
 
-    try {
-      setIsLoading(true);
-      const response = await axios.post(
-        `${server}/api/create/subject`,
-        formattedData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        },
-      );
-      setIsLoading(false);
-      toast.success(response.data.message);
-    } catch (error) {
-      setIsLoading(false);
-     
-      toast.error(error.response.data.message || "Something went wrong");
-    }
+    dispatch(createSubject(formattedData));
+    if (!isLoading) {
+      toast.success("Subject added successfully!");
+      resetFields(event.target);
+  }
 
     setStandard(standard)
     resetFields(event.target);
@@ -76,11 +64,6 @@ const CreateSubject = () => {
             filterOption={(input, option) =>
               (option?.label ?? "").includes(input)
             }
-            // filterSort={(optionA, optionB) =>
-            //   (optionA?.label ?? "")
-            //     .toLowerCase()
-            //     .localeCompare((optionB?.label ?? "").toLowerCase())
-            // }
             value={standard}
             onChange={(value) => {
               setStandard(value);
@@ -111,13 +94,6 @@ const CreateSubject = () => {
           </label>
         </div>
 
-        {/* <div
-          className="border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
-          //   onClick={}
-        >
-          Add more subjects
-        </div> */}
-        {/* </div> */}
 
         {isLoading ? (
           <button

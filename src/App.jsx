@@ -1,11 +1,10 @@
-import { useContext, useEffect } from "react";
+import { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import CreateQuestion from "./pages/CreateQuestion";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import SignUp from "./pages/Signup";
-import { Context, server } from "./main";
-import axios from "axios";
 import Navbar from "./components/Navbar";
 import CreateChapter from "./pages/CreateChapter";
 import CreateTopic from "./pages/CreateTopic";
@@ -13,72 +12,39 @@ import CreateSubject from "./pages/CreateSubject";
 import CreateSubtopic from "./pages/CreateSubtopic";
 import Requests from "./pages/Requests";
 import Profile from "./pages/Profile";
+import { clearErrors, profile } from "./actions/userAction";
 
 function App() {
-  const { isAuthenticated, setIsAuthenticated, setProfile } =
-    useContext(Context);
+  const dispatch = useDispatch();
+
+  const { isAuthenticated,  error } = useSelector((state) => state.user);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await axios.get(`${server}/api/user/profile`, {
-          withCredentials: true,
-        });
-        setProfile(data?.user);
-        setIsAuthenticated(true);
-      } catch (error) {
-        setIsAuthenticated(false);
-        console.error("Failed to fetch data:", error);
-      }
-    })();
-  }, []);
+    if (error) {
+      toast.error(error.response ? error.response.data.message : "Something went wrong");
+      dispatch(clearErrors());
+  }
+    dispatch(profile());
+  }, [dispatch]);
+
+  window.addEventListener("contextmenu", (e) => e.preventDefault());
 
   return (
     <Router>
       {isAuthenticated && <Navbar />}
+      
       <Routes>
-        <Route
-          exact
-          path="/"
-          element={isAuthenticated ? <CreateQuestion /> : <Login />}
-        />
-        <Route
-          exact
-          path="/chapter"
-          element={isAuthenticated ? <CreateChapter /> : <Login />}
-        />
-        <Route
-          exact
-          path="/topic"
-          element={isAuthenticated ? <CreateTopic /> : <Login />}
-        />
-        <Route
-          exact
-          path="/subtopic"
-          element={isAuthenticated ? <CreateSubtopic /> : <Login />}
-        />
-        <Route
-          exact
-          path="/subject"
-          element={isAuthenticated ? <CreateSubject /> : <Login />}
-        />
-        <Route
-          exact
-          path="/request"
-          element={isAuthenticated ? <Requests /> : <Login />}
-        />
-        <Route
-          exact
-          path="/profile"
-          element={isAuthenticated ? <Profile /> : <Login />}
-        />
-        <Route
-          exact
-          path="/signup"
-          element={ <SignUp />}
-        />
-       
+        <Route path="/" element={isAuthenticated ? <CreateQuestion /> : <Login />} />
+        <Route path="/chapter" element={isAuthenticated ? <CreateChapter /> : <Login />} />
+        <Route path="/topic" element={isAuthenticated ? <CreateTopic /> : <Login />} />
+        <Route path="/subtopic" element={isAuthenticated ? <CreateSubtopic /> : <Login />} />
+        <Route path="/subject" element={isAuthenticated ? <CreateSubject /> : <Login />} />
+        <Route path="/request" element={isAuthenticated ? <Requests /> : <Login />} />
+        <Route path="/profile" element={isAuthenticated ? <Profile /> : <Login />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
+
       <Toaster />
     </Router>
   );

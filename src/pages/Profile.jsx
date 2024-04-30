@@ -1,28 +1,30 @@
-import { useContext, useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { server, Context } from "../main";
+import { server } from "../main";
 import toast from "react-hot-toast";
 import ProfileHead from "../components/ProfileHead";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+
 
 const Profile = () => {
+  const navigate = useNavigate();
   const [selectedQuestion, setSelectedQuestion] = useState(null); 
   const [isChecked, setIsChecked] = useState(false);
-  const { setProfile } = useContext(Context);
-
+  const { isAuthenticated } = useSelector((state) => state.user);
   const handleChange = () => {
     setIsChecked((prevState) => !prevState);
   };
-
-  const fetchUser = async () => {
-    try {
-      const { data } = await axios.get(`${server}/api/user/profile`, {
-        withCredentials: true,
-      });
-      setProfile(data?.user);
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
+  useEffect(() => {
+    if(isAuthenticated === false) {
+        navigate('/login')
+        console.log("Authentication:" , isAuthenticated)
     }
-  };
+    if(isAuthenticated){
+      navigate('/profile')
+      console.log("Authentication:" , isAuthenticated)
+    }
+}, [navigate, isAuthenticated])
 
   const handleDelete = async (id) => {
     try {
@@ -31,7 +33,6 @@ const Profile = () => {
           withCredentials: true,
         });
         toast.success(data.message);
-        fetchUser();
       }
     } catch (error) {
       console.log(error);
