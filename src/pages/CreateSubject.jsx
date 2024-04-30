@@ -1,12 +1,14 @@
-import {  useState, useContext } from "react";
-import axios from "axios";
-import { server, Context } from "../main";
+import {  useState } from "react";
 import toast from "react-hot-toast";
 import {Select} from 'antd'
 import { standards } from "../components/Options";
+import { useDispatch, useSelector } from "react-redux";
+import { createSubject } from "../actions/subjectAction";
 
 const CreateSubject = () => {
-  const { setIsLoading, isLoading } = useContext(Context);
+  const dispatch = useDispatch();
+    const { isLoading } = useSelector((state) => state.createSubject); 
+
   const [standard, setStandard] = useState();
 
   const resetFields = (form) => {
@@ -38,25 +40,11 @@ const CreateSubject = () => {
       standard: standard,
     };
 
-    try {
-      setIsLoading(true);
-      const response = await axios.post(
-        `${server}/api/create/subject`,
-        formattedData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        },
-      );
-      setIsLoading(false);
-      toast.success(response.data.message);
-    } catch (error) {
-      setIsLoading(false);
-     
-      toast.error(error.response.data.message || "Something went wrong");
-    }
+    dispatch(createSubject(formattedData));
+    if (!isLoading) {
+      toast.success("Subject added successfully!");
+      resetFields(event.target);
+  }
 
     setStandard(standard)
     resetFields(event.target);
@@ -64,7 +52,7 @@ const CreateSubject = () => {
 
   return (
     <main className=" p-4 ">
-      <h1 className="text-center m-10">Create Subject</h1>
+      <h1 className="text-center m-10 text-white-600">Create Subject</h1>
       <form className="max-w-md mx-auto" onSubmit={handleFormSubmit}>
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
            
@@ -76,11 +64,6 @@ const CreateSubject = () => {
             filterOption={(input, option) =>
               (option?.label ?? "").includes(input)
             }
-            // filterSort={(optionA, optionB) =>
-            //   (optionA?.label ?? "")
-            //     .toLowerCase()
-            //     .localeCompare((optionB?.label ?? "").toLowerCase())
-            // }
             value={standard}
             onChange={(value) => {
               setStandard(value);
@@ -88,7 +71,7 @@ const CreateSubject = () => {
             options={standards}
           />
           <label
-            className=" text-gray-500 text-sm dark:text-gray-400 "
+            className=" text-white-500 text-sm dark:text-white-400 "
           >
             Standard
           </label>
@@ -99,31 +82,24 @@ const CreateSubject = () => {
             type="text"
             name="subject"
             id="subject"
-            className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+            className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
             placeholder=" "
             required
           />
           <label
             htmlFor="subject"
-            className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+            className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
           >
             Add Subject
           </label>
         </div>
 
-        {/* <div
-          className="border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
-          //   onClick={}
-        >
-          Add more subjects
-        </div> */}
-        {/* </div> */}
 
         {isLoading ? (
           <button
             type="submit"
             disabled
-            className="text-white bg-gray-500 hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-800"
+            className="text-white bg-white-500 hover:bg-white-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-white-600 dark:hover:bg-white-700 dark:focus:ring-white-800"
           >
             Submit
           </button>

@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./index.css";
 import { createContext, useState } from "react";
+import { Provider } from "react-redux";
+import store from "./Store.js";
 
 export const server = import.meta.env.VITE_QUESTION_BANK_API;
 
@@ -26,13 +28,18 @@ const Appwrapper = () => {
         setProfile,
       }}
     >
+      <Provider store={store}>
+
       <App />
+      </Provider>
     </Context.Provider>
   );
 };
-
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <Appwrapper />
-  </React.StrictMode>,
-);
+const rootContainer = document.getElementById("root");
+if (!rootContainer.hasChildNodes()) {
+  ReactDOM.createRoot(rootContainer).render(
+    <React.StrictMode>
+      <Appwrapper />
+    </React.StrictMode>
+  );
+}
