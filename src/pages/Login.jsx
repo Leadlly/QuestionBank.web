@@ -22,10 +22,8 @@ const Login = () => {
   useEffect(() => {
     
     if (isAuthenticated) {
-      console.log("Navigating to");
       navigate("/");
     }
-    console.log("Login useEffect: error =", error, "isAuthenticated =", isAuthenticated);
     if (error) {
         toast.error(error.response ? error.response.data.message : "Something went wrong");
         dispatch(clearErrors());

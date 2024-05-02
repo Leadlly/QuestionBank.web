@@ -24,32 +24,34 @@ const CreateSubject = () => {
     const data = {};
 
     for (let [name, value] of formData.entries()) {
-      if (data[name]) {
-        if (Array.isArray(data[name])) {
-          data[name].push(value);
+        if (data[name]) {
+            if (Array.isArray(data[name])) {
+                data[name].push(value);
+            } else {
+                data[name] = [data[name], value];
+            }
         } else {
-          data[name] = [data[name], value];
+            data[name] = value;
         }
-      } else {
-        data[name] = value;
-      }
     }
 
     const formattedData = {
-      subjectName: data.subject,
-      standard: standard,
+        subjectName: data.subject,
+        standard: standard,
     };
 
-    dispatch(createSubject(formattedData));
-    if (!isLoading) {
-      toast.success("Subject added successfully!");
-      resetFields(event.target);
-  }
+    try {
+        const result = await dispatch(createSubject(formattedData));
 
-    setStandard(standard)
-    resetFields(event.target);
-  };
-
+        
+        if (result.success) { toast.success("Subject added successfully!");
+            resetFields(event.target);
+        } else {toast.error(result.message || "Failed to add subject. Please try again.");
+        }
+    } catch (error) {
+        toast.error("Subject already exist!");
+    }
+};
   return (
     <main className=" p-4 ">
       <h1 className="text-center m-10 text-white-600">Create Subject</h1>

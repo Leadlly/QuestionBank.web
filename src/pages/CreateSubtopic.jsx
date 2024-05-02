@@ -1,4 +1,4 @@
-import {  useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 // import axios from "axios";
 // import { server } from "../main";
 import toast from "react-hot-toast";
@@ -12,53 +12,68 @@ import { getTopics } from "../actions/topicAction";
 
 const CreateSubtopic = () => {
   const dispatch = useDispatch();
-  const { isLoading  } = useSelector((state) => state.subtopic); 
-  const { subjectList } = useSelector((state) => state.getSubject); 
-  const { chapterList } = useSelector((state) => state.getChapter); 
+  const { isLoading } = useSelector((state) => state.subtopic);
+  const { subjectList } = useSelector((state) => state.getSubject);
+  const { chapterList } = useSelector((state) => state.getChapter);
   const { topicList } = useSelector((state) => state.getTopic);
   const [standard, setStandard] = useState("");
   const [subject, setSubject] = useState("");
-  // const [subjectList, setSubjectList] = useState([]);
   const [chapter, setChapter] = useState("");
-  // const [chapterList, setChapterList] = useState([]);
   const [topic, setTopic] = useState("");
-  // const [topicList, setTopicList] = useState([]);
   const [subtopics, setSubtopics] = useState([{ name: "" }]);
-
 
   useEffect(() => {
     if (standard) {
       dispatch(getSubjects(standard));
     }
     if (subject && standard) {
-    dispatch(getChapters(subject, standard))
+      dispatch(getChapters(subject, standard));
     }
     if (subject && standard && chapter) {
       dispatch(getTopics(subject, standard, chapter));
     }
-  }, [standard, dispatch, subject, chapter, topic])
-
+  }, [standard, dispatch, subject, chapter, topic]);
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
 
     const formattedData = {
-      subjectName: subject,
-      standard: standard,
-      chapterName: chapter,
-      topicName: topic,
-      subtopics: subtopics,
+        subjectName: subject,
+        standard: standard,
+        chapterName: chapter,
+        topicName: topic,
+        subtopics: subtopics,
     };
 
-    dispatch(createSubtopic(formattedData))
-    if (!isLoading) {
-      toast.success("subtopic added successfully!");
-  }
-    setSubtopics([{ name: "" }]);
+    try {
+         const result = await dispatch(createSubtopic(formattedData));
+
+       
+        if (result && result.success) {
+            toast.success("Subtopic added successfully!");
+            setSubtopics([{ name: "" }]);
+        } else {
+            const errorMessage = result && result.message ? result.message : "Failed to add subtopic. Please try again.";
+            toast.error(errorMessage);
+        }
+    } catch (error) {
+        console.error("Error adding subtopic:", error);
+        toast.error("Subtopic already exist!");
+    }
+};
+
+
+  const handleSubtopicChange = (index, event) => {
+    const updatedSubtopics = [...subtopics];
+    updatedSubtopics[index] = {
+      ...updatedSubtopics[index],
+      name: event.target.value,
+    };
+    setSubtopics(updatedSubtopics);
   };
 
   const addSubtopic = () => {
-    setSubtopics((prev) => [...prev, { name: "" }]);
+    setSubtopics((prev) => [...prev, { id: Date.now(), name: "" }]);
   };
 
   return (
@@ -191,7 +206,10 @@ const CreateSubtopic = () => {
 
         {/* Subtopics inputs */}
         {subtopics.map((subtopic, index) => (
-          <div key={index} className="relative z-0 w-full mb-5 group">
+          <div
+            key={subtopic.id || index}
+            className="relative z-0 w-full mb-5 group"
+          >
             <input
               type="text"
               name={`subtopic-${index}`}
@@ -199,11 +217,7 @@ const CreateSubtopic = () => {
               className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
               placeholder=" "
               value={subtopic.name}
-              onChange={(e) => {
-                const updatedSubtopics = [...subtopics];
-                updatedSubtopics[index].name = e.target.value;
-                setSubtopics(updatedSubtopics);
-              }}
+              onChange={(e) => handleSubtopicChange(index, e)}
               required
             />
             <label
@@ -214,6 +228,7 @@ const CreateSubtopic = () => {
             </label>
           </div>
         ))}
+
         <div
           className="border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
           onClick={addSubtopic}

@@ -25,15 +25,24 @@ export const createSubtopic = (subtopicData) => async (dispatch) => {
             type: CREATE_SUBTOPIC_SUCCESS,
             payload: data,
         });
+        
+        // Return the success data
+        return data;
     } catch (error) {
+        const errorMessage = error.response && error.response.data.message
+            ? error.response.data.message
+            : error.message;
+            
         dispatch({
             type: CREATE_SUBTOPIC_FAIL,
-            payload: error.response && error.response.data.message
-                ? error.response.data.message
-                : error.message,
+            payload: errorMessage,
         });
+        
+        // Return the error message as the rejected promise
+        return Promise.reject(errorMessage);
     }
 };
+
 
 export const getSubtopics = (subject, standard, chapter, topic) => async (dispatch) => {
     try {
