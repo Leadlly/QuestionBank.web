@@ -14,30 +14,38 @@ export const createChapter = (chapterData) => async (dispatch) => {
     try {
         dispatch({ type: CREATE_CHAPTER_REQUEST });
 
-        const { data } = await axios.post(`${server}/api/v1/create/chapter`, chapterData, {
+        const response = await axios.post(`${server}/api/create/chapter`, chapterData, {
             headers: {
-                "Content-Type": "application/json",
+                'Content-Type': 'application/json',
             },
             withCredentials: true,
         });
 
         dispatch({
             type: CREATE_CHAPTER_SUCCESS,
-            payload: data,
+            payload: response.data,
         });
+
+        return response.data;
     } catch (error) {
+        const errorResponseData = error.response?.data;
+
+        const errorMessage = errorResponseData?.message || error.message;
         dispatch({
             type: CREATE_CHAPTER_FAIL,
-            payload: error.response?.data?.message || error.message,
+            payload: errorMessage,
         });
+
+        return Promise.reject(errorMessage);
     }
 };
+
 
 export const getChapters = (subjectName, standard) => async (dispatch) => {
     try {
         dispatch({ type: GET_CHAPTERS_REQUEST });
 
-        const { data } = await axios.get(`${server}/api/v1/get/chapter?subjectName=${subjectName}&standard=${standard}`, {
+        const { data } = await axios.get(`${server}/api/get/chapter?subjectName=${subjectName}&standard=${standard}`, {
             withCredentials: true,
         });
 

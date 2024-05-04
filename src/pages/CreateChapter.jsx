@@ -24,37 +24,38 @@ const CreateChapter = () => {
 
     const handleFormSubmit = async (event) => {
         event.preventDefault();
-
-         if (isSubmitting) return;
-
+    
+        if (isSubmitting) return;
+    
         setIsSubmitting(true);
-
+    
         const formattedData = {
-            subjectName: subject,
-            standard,
-            chapters,
+            subject: {
+                name: subject,
+                chapters,
+            },
         };
-
+        
+    
         try {
             const result = await dispatch(createChapter(formattedData));
 
             if (result && result.success) {
-                toast.success("Chapter added successfully!");
-                setChapters([{ name: "" }]);
+                toast.success('Chapter added successfully!');
+                setChapters([{ name: '' }]);
             } else {
-                const errorMessage = result?.message || "Failed to add chapter.";
+                const errorMessage = result?.message || 'Failed to add chapter.';
                 throw new Error(errorMessage);
             }
         } catch (error) {
-            if (error.message.includes("already exists")) {
-                toast.error("Chapter already exists. Please choose a different name.");
-            } else {
-                toast.error("Failed to add chapter. Please try again.");
-            }
+           
+                toast.error('Chapter already exists. Please choose a different name.');
+            
         } finally {
             setIsSubmitting(false);
         }
     };
+    
 
     const handleChapterChange = (index, value) => {
         const updatedChapters = [...chapters];

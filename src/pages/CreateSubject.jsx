@@ -17,9 +17,11 @@ const CreateSubject = () => {
       questionInput.value = "";
     }
   };
+ 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
 
+    // Gather form data and construct `subjectData`
     const formData = new FormData(event.target);
     const data = {};
 
@@ -35,23 +37,54 @@ const CreateSubject = () => {
         }
     }
 
-    const formattedData = {
-        subjectName: data.subject,
-        standard: standard,
+    // Construct `chapters` array
+    const chapters = [];
+    let chapterIndex = 0;
+
+    while (data[`chapterName${chapterIndex}`]) {
+        const chapterName = data[`chapterName${chapterIndex}`];
+        const topics = [];
+
+        let topicIndex = 0;
+        while (data[`chapter${chapterIndex}Topic${topicIndex}`]) {
+            topics.push(data[`chapter${chapterIndex}Topic${topicIndex}`]);
+            topicIndex++;
+        }
+
+        chapters.push({ name: chapterName, topics });
+        chapterIndex++;
+    }
+
+    const subjectData = {
+        subject: {
+            name: data.subject,
+            standard: standard,
+            chapters,
+        },
     };
 
-    try {
-        const result = await dispatch(createSubject(formattedData));
+    console.log('Data sent to server:', subjectData);
 
+    try {
+        const response = await dispatch(createSubject(subjectData));
         
-        if (result.success) { toast.success("Subject added successfully!");
-            resetFields(event.target);
-        } else {toast.error(result.message || "Failed to add subject. Please try again.");
+        const isSuccess = response?.success;
+        
+        if (isSuccess) {
+          toast.success('Subject created successfully!');
+          resetFields(event.target);
+            
+        } else {
+            toast.error(response?.message || 'Failed to add subject. Please try again.');
         }
     } catch (error) {
-        toast.error("Subject already exist!");
+      console.error('Error:', error);
+
+        const errorMessage = error?.response?.data?.message || error?.message || 'Subject already exist!';
+        toast.error(errorMessage);
     }
 };
+
   return (
     <main className=" p-4 ">
       <h1 className="text-center m-10 text-white-600">Create Subject</h1>

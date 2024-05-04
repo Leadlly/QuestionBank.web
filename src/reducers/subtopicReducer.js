@@ -62,6 +62,7 @@ export const getSubtopicsReducer = (state = initialState, action) => {
             return {
                 ...state,
                 isLoading: false,
+                success: true,
                 subtopics: action.payload.subtopics,
                 error: null,
             };
@@ -71,6 +72,7 @@ export const getSubtopicsReducer = (state = initialState, action) => {
                 ...state,
                 isLoading: false,
                 subtopics: [],
+                success: false,
                 error: action.payload,
             };
 

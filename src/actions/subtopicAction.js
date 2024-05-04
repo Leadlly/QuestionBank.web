@@ -14,7 +14,7 @@ export const createSubtopic = (subtopicData) => async (dispatch) => {
     try {
         dispatch({ type: CREATE_SUBTOPIC_REQUEST });
 
-        const { data } = await axios.post(`${server}/api/v2/create/subtopic`, subtopicData, {
+        const { data } = await axios.post(`${server}/api/create/subtopic`, subtopicData, {
             headers: {
                 "Content-Type": "application/json",
             },
@@ -26,7 +26,6 @@ export const createSubtopic = (subtopicData) => async (dispatch) => {
             payload: data,
         });
         
-        // Return the success data
         return data;
     } catch (error) {
         const errorMessage = error.response && error.response.data.message
@@ -38,7 +37,6 @@ export const createSubtopic = (subtopicData) => async (dispatch) => {
             payload: errorMessage,
         });
         
-        // Return the error message as the rejected promise
         return Promise.reject(errorMessage);
     }
 };
@@ -49,7 +47,7 @@ export const getSubtopics = (subject, standard, chapter, topic) => async (dispat
         dispatch({ type: GET_SUBTOPICS_REQUEST });
 
         const { data } = await axios.get(
-            `${server}/api/v2/get/subtopic?subjectName=${subject}&standard=${standard}&chapterName=${chapter}&topicName=${topic}`,
+            `${server}/api/get/subtopic?subjectName=${subject}&standard=${standard}&chapterName=${chapter}&topicName=${topic}`,
             {
                 withCredentials: true,
             }

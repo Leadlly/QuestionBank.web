@@ -13,24 +13,31 @@ import { server } from "../main";
 export const createTopic = (topicData) => async (dispatch) => {
     try {
         dispatch({ type: CREATE_TOPIC_REQUEST });
-        const { data } = await axios.post(`${server}/api/v/create/topic`, topicData, {
+
+        const response = await axios.post(`${server}/api/create/topic`, topicData, {
             headers: {
-                "Content-Type": "application/json",
+                'Content-Type': 'application/json',
             },
             withCredentials: true,
         });
+
+        const data = response.data;
 
         dispatch({
             type: CREATE_TOPIC_SUCCESS,
             payload: data,
         });
+
+        return data;
     } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message;
+
         dispatch({
             type: CREATE_TOPIC_FAIL,
-            payload: error.response && error.response.data.message
-                ? error.response.data.message
-                : error.message,
+            payload: errorMessage,
         });
+
+        return Promise.reject(errorMessage);
     }
 };
 
@@ -39,7 +46,7 @@ export const getTopics = (subjectName, standard, chapterName) => async (dispatch
         dispatch({ type: GET_TOPICS_REQUEST });
 
         const { data } = await axios.get(
-            `${server}/api/v/get/topic?subjectName=${subjectName}&standard=${standard}&chapterName=${chapterName}`,
+            `${server}/api/get/topic?subjectName=${subjectName}&standard=${standard}&chapterName=${chapterName}`,
             {
                 withCredentials: true,
             }
