@@ -21,7 +21,6 @@ const CreateSubject = () => {
   const handleFormSubmit = async (event) => {
     event.preventDefault();
 
-    // Gather form data and construct `subjectData`
     const formData = new FormData(event.target);
     const data = {};
 
@@ -37,7 +36,6 @@ const CreateSubject = () => {
         }
     }
 
-    // Construct `chapters` array
     const chapters = [];
     let chapterIndex = 0;
 

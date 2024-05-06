@@ -41,7 +41,7 @@ const CreateSubtopic = () => {
 
         const formattedData = {
             subjectName: subject,
-            standard,
+            standard: standard,
             chapterName: chapter,
             topicName: topic,
             subtopics,

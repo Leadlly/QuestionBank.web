@@ -31,47 +31,58 @@ const CreateTopic = () => {
    
     const handleFormSubmit = async (event) => {
         event.preventDefault();
-        if (isSubmitting) return;
+        
+        if (isSubmitting) return;  
+        
+        setIsSubmitting(true);  
+        
+       
+        const formattedTopics = topics
+            .map((topic) => {
+                if (typeof topic.name !== 'string' || topic.name.trim() === '') {
+                    console.error(`Invalid topic name: ${topic.name}`);
+                    return null;  
+                }
+                return {
+                    name: topic.name.trim(),  
+                    subtopics: Array.isArray(topic.subtopics) ? topic.subtopics : [],
+                };
+            })
+            .filter(topic => topic !== null);  
+        
+        if (formattedTopics.length === 0) {
+            toast.error("Please provide at least one valid topic.");
+            setIsSubmitting(false);
+            return;
+        }
     
-        setIsSubmitting(true);
-    
-        // Process form data
         const formattedData = {
+            standard: standard,
             subjectName: subject,
             chapterName: chapter,
-            topics: topics
-                .map((topic) => {
-                    if (typeof topic.name !== 'string' || topic.name.trim() === '') {
-                        console.error(`Invalid topic name: ${topic.name}`);
-                        return null;
-                    }
-                    return {
-                        name: topic.name.trim(),
-                        subtopics: Array.isArray(topic.subtopics) ? topic.subtopics : [],
-                    };
-                })
-                .filter(topic => topic !== null), 
+            topics: formattedTopics,
         };
     
         try {
-            console.log("Formatted data:", formattedData);
+            console.log("Submitting data:", formattedData);
     
             const result = await dispatch(createTopic(formattedData));
     
             if (result && result.success) {
-                toast.success("Topic added successfully!");
-                setTopics([{ name: "" }]); // Reset topics array
+                toast.success("Topics added successfully!");
+                setTopics([{ name: "" }]);
             } else {
-                const errorMessage = result?.message || "Failed to add topic. Please try again.";
+                const errorMessage = result?.message || "Failed to add topics. Please try again.";
                 toast.error(errorMessage);
             }
-        } catch  (error) {
-      
-              const errorMessage = error?.response?.data?.message || error?.message || `Topic already exist!`;
-              toast.error(errorMessage);} finally {
+        } catch (error) {
+            console.error("Error submitting form:", error);
+    toast.error(error);
+        } finally {
             setIsSubmitting(false);
         }
     };
+    
     
     
 
