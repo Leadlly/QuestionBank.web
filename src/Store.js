@@ -1,7 +1,7 @@
 import { createStore, combineReducers, applyMiddleware } from 'redux';
 import {thunk} from 'redux-thunk'; 
 import { composeWithDevTools } from '@redux-devtools/extension';
-import { userReducer, userRegistrationReducer } from './reducers/userReducer';
+import { userQuestionsReducer, userReducer, userRegistrationReducer } from './reducers/userReducer';
 import { createQuestionReducer, deleteQuestionReducer } from './reducers/questionReducer';
 import { createSubjectReducer, getSubjectReducer } from './reducers/subjectReducer';
 import { createChapterReducer, getChaptersReducer } from './reducers/chapterReducer';
@@ -23,7 +23,8 @@ const store = createStore(
     getChapter: getChaptersReducer,
     getTopic: getTopicsReducer,
     getSubtopic: getSubtopicsReducer,
-    delete: deleteQuestionReducer
+    delete: deleteQuestionReducer,
+    userquestion: userQuestionsReducer,
   }),
   composeWithDevTools(applyMiddleware(...middleware))
 );

@@ -10,7 +10,10 @@ import {
     REGISTER_REQUEST,
     REGISTER_SUCCESS,
     REGISTER_FAIL,
- PROFILE_FAIL
+ PROFILE_FAIL,
+ FETCH_USER_QUESTIONS,
+ FETCH_USER_QUESTIONS_SUCCESS,
+ FETCH_USER_QUESTIONS_FAILURE
 } from "../constants/userConstants";
 
 import axios from "axios";
@@ -101,6 +104,24 @@ export const register = (userData) => async (dispatch) => {
               ? error.response.data.message
               : error.message,
       });
+  }
+};
+
+export const fetchUserQuestions = (standard) => async (dispatch) => {
+  dispatch({ type: FETCH_USER_QUESTIONS });
+
+  try {
+      const response = await axios.get(`${server}/api/user/myquestion?standard=${standard}`, {
+          withCredentials: true,
+      });
+
+      if (response.data.success) {
+          dispatch({ type: FETCH_USER_QUESTIONS_SUCCESS, payload: response.data.questions });
+      } else {
+          dispatch({ type: FETCH_USER_QUESTIONS_FAILURE, payload: response.data.message });
+      }
+  } catch (error) {
+      dispatch({ type: FETCH_USER_QUESTIONS_FAILURE, payload: error.message });
   }
 };
 

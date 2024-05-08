@@ -82,8 +82,6 @@ const CreateQuestion = () => {
             toast.error("Failed to create question. Please try again.");
         }
     } catch (error) {
-        console.error("Error creating question:", error);
-
         toast.error(error);
     }
 };

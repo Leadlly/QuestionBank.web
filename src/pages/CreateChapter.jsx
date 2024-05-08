@@ -42,7 +42,7 @@ const CreateChapter = () => {
     
             if (result.success) {
                 toast.success('Chapter added successfully!');
-                setChapters([{ name: '' }]);  // Reset chapters array
+                setChapters([{ name: '' }]);  
             } else {
                 const errorMessage = result?.message || 'Failed to add chapter.';
                 toast.error(errorMessage);

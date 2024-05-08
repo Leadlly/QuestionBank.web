@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import { server } from '../main';
 import toast from 'react-hot-toast';
 import { standards } from '../components/Options';
+import "../styles/login.scss";
 
 const ProfileHead = ({ setSelectedQuestion }) => {
     const [questions, setQuestions] = useState([]);
@@ -14,127 +15,122 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     const [selectedSubject, setSelectedSubject] = useState('');
     const [subjects, setSubjects] = useState([]);
     const [mySubjects, setMySubjects] = useState([]);
+    const [activeTabIndex, setActiveTabIndex] = useState(0);
 
-    const resetInputData = () => {
-        setSelectedStandard('');
-        setSelectedSubject('');
-    };
-
-    const resetTabPanelData = () => {
-        setQuestions([]);
-        setMyQuestions([]);
-    };
-
-    const fetchQuestionsAndSubjects = async (standard) => {
-      try {
-           setSubjects([]);
-  
-           const response = await axios.get(`${server}/api/get/question?standard=${standard}`, {
-              withCredentials: true,
-          });
-  
-          const data = response.data;
-  
-          if (data.success && data.questions) {
-              setQuestions(data.questions);
-  
-              const subjectsSet = new Set(data.questions.map(question => question.subject));
-              const uniqueSubjects = Array.from(subjectsSet);
-  
-              setSubjects(uniqueSubjects);
-  
-              setSelectedSubject('');
-          } else {
-              setQuestions([]);
-              setSubjects([]);
-              setSelectedSubject('');
-          }
-      } catch (error) {
-          toast.error(`No subjects available for selected ${standard}th standard`);
-      }
-  };
-  
-
-    const fetchUserQuestions = async (standard) => {
-      try {
-          const response = await axios.get(`${server}/api/user/myquestion?standard=${standard}`, {
-              withCredentials: true,
-          });
-  
-          const data = response.data;
-  
-          if (data.success && data.questions) {
-             setMyQuestions(data.questions);
-  
-               const relevantQuestions = data.questions.filter(question => question.standard === standard);
-              const subjectsSet = new Set(relevantQuestions.map(question => question.subject));
-              const uniqueSubjects = Array.from(subjectsSet);
-  
-              setMySubjects(uniqueSubjects);
-  
-               setSelectedSubject('');
-          } else {
-              setMyQuestions([]);
-              setMySubjects([]);
-          }
-      } catch (error) {
-          toast.error(`No subjects available for selected ${standard}th standard`);
-      }
-  };
-  
 
     useEffect(() => {
+
         if (selectedStandard) {
-            fetchQuestionsAndSubjects(selectedStandard);
-            fetchUserQuestions(selectedStandard);
-        } else {
-            setSubjects([]);
-            setMySubjects([]);
-            setSelectedSubject('');
+            if (activeTabIndex === 0) {
+                fetchQuestionsAndSubjects(selectedStandard);
+                setSelectedQuestion(null);
+
+            } else if (activeTabIndex === 1) {
+                fetchUserQuestions(selectedStandard);
+                setSelectedQuestion(null);
+            }
         }
-    }, [selectedStandard]);
+    }, [selectedStandard, activeTabIndex]);
 
-    const handleTabChange = (index) => {
-        resetInputData();
-        resetTabPanelData();
-        setSelectedQuestion(null)
+    const fetchQuestionsAndSubjects = async (standard) => {
+        try {
+            const response = await axios.get(`${server}/api/get/question?standard=${standard}`, {
+                withCredentials: true,
+            });
 
-        if (index === 0 && selectedStandard) {
-            fetchQuestionsAndSubjects(selectedStandard);
-        } else if (index === 1 && selectedStandard) {
-            fetchUserQuestions(selectedStandard);
+            if (response.data.success) {
+                const questions = response.data.questions;
+                setQuestions(questions);
+
+                const uniqueSubjects = Array.from(new Set(questions.map(q => q.subject)));
+                setSubjects(uniqueSubjects);
+
+                setSelectedSubject('');
+            } else {
+                setQuestions([]);
+                setSubjects([]);
+                toast.error(`No questions available for the selected standard.`);
+            }
+        } catch (error) {
+            toast.error("No Subject found");
         }
     };
+
+    const fetchUserQuestions = async (standard) => {
+        try {
+            const response = await axios.get(`${server}/api/user/myquestion?standard=${standard}`, {
+                withCredentials: true,
+            });
+
+            if (response.data.success) {
+                const questions = response.data.questions;
+                setMyQuestions(questions);
+
+                const uniqueSubjects = Array.from(new Set(questions.map(q => q.subject)));
+                setMySubjects(uniqueSubjects);
+
+                setSelectedSubject('');
+            } else {
+                setMyQuestions([]);
+                setMySubjects([]);
+                toast.error(`No questions found for the selected standard.`);
+            }
+        } catch (error) {
+            toast.error("No Subject found");
+        }
+    };
+
+
+
+    const handleTabChange = (index) => {
+        setSelectedQuestion(null);
+        
+        setActiveTabIndex(index);
+        
+         setSelectedStandard('');
+        setSelectedSubject('');
+        
+        if (index === 0) {
+            setQuestions([]);
+            setSubjects([]);
+        } else if (index === 1) {
+            setMyQuestions([]);
+            setMySubjects([]);
+        }
+         
+    };
+    
 
     const filteredQuestions = selectedSubject
         ? questions.filter(question => question.subject === selectedSubject)
         : questions;
 
-   const filteredMyQuestions = selectedSubject
+    const filteredMyQuestions = selectedSubject
         ? myQuestions.filter(question => question.subject === selectedSubject)
         : myQuestions;
 
-     const handleQuestionClick = (question) => {
+    
+        const handleQuestionClick = (question) => {
         setSelectedQuestion(question);
     };
 
     return (
         <div className="w-full max-w-md px-2 py-4 sm:px-2">
-            <div className="mb-4">
-                <label htmlFor="standard-select" className="block text-sm cursor-pointer font-medium text-gray-900 mb-2">
+             <div className="mb-4">
+                <label htmlFor="standard-select" className="block text-sm font-medium text-gray-900 mb-2">
                     Select a Standard:
                 </label>
                 <select
                     id="standard-select"
                     value={selectedStandard}
                     onChange={(e) => setSelectedStandard(e.target.value)}
-                    className="block w-full p-2 border cursor-pointer text-gray-900 border-gray-300 rounded-md shadow-sm"
+                    className="block w-full p-2 border text-gray-900 border-gray-300 rounded-md shadow-sm cursor-pointer"
                 >
-                    <option value="" disabled className="cursor-pointer">
+                    <option value="" disabled>
                         Select Standard
                     </option>
                     {standards.map((standard, index) => (
-                        <option key={index} value={standard.value} className="cursor-pointer">
+                        <option key={index} value={standard.value}>
                             {standard.label}
                         </option>
                     ))}
@@ -142,23 +138,43 @@ const ProfileHead = ({ setSelectedQuestion }) => {
             </div>
 
             <div className="mb-4">
-                <label htmlFor="subject-select" className="block cursor-pointer text-sm font-medium text-gray-900 mb-2">
+                <label htmlFor="subject-select" className="block text-sm font-medium text-gray-900 mb-2">
                     Select a Subject:
                 </label>
                 <select
                     id="subject-select"
                     value={selectedSubject}
                     onChange={(e) => setSelectedSubject(e.target.value)}
-                    className="block w-full p-2 cursor-pointer border text-gray-900 border-gray-300 rounded-md shadow-sm"
+                    className="block w-full p-2 border text-gray-900 border-gray-300 rounded-md shadow-sm cursor-pointer"
                 >
-                    <option value="" className="cursor-pointer">
+                    <option value="">
                         Select Subject
                     </option>
-                    {(mySubjects.length > 0 ? mySubjects : subjects).map((subject, index) => (
-                        <option key={index} value={subject} className="cursor-pointer">
-                            {subject}
-                        </option>
-                    ))}
+                    {activeTabIndex === 1 ? (
+                        mySubjects.length > 0 ? (
+                            mySubjects.map((subject, index) => (
+                                <option key={index} value={subject}>
+                                    {subject}
+                                </option>
+                            ))
+                        ) : (
+                            <option value="" disabled>
+                                No subjects found.
+                            </option>
+                        )
+                    ) : (
+                        subjects.length > 0 ? (
+                            subjects.map((subject, index) => (
+                                <option key={index} value={subject}>
+                                    {subject}
+                                </option>
+                            ))
+                        ) : (
+                            <option value="" disabled>
+                                No subjects found.
+                            </option>
+                        )
+                    )}
                 </select>
             </div>
 
@@ -198,21 +214,21 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                     >
                         {selectedSubject ? (
                             <ul>
-                                {filteredQuestions && filteredQuestions.length > 0 ? (
+                                {filteredQuestions.length > 0 ? (
                                     filteredQuestions.map((question, index) => (
                                         <li
                                             key={index}
-                                            className="relative rounded-md p-3 hover:bg-gray-100"
+                                            className="relative rounded-md p-3 hover:bg-gray-100 cursor-pointer"
                                             onClick={() => handleQuestionClick(question)}
                                         >
-                                            <p className="text-sm font-medium cursor-pointer text-gray-900 leading-5">
+                                            <p className="text-sm font-medium text-gray-900 leading-5">
                                                 Q. {question.question}
                                             </p>
                                         </li>
                                     ))
                                 ) : (
-                                    <li className="relative cursor-pointer text-gray-900 rounded-md p-3">
-                                        No questions available
+                                    <li className="relative text-gray-900 rounded-md p-3">
+                                        No questions found.
                                     </li>
                                 )}
                             </ul>
@@ -221,7 +237,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                         )}
                     </Tab.Panel>
 
-                     <Tab.Panel
+                    <Tab.Panel
                         className={classNames(
                             'rounded-xl bg-white p-3',
                             'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2'
@@ -229,21 +245,21 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                     >
                         {selectedSubject ? (
                             <ul>
-                                {filteredMyQuestions && filteredMyQuestions.length > 0 ? (
+                                {filteredMyQuestions.length > 0 ? (
                                     filteredMyQuestions.map((question, index) => (
                                         <li
                                             key={index}
                                             className="relative rounded-md p-3 hover:bg-gray-100"
                                             onClick={() => handleQuestionClick(question)}
                                         >
-                                            <p className="text-sm font-medium cursor-pointer text-gray-900 leading-5">
+                                            <p className="text-sm font-medium text-gray-900 leading-5 cursor-pointer">
                                                 Q. {question.question}
                                             </p>
                                         </li>
                                     ))
                                 ) : (
-                                    <li className="relative cursor-pointer text-gray-900 rounded-md p-3">
-                                        No questions available
+                                    <li className="relative text-gray-900 rounded-md p-3">
+                                        No questions available for the selected subject.
                                     </li>
                                 )}
                             </ul>

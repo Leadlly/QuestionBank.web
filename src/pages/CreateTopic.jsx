@@ -64,8 +64,6 @@ const CreateTopic = () => {
         };
     
         try {
-            console.log("Submitting data:", formattedData);
-    
             const result = await dispatch(createTopic(formattedData));
     
             if (result && result.success) {
@@ -76,7 +74,6 @@ const CreateTopic = () => {
                 toast.error(errorMessage);
             }
         } catch (error) {
-            console.error("Error submitting form:", error);
     toast.error(error);
         } finally {
             setIsSubmitting(false);

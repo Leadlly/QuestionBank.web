@@ -11,6 +11,9 @@ import {
     REGISTER_SUCCESS,
     REGISTER_FAIL,
     CLEAR_ERRORS,
+    FETCH_USER_QUESTIONS,
+    FETCH_USER_QUESTIONS_SUCCESS,
+    FETCH_USER_QUESTIONS_FAILURE,
 } from "../constants/userConstants";
 
 const initialState = {
@@ -19,6 +22,7 @@ const initialState = {
     isLoading: false,
     success: false,
     error: null,
+    questions: []
 };
 
 export const userReducer = (state = initialState, action) => {
@@ -99,6 +103,33 @@ export const userRegistrationReducer = (state = initialState, action) => {
                 error: null,
             };
 
+        default:
+            return state;
+    }
+};
+
+export const userQuestionsReducer = (state = initialState, action) => {
+    switch (action.type) {
+        case FETCH_USER_QUESTIONS:
+            return {
+                ...state,
+                isLoading: true,
+                error: null,
+            };
+        case FETCH_USER_QUESTIONS_SUCCESS:
+            return {
+                ...state,
+                isLoading: false,
+                questions: action.payload,
+                error: null,
+            };
+        case FETCH_USER_QUESTIONS_FAILURE:
+            return {
+                ...state,
+                isLoading: false,
+                questions: [],
+                error: action.payload,
+            };
         default:
             return state;
     }

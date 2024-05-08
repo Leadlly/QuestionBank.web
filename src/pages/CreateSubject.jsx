@@ -61,8 +61,6 @@ const CreateSubject = () => {
         },
     };
 
-    console.log('Data sent to server:', subjectData);
-
     try {
         const response = await dispatch(createSubject(subjectData));
         
@@ -76,8 +74,6 @@ const CreateSubject = () => {
             toast.error(response?.message || 'Failed to add subject. Please try again.');
         }
     } catch (error) {
-      console.error('Error:', error);
-
         const errorMessage = error?.response?.data?.message || error?.message || 'Subject already exist!';
         toast.error(errorMessage);
     }
