@@ -5,6 +5,9 @@ import {
     GET_SUBTOPICS_REQUEST,
     GET_SUBTOPICS_SUCCESS,
     GET_SUBTOPICS_FAIL,
+    GET_NESTED_SUBTOPICS_SUCCESS,
+    GET_NESTED_SUBTOPICS_REQUEST,
+    GET_NESTED_SUBTOPICS_FAILURE,
     CLEAR_ERRORS,
 } from "../constants/subtopicConstants";
 import axios from "axios";
@@ -64,6 +67,46 @@ export const getSubtopics = (subject, standard, chapter, topic) => async (dispat
         });
     }
 };
+
+export const getNestedSubtopicsByName = (subjectName, standard, chapterName, topicName, subtopicName) => async (dispatch) => {
+    try {
+        dispatch({ type: GET_NESTED_SUBTOPICS_REQUEST });
+
+        const response = await axios.get(`${server}/api/nestedsubtopic`, {
+            params: {
+                subjectName,
+                standard,
+                chapterName,
+                topicName,
+                subtopicName,
+            },
+        });
+
+        const { data } = response;
+
+        if (!data || !data.success) {
+            throw new Error(data.message || 'Failed to fetch nested subtopics');
+        }
+
+         dispatch({
+            type: GET_NESTED_SUBTOPICS_SUCCESS,
+            payload: {
+                nestedSubtopics: data.nestedSubtopics,
+            },
+        });
+
+    } catch (error) {
+        console.error('Error fetching nested subtopics by name:', error);
+
+        const errorMessage = error.response?.data?.message || error.message;
+
+         dispatch({
+            type: GET_NESTED_SUBTOPICS_FAILURE,
+            payload: errorMessage,
+        });
+    }
+};
+
 
 export const clearErrors = () => (dispatch) => {
     dispatch({ type: CLEAR_ERRORS });

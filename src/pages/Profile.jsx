@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import ProfileHead from "../components/ProfileHead";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteQuestion } from "../actions/questionAction";
-import "../styles/login.scss"
+import ProfileHead from "../components/ProfileHead";
 
 const Profile = () => {
     const navigate = useNavigate();
@@ -20,23 +19,29 @@ const Profile = () => {
     }, [navigate, isAuthenticated]);
 
     const handleDelete = async (id) => {
-        try {
-            if (window.confirm("Confirm before deletion")) {
-                await dispatch(deleteQuestion(id));
+        if (window.confirm("Confirm before deletion")) {
+            dispatch(deleteQuestion(id));
 
-                if (success) {
-                    toast.success("Question deleted successfully");
-                    if (selectedQuestion && selectedQuestion._id === id) {
-                        setSelectedQuestion(null);
-                    }
-                } else if (error) {
-                    toast.error(error);
+            if (success) {
+                toast.success("Question deleted successfully");
+                if (selectedQuestion && selectedQuestion._id === id) {
+                    setSelectedQuestion(null);
                 }
+            } else if (error) {
+                toast.error(error);
             }
-        } catch (error) {
-            console.error(error);
-            toast.error(error.message || "Something went wrong");
         }
+    };
+
+    // Function to recursively render subtopics and nested subtopics
+    const renderSubtopics = (subtopics, level = 0) => {
+        return subtopics.map((subtopic) => (
+            <div key={subtopic._id} style={{ paddingLeft: `${20 * level}px` }}>
+                <p>Subtopic: {subtopic.name}</p>
+                {/* Render nested subtopics recursively */}
+                {subtopic.subtopics && subtopic.subtopics.length > 0 && renderSubtopics(subtopic.subtopics, level + 1)}
+            </div>
+        ));
     };
 
     return (
@@ -61,11 +66,18 @@ const Profile = () => {
                             ))}
                         </div>
                         {/* Display question details */}
-                        <p>Class - {selectedQuestion.standard}</p>
-                        <p>Subject - {selectedQuestion.subject}</p>
-                        <p>Chapter - {selectedQuestion.chapter}</p>
-                        <p>Topic - {selectedQuestion.topic}</p>
-                        <p>Level - {selectedQuestion.level}</p>
+                        <p>Class: {selectedQuestion.standard}</p>
+                        <p>Subject: {selectedQuestion.subject}</p>
+                        <p>Chapter: {selectedQuestion.chapter}</p>
+                        <p>Topic: {selectedQuestion.topic}</p>
+                        <p>Level: {selectedQuestion.level}</p>
+                        {/* Render subtopics and nested subtopics */}
+                        <p>Subtopic(s):</p>
+                        {selectedQuestion.subtopics.length > 0 ? (
+                            renderSubtopics(selectedQuestion.subtopics)
+                        ) : (
+                            <p>No subtopics available</p>
+                        )}
                     </div>
                     <div className="p-6 pt-0">
                         <button

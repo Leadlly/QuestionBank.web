@@ -8,30 +8,39 @@ import { getChapters } from "../actions/chapterAction";
 import { getTopics } from "../actions/topicAction";
 import { getSubtopics } from "../actions/subtopicAction";
 import { createQuestion } from "../actions/questionAction";
+import { getNestedSubtopicsByName } from "../actions/subtopicAction";
 
 const CreateQuestion = () => {
   const dispatch = useDispatch();
 
-  const [standard, setStandard] = useState();
-  const [subject, setSubject] = useState();
-  const [chapter, setChapter] = useState();
-  const [topic, setTopic] = useState();
-  const [subTopic, setSubTopic] = useState("");
-  const [level, setLevel] = useState("");
+  // State variables
+  const [standard, setStandard] = useState(null);
+  const [subject, setSubject] = useState(null);
+  const [chapter, setChapter] = useState(null);
+  const [topic, setTopic] = useState(null);
+  const [subTopic, setSubTopic] = useState(null);
+  const [nestedSubtopic, setNestedSubtopic] = useState(null);
+  const [level, setLevel] = useState(null);
 
   const [options, setOptions] = useState([""]);
   const [correctOptions, setCorrectOptions] = useState([""]);
 
+  // Selectors
   const { subjectList } = useSelector((state) => state.getSubject);
   const { chapterList } = useSelector((state) => state.getChapter);
   const { topicList } = useSelector((state) => state.getTopic);
   const { subtopics } = useSelector((state) => state.getSubtopic);
+  const { nestedSubtopics } = useSelector((state) => state.nestedsubtopic);
   const { isLoading: questionLoading } = useSelector((state) => state.question);
 
+  // Effect to fetch data based on selections
   useEffect(() => {
     if (standard) {
       dispatch(getSubjects(standard));
     }
+    setSubTopic(null);
+    setNestedSubtopic(null);
+
     if (subject && standard) {
       dispatch(getChapters(subject, standard));
     }
@@ -41,180 +50,206 @@ const CreateQuestion = () => {
     if (subject && standard && chapter && topic) {
       dispatch(getSubtopics(subject, standard, chapter, topic));
     }
-  }, [dispatch, subject, standard, chapter, topic]);
+  }, [dispatch, standard, subject, chapter, topic]);
 
-  const handleFormSubmit = async (event) => {
-    event.preventDefault();
+  const handleSubTopicChange = (value) => {
+    setSubTopic(value);
+    setNestedSubtopic(null);
 
-    const formData = new FormData(event.target);
-    const data = {};
-    for (const [name, value] of formData.entries()) {
-        data[name] = value;
-    }
-
-    const filteredOptions = options.filter((option) => option.trim() !== "");
-    const filteredCorrectOptions = correctOptions.filter(
-        (option) => option.trim() !== ""
-    );
-
-    const formattedData = {
-        question: data.question,
-        options: {
-            all: filteredOptions,
-            correct: filteredCorrectOptions,
-        },
-        standard,
-        subject,
-        chapter,
-        topic,
-        subtopics: subTopic ? [{ name: subTopic, subtopics: [] }] : [],
-        level,
-    };
-
-    try {
-        const response = await dispatch(createQuestion(formattedData));
-
-        if (response.success) {
-            toast.success("Question added successfully!");
-            setOptions([""]);
-            setCorrectOptions([""]);
-        } else {
-            toast.error("Failed to create question. Please try again.");
-        }
-    } catch (error) {
-        toast.error(error);
-    }
+    dispatch(getNestedSubtopicsByName(subject, standard, chapter, topic, value));
 };
 
+const handleFormSubmit = async (event) => {
+  event.preventDefault();
 
-  const handleSelectionChange = (index, event) => {
-    const newCorrectOptions = [...correctOptions];
-    newCorrectOptions[index] = event.target.value;
-    setCorrectOptions(newCorrectOptions);
+  // Collect form data
+  const formData = new FormData(event.target);
+  const data = {};
+  for (const [name, value] of formData.entries()) {
+      data[name] = value;
+  }
+
+  // Prepare formatted data
+  const formattedData = {
+      question: data.question,
+      options: {
+          all: options.filter(opt => opt.trim() !== ""),
+          correct: correctOptions.filter(opt => opt.trim() !== ""),
+      },
+      standard,
+      subject,
+      chapter,
+      topic,
+      subTopic,
+      nestedSubtopic, // Add nestedSubtopic data here
+      level,
   };
 
-  const addCorrectOption = () => {
-    if (correctOptions.length < options.length) {
-      setCorrectOptions([...correctOptions, ""]);
-    }
-  };
+  // Submit the question data
+  try {
+      const response = await dispatch(createQuestion(formattedData));
+      
+      if (response.success) {
+          toast.success("Question added successfully!");
+          resetFormFields();
+      } else {
+          toast.error("Failed to create question. Please try again.");
+      }
+  } catch (error) {
+      toast.error("Failed to create question. Please try again.");
+  }
+};
 
-  const addOption = () => {
-    setOptions([...options, ""]);
-  };
+const handleInputChange = (index, event) => {
+  const newOptions = [...options];
+  newOptions[index] = event.target.value;
 
-  const handleInputChange = (index, event) => {
-    const newOptions = [...options];
-    newOptions[index] = event.target.value;
+  if (newOptions[index].trim() !== "" && newOptions.length < 4) {
+    newOptions.push("");
+  }
 
-    if (newOptions[index].trim() !== "" && newOptions.length < 4) {
-      newOptions.push("");
-    }
+  setOptions(newOptions);
+};
 
-    setOptions(newOptions);
-  };
+const handleSelectionChange = (index, event) => {
+  const newCorrectOptions = [...correctOptions];
+  newCorrectOptions[index] = event.target.value;
+  setCorrectOptions(newCorrectOptions);
+};
 
-  useEffect(() => {
-    setSubject(null);
-    setChapter(null);
-    setTopic(null);
-    setSubTopic("");
-    setLevel("");
+const addCorrectOption = () => {
+  if (correctOptions.length < options.length) {
+    setCorrectOptions([...correctOptions, ""]);
+  }
+};
+
+const addOption = () => {
+  setOptions([...options, ""]);
+};
+
+const resetFormFields = () => {
+    document.getElementById("question").value = "";
     setOptions([""]);
     setCorrectOptions([""]);
-  }, [standard]);
+};
 
-  return (
-    <main className="p-4">
-      <h1 className="text-center m-10 text-white-600">Create Questions</h1>
-      <form className="max-w-md mx-auto" onSubmit={handleFormSubmit}>
+return (
+  <main className="p-4">
+    <h1 className="text-center m-10 text-white-600">Create Questions</h1>
+    <form className="max-w-md mx-auto" onSubmit={handleFormSubmit}>
+        {/* Standard Selection */}
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-          <Select
-            showSearch
-            style={{ width: 200 }}
-            placeholder="Select Standard"
-            onChange={(value) => {
-              setStandard(value);
-            }}
-            options={standards}
-          />
-          <label className="text-white-500 text-sm dark:text-white-400">
-            Standard
-          </label>
-        </div>
-
-        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-          <Select
-            showSearch
-            style={{ width: 200 }}
-            placeholder="Select Subject"
-            onChange={(value) => setSubject(value)}
-            value={subject}
-            options={subjectList?.map((name) => ({
-              value: name,
-              label: name,
-            }))}
-            required
-          />
-          <label htmlFor="subject" className="text-white-500 text-sm dark:text-white-400">
-            Subject
-          </label>
-        </div>
-
-        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-          <Select
-            showSearch
-            style={{ width: 200 }}
-            placeholder="Select Chapter"
-            onChange={(value) => setChapter(value)}
-            value={chapter}
-            options={chapterList?.map((chapter) => ({
-              value: chapter.name,
-              label: chapter.name,
-            }))}
-            required
-          />
-          <label htmlFor="chapter" className="text-white-500 text-sm dark:text-white-400">
-            Chapter
-          </label>
-        </div>
-
-        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-          <Select
-            showSearch
-            style={{ width: 200 }}
-            placeholder="Select Topic"
-            onChange={(value) => setTopic(value)}
-            value={topic}
-            options={topicList?.map((el) => ({ value: el.name, label: el.name }))}
-            required
-          />
-          <label className="text-white-500 text-sm dark:text-white-400">
-            Topic
-          </label>
-        </div>
-
-        {topic && subtopics?.length > 0 && (
-          <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
             <Select
-              showSearch
-              style={{ width: 200 }}
-              placeholder="Select Subtopic"
-              onChange={(value) => setSubTopic(value)}
-              value={subTopic}
-              options={subtopics.map((el) => ({ value: el.name, label: el.name }))}
+                showSearch
+                style={{ width: 200 }}
+                placeholder="Select Standard"
+                onChange={(value) => setStandard(value)}
+                options={standards}
+                value={standard}
             />
-            <label className="text-sm dark:text-white-400">Subtopic</label>
-          </div>
+            <label className="text-white-500 text-sm dark:text-white-400">
+                Standard
+            </label>
+        </div>
+
+        {/* Subject Selection */}
+        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+            <Select
+                showSearch
+                style={{ width: 200 }}
+                placeholder="Select Subject"
+                onChange={(value) => setSubject(value)}
+                options={subjectList?.map((name) => ({
+                    value: name,
+                    label: name
+                }))}
+                value={subject}
+            />
+            <label htmlFor="subject" className="text-white-500 text-sm dark:text-white-400">
+                Subject
+            </label>
+        </div>
+
+        {/* Chapter Selection */}
+        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+            <Select
+                showSearch
+                style={{ width: 200 }}
+                placeholder="Select Chapter"
+                onChange={(value) => setChapter(value)}
+                options={chapterList?.map((chapter) => ({
+                    value: chapter.name,
+                    label: chapter.name
+                }))}
+                value={chapter}
+            />
+            <label htmlFor="chapter" className="text-white-500 text-sm dark:text-white-400">
+                Chapter
+            </label>
+        </div>
+
+        {/* Topic Selection */}
+        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+            <Select
+                showSearch
+                style={{ width: 200 }}
+                placeholder="Select Topic"
+                onChange={(value) => setTopic(value)}
+                options={topicList?.map((el) => ({
+                    value: el.name,
+                    label: el.name
+                }))}
+                value={topic}
+            />
+            <label className="text-white-500 text-sm dark:text-white-400">
+                Topic
+            </label>
+        </div>
+
+        {/* Subtopic Selection */}
+        {topic && subtopics?.length > 0 && (
+            <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+                <Select
+                    showSearch
+                    style={{ width: 200 }}
+                    placeholder="Select Subtopic"
+                    onChange={handleSubTopicChange}
+                    options={subtopics.map((el) => ({
+                        value: el.name,
+                        label: el.name
+                    }))}
+                    value={subTopic}
+                />
+                <label className="text-sm dark:text-white-400">Subtopic</label>
+            </div>
         )}
 
+        {/* Nested Subtopic Selection */}
+        {subTopic && nestedSubtopics && nestedSubtopics.length > 0 && (
+            <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+                <Select
+                    showSearch
+                    style={{ width: 200 }}
+                    placeholder="Select Nested Subtopic"
+                    options={nestedSubtopics.map((nestedSubtopic) => ({
+                        value: nestedSubtopic.name,
+                        label: nestedSubtopic.name,
+                    }))}
+                    value={nestedSubtopic}
+                    onChange={setNestedSubtopic}
+                />
+                <label className="text-sm dark:text-white-400">Nested Subtopic</label>
+            </div>
+        )}
+
+
+        {/* Level Selection */}
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
           <Select
             showSearch
             style={{ width: 200 }}
             placeholder="Select Level"
             onChange={(value) => setLevel(value)}
-            value={level}
             options={[
               { value: "Basic", label: "Basic" },
               { value: "Boards", label: "Boards" },
@@ -222,18 +257,20 @@ const CreateQuestion = () => {
               { value: "JeeMains", label: "JeeMains" },
               { value: "JeeAdvance", label: "JeeAdvance" },
             ]}
+            value={level}
           />
           <label className="text-white-500 text-sm dark:text-white-400">
             Level
           </label>
         </div>
 
+        {/* Question Input */}
         <div className="relative z-0 w-full mb-5 group">
           <input
             type="text"
             name="question"
             id="question"
-            className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
+            className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
             placeholder="Add Questions"
             required
           />
@@ -245,13 +282,16 @@ const CreateQuestion = () => {
           </label>
         </div>
 
+        {/* Options Inputs */}
         {options.map((option, index) => (
           <div key={index} className="relative z-0 w-full mb-5 group">
             <input
               type="text"
               name={`option${index}`}
               value={option}
-              onChange={(e) => handleInputChange(index, e)}
+              onChange={(e) => {
+                handleInputChange(index, e);
+              }}
               className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
               placeholder="Option"
             />
@@ -264,6 +304,7 @@ const CreateQuestion = () => {
           </div>
         ))}
 
+        {/* Add More Options Button */}
         {options.length < 4 && (
           <div
             className="border text-white-600 mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
@@ -273,6 +314,7 @@ const CreateQuestion = () => {
           </div>
         )}
 
+        {/* Correct Options Selection */}
         {correctOptions.map((correctOption, index) => (
           <div key={index} className="relative z-0 w-full mb-5 group">
             <select
@@ -301,6 +343,7 @@ const CreateQuestion = () => {
           </div>
         ))}
 
+        {/* Add More Correct Options Button */}
         {correctOptions.length < options.length && (
           <div
             className="border mb-10 text-white-600 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
@@ -310,6 +353,7 @@ const CreateQuestion = () => {
           </div>
         )}
 
+        {/* Submit Button */}
         {questionLoading ? (
           <button
             type="submit"

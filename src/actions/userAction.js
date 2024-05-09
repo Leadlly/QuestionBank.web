@@ -13,11 +13,15 @@ import {
  PROFILE_FAIL,
  FETCH_USER_QUESTIONS,
  FETCH_USER_QUESTIONS_SUCCESS,
- FETCH_USER_QUESTIONS_FAILURE
+ FETCH_USER_QUESTIONS_FAILURE,
+ VERIFY_USER_REQUEST,
+ VERIFY_USER_SUCCESS,
+ VERIFY_USER_FAIL
 } from "../constants/userConstants";
 
 import axios from "axios";
 import { server } from "../main";
+import toast from "react-hot-toast";
 
 
 
@@ -42,7 +46,30 @@ export const login = (email, password) => async (dispatch) => {
       dispatch({type: LOGIN_FAIL, payload: error.response.data.message})
     }
   };
-
+  export const verifyUser = (id) => async (dispatch) => {
+    try {
+      dispatch({ type: VERIFY_USER_REQUEST });
+  
+      const { data } = await axios.get(`${server}/api/user/verify/${id}`, {
+        withCredentials: true,
+      });
+  
+      dispatch({
+        type: VERIFY_USER_SUCCESS,
+        payload: data,
+      });
+  
+      toast.success(data.message);
+    } catch (error) {
+      dispatch({
+        type: VERIFY_USER_FAIL,
+        payload: error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message,
+      });
+      toast.error(error.response?.data?.message || "Failed to verify user");
+    }
+  };
 
 
   export const profile = () => async (dispatch) => {

@@ -14,6 +14,9 @@ import {
     FETCH_USER_QUESTIONS,
     FETCH_USER_QUESTIONS_SUCCESS,
     FETCH_USER_QUESTIONS_FAILURE,
+    VERIFY_USER_REQUEST,
+    VERIFY_USER_SUCCESS,
+    VERIFY_USER_FAIL,
 } from "../constants/userConstants";
 
 const initialState = {
@@ -107,6 +110,29 @@ export const userRegistrationReducer = (state = initialState, action) => {
             return state;
     }
 };
+export const verifyUserReducer = (state = initialState, action) => {
+    switch (action.type) {
+      case VERIFY_USER_REQUEST:
+        return {
+          ...state,
+          isLoading: true,
+        };
+      case VERIFY_USER_SUCCESS:
+        return {
+          ...state,
+          isLoading: false,
+          success: action.payload.success,
+        };
+      case VERIFY_USER_FAIL:
+        return {
+          ...state,
+          isLoading: false,
+          error: action.payload,
+        };
+      default:
+        return state;
+    }
+  };
 
 export const userQuestionsReducer = (state = initialState, action) => {
     switch (action.type) {
