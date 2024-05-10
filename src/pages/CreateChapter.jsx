@@ -114,7 +114,7 @@ const CreateChapter = () => {
                                 name={`chapter-${index}`}
                                 id={`chapter-${index}`}
                                 className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
-                                placeholder="Chapter name"
+                                placeholder=" "
                                 value={chapter.name}
                                 onChange={(e) => handleChapterChange(index, e.target.value)}
                             />
