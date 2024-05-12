@@ -54,24 +54,38 @@ const CreateQuestion = () => {
     const filteredCorrectOptions = correctOptions.filter(
       (option) => option.trim() !== ""
     );
+  
+// Frontend response modification
+const formattedData = {
+  question: data.question,
+  options: {
+    all: filteredOptions,
+    correct: filteredCorrectOptions,
+  },
+  standard,
+  subject,
+  chapter,
+  topic,
+  subtopics: selectedSubtopics[0].name,
+  level,
+  nestedSubTopic: selectedSubtopics
+  .filter(({ subtopics }) => subtopics && subtopics.length > 0)
+  .flatMap(({ subtopics }) =>
+    subtopics
+      .filter(({ isSelected }) => isSelected)
+      .map(({ name }) => name)
+  )
+  .join(', ')
 
-    const formattedData = {
-      question: data.question,
-      options: {
-        all: filteredOptions,
-        correct: filteredCorrectOptions,
-      },
-      standard,
-      subject,
-      chapter,
-      topic,
-      subtopics: selectedSubtopics,
-      level,
-    };
+};
 
+
+
+
+  
     try {
       const response = await dispatch(createQuestion(formattedData));
-
+  
       if (response.success) {
         toast.success("Question added successfully!");
         resetFormFields();
@@ -82,6 +96,8 @@ const CreateQuestion = () => {
       toast.error("Failed to create question. Please try again.");
     }
   };
+  
+  
 
   const handleInputChange = (index, event) => {
     const newOptions = [...options];
@@ -112,15 +128,18 @@ const CreateQuestion = () => {
 
   const handleSubtopicChange = (value, level) => {
     const updatedSubtopics = [...selectedSubtopics];
-    const parentSubtopics =
-      level === 0 ? subtopics : updatedSubtopics[level - 1].subtopics;
-
+    const parentSubtopics = level === 0 ? subtopics : updatedSubtopics[level - 1].subtopics;
+  
     const selectedSubtopic = parentSubtopics.find((sub) => sub.name === value);
-
-    updatedSubtopics[level] = selectedSubtopic;
-
-     setSelectedSubtopics(updatedSubtopics.slice(0, level + 1));
+  
+    if (selectedSubtopic) {
+      selectedSubtopic.isSelected = true; // Mark the selected subtopic as selected
+      updatedSubtopics[level] = selectedSubtopic;
+    }
+  
+    setSelectedSubtopics(updatedSubtopics.slice(0, level + 1));
   };
+  
 
   const addCorrectOption = () => {
     if (correctOptions.length < options.length) {

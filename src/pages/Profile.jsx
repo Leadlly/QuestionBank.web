@@ -33,39 +33,6 @@ const Profile = () => {
     }
   };
 
-  const renderSubtopics = (
-    subtopics,
-    selectedSubtopicIds,
-    renderedSubtopicIds = new Set(),
-    level = 0
-  ) => {
-    return subtopics
-      .map((subtopic) => {
-        if (
-          selectedSubtopicIds.includes(subtopic._id) &&
-          !renderedSubtopicIds.has(subtopic._id)
-        ) {
-          renderedSubtopicIds.add(subtopic._id);
-
-          return (
-            <div key={subtopic._id} style={{ paddingLeft: `${20 * level}px` }}>
-              <p>Subtopic: {subtopic.name}</p>
-              {subtopic.subtopics &&
-                subtopic.subtopics.length > 0 &&
-                renderSubtopics(
-                  subtopic.subtopics,
-                  selectedSubtopicIds,
-                  renderedSubtopicIds,
-                  level + 1
-                )}
-            </div>
-          );
-        }
-        return null;
-      })
-      .filter(Boolean);
-  };
-
   return (
     <div className="question_box pt-14">
       <ProfileHead setSelectedQuestion={setSelectedQuestion} />
@@ -93,15 +60,8 @@ const Profile = () => {
             <p>Chapter: {selectedQuestion.chapter}</p>
             <p>Topic: {selectedQuestion.topic}</p>
             <p>Level: {selectedQuestion.level}</p>
-            <p>Subtopic(s):</p>
-            {selectedQuestion.subtopics.length > 0 ? (
-              renderSubtopics(
-                selectedQuestion.subtopics,
-                selectedQuestion.subtopics.map((sub) => sub._id)
-              )
-            ) : (
-              <p>No subtopics available</p>
-            )}
+            <p>Subtopics: {selectedQuestion.subtopics}</p>
+            <p>Nested Subtopic: {selectedQuestion.nestedSubTopic || "N/A"}</p>
           </div>
           <div className="p-6 pt-0">
             <button
