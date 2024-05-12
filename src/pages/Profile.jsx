@@ -60,7 +60,7 @@ const Profile = () => {
             <p>Chapter: {selectedQuestion.chapter}</p>
             <p>Topic: {selectedQuestion.topic}</p>
             <p>Level: {selectedQuestion.level}</p>
-            <p>Subtopics: {selectedQuestion.subtopics}</p>
+            <p>Subtopics: {selectedQuestion.subtopics || "N/A"}</p>
             <p>Nested Subtopic: {selectedQuestion.nestedSubTopic || "N/A"}</p>
           </div>
           <div className="p-6 pt-0">
