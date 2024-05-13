@@ -6,6 +6,9 @@ import {
     GET_SUBTOPICS_SUCCESS,
     GET_SUBTOPICS_FAIL,
     CLEAR_ERRORS,
+    GET_NESTED_SUBTOPICS_REQUEST,
+    GET_NESTED_SUBTOPICS_SUCCESS,
+    GET_NESTED_SUBTOPICS_FAILURE,
 } from "../constants/subtopicConstants";
 
 const initialState = {
@@ -13,6 +16,7 @@ const initialState = {
     success: false,
     error: null,
     subtopics:[],
+    nestedSubtopics: []
 };
 
 export const createSubtopicReducer = (state = initialState, action) => {
@@ -62,6 +66,7 @@ export const getSubtopicsReducer = (state = initialState, action) => {
             return {
                 ...state,
                 isLoading: false,
+                success: true,
                 subtopics: action.payload.subtopics,
                 error: null,
             };
@@ -71,6 +76,7 @@ export const getSubtopicsReducer = (state = initialState, action) => {
                 ...state,
                 isLoading: false,
                 subtopics: [],
+                success: false,
                 error: action.payload,
             };
 
@@ -80,6 +86,35 @@ export const getSubtopicsReducer = (state = initialState, action) => {
                 error: null,
             };
 
+        default:
+            return state;
+    }
+};
+
+export const nestedSubtopicReducer = (state = initialState, action) => {
+    switch (action.type) {
+        case GET_NESTED_SUBTOPICS_REQUEST:
+            return {
+                ...state,
+                isLoading: true,
+                error: null,
+            };
+        
+        case GET_NESTED_SUBTOPICS_SUCCESS:
+            return {
+                ...state,
+                nestedSubtopics: action.payload.nestedSubtopics,
+                isLoading: false,
+                error: null,
+            };
+        
+        case GET_NESTED_SUBTOPICS_FAILURE:
+            return {
+                ...state,
+                isLoading: false,
+                error: action.payload,
+            };
+        
         default:
             return state;
     }

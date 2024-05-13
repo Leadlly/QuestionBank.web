@@ -16,38 +16,27 @@ const initialState = {
 };
 
 export const createSubjectReducer = (state = initialState, action) => {
-    switch (action.type) {
-        case CREATE_SUBJECT_REQUEST:
-            return {
-                ...state,
-                isLoading: true,
-            };
-
-        case CREATE_SUBJECT_SUCCESS:
-            return {
-                ...state,
-                isLoading: false,
-                subject: action.payload.subject, 
-                error: null,
-            };
-
-        case CREATE_SUBJECT_FAIL:
-            return {
-                ...state,
-                isLoading: false,
-                subject: null,
-                error: action.payload, 
-            };
-
-        case CLEAR_ERRORS:
-            return {
-                ...state,
-                error: null,
-            };
-
-        default:
-            return state;
-    }
+  switch (action.type) {
+      case CREATE_SUBJECT_REQUEST:
+          return {
+              ...state,
+              isLoading: true,
+          };
+      case CREATE_SUBJECT_SUCCESS:
+          return {
+              ...state,
+              isLoading: false,
+              subject: action.payload,
+          };
+      case CREATE_SUBJECT_FAIL:
+          return {
+              ...state,
+              isLoading: false,
+              error: action.payload,
+          };
+      default:
+          return state;
+  }
 };
 
 export const getSubjectReducer = (state = initialState, action) => {

@@ -1,23 +1,24 @@
 import { useEffect, useState } from "react";
-import { Select } from "antd";
 import { useDispatch, useSelector } from "react-redux";
+import { Select } from "antd";
 import toast from "react-hot-toast";
-import { standards } from "../components/Options";
+import { createQuestion } from "../actions/questionAction";
 import { getSubjects } from "../actions/subjectAction";
 import { getChapters } from "../actions/chapterAction";
 import { getTopics } from "../actions/topicAction";
 import { getSubtopics } from "../actions/subtopicAction";
-import { createQuestion } from "../actions/questionAction";
+import { standards } from "../components/Options";
 
 const CreateQuestion = () => {
-  const dispatch = useDispatch();  
+  const dispatch = useDispatch();
 
-  const [standard, setStandard] = useState();
-  const [subject, setSubject] = useState();
-  const [chapter, setChapter] = useState();
-  const [topic, setTopic] = useState();
-  const [subTopic, setSubTopic] = useState("");
-  const [level, setLevel] = useState("");
+  const [standard, setStandard] = useState(null);
+  const [subject, setSubject] = useState(null);
+  const [chapter, setChapter] = useState(null);
+  const [topic, setTopic] = useState(null);
+  const [level, setLevel] = useState(null);
+  const [selectedSubtopics, setSelectedSubtopics] = useState([]);
+
   const [options, setOptions] = useState([""]);
   const [correctOptions, setCorrectOptions] = useState([""]);
 
@@ -28,128 +29,179 @@ const CreateQuestion = () => {
   const { isLoading: questionLoading } = useSelector((state) => state.question);
 
   useEffect(() => {
-      if (standard) {
-          dispatch(getSubjects(standard));
-          
-      }
-      if (subject && standard) {
-          dispatch(getChapters(subject, standard));
-          if (chapterList?.length === 0) {
-            toast.error(`No chapters available for the selected subject: ${subject}`);
-            return;  
-        }
-      }
-
-      if (subject && standard && chapter) {
-          dispatch(getTopics(subject, standard, chapter));
-          if (topicList?.length === 0) {
-            toast.error(`No topics available for the selected chapter: ${chapter}`);
-            
-        }
-      }
-
-      if (subject && standard && chapter && topic) {
-          dispatch(getSubtopics(subject, standard, chapter, topic));
-          if (subtopics?.length === 0) {
-            toast.error(`No subtopics available for the selected topic: ${topic}`);
-            
-        }
-      }
-  }, [dispatch, subject, standard, chapter, topic]);
-
+    if (standard) {
+      dispatch(getSubjects(standard));
+    }
+    if (subject && standard) {
+      dispatch(getChapters(subject, standard));
+    }
+    if (subject && standard && chapter) {
+      dispatch(getTopics(subject, standard, chapter));
+    }
+    if (subject && standard && chapter && topic) {
+      dispatch(getSubtopics(subject, standard, chapter, topic));
+    }
+  }, [dispatch, standard, subject, chapter, topic]);
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
-
     const formData = new FormData(event.target);
     const data = {};
     for (const [name, value] of formData.entries()) {
-        data[name] = value;
+      data[name] = value;
     }
-
     const filteredOptions = options.filter((option) => option.trim() !== "");
-    const filteredCorrectOptions = correctOptions.filter((option) => option.trim() !== "");
+    const filteredCorrectOptions = correctOptions.filter(
+      (option) => option.trim() !== ""
+    );
+  
+// Frontend response modification
+const formattedData = {
+  question: data.question,
+  options: {
+    all: filteredOptions,
+    correct: filteredCorrectOptions,
+  },
+  standard,
+  subject,
+  chapter,
+  topic,
+  subtopics: selectedSubtopics[0].name,
+  level,
+  nestedSubTopic: selectedSubtopics
+  .filter(({ subtopics }) => subtopics && subtopics.length > 0)
+  .flatMap(({ subtopics }) =>
+    subtopics
+      .filter(({ isSelected }) => isSelected)
+      .map(({ name }) => name)
+  )
+  .join(', ')
 
-    const formattedData = {
-        question: data.question,
-        options: {
-            all: filteredOptions,
-            correct: filteredCorrectOptions,
-        },
-        standard,
-        subject,
-        chapter,
-        topic,
-        subtopics: subTopic ? [{ name: subTopic, subtopics: [] }] : [],
-        level,
-    };
-
-    try {
-        await dispatch(createQuestion(formattedData));
-        toast.success("Question added successfully!");
-
-        event.target.reset();
-        if (!subject || !chapter || !topic) {
-          toast.error("Please ensure that subject, chapter, and topic are selected.");
-          return; 
-      }
-    } catch (error) {
-        console.error("Error creating question:", error);
-        toast.error("Failed to create question. Please try again.");
-    }
 };
 
 
-    const handleInputChange = (index, event) => {
-        const newOptions = [...options];
-        newOptions[index] = event.target.value;
-        if (newOptions[index] && index === options.length - 1) {
-            newOptions.push("");
-        }
-        setOptions(newOptions);
-    };
 
-    const addOption = () => {
-        setOptions([...options, ""]);
-    };
 
-    const handleSelectionChange = (index, event) => {
-        const newCorrectOptions = [...correctOptions];
-        newCorrectOptions[index] = event.target.value;
-        setCorrectOptions(newCorrectOptions);
-    };
+  
+    try {
+      const response = await dispatch(createQuestion(formattedData));
+  
+      if (response.success) {
+        toast.success("Question added successfully!");
+        resetFormFields();
+      } else {
+        toast.error("Failed to create question. Please try again.");
+      }
+    } catch (error) {
+      toast.error("Failed to create question. Please try again.");
+    }
+  };
+  
+  
 
-    const addCorrectOption = () => {
-        if (correctOptions.length < options.length) {
-            setCorrectOptions([...correctOptions, ""]);
-        }
-    };
+  const handleInputChange = (index, event) => {
+    const newOptions = [...options];
+    newOptions[index] = event.target.value;
 
-    useEffect(() => {
-      setSubject(null);
-      setChapter(null); 
-      setTopic(null);
-      setSubTopic(""); 
-      setLevel(""); 
-      setOptions([""]); 
-      setCorrectOptions([""]);
-  }, [standard]);
+    if (newOptions[index].trim() !== "" && newOptions.length < 4) {
+      newOptions.push("");
+    }
+
+    setOptions(newOptions);
+  };
+
+  const handleSelectionChange = (index, event) => {
+    const newCorrectOptions = [...correctOptions];
+    newCorrectOptions[index] = event.target.value;
+    setCorrectOptions(newCorrectOptions);
+  };
+
+  const addOption = () => {
+    setOptions([...options, ""]);
+  };
+
+  const resetFormFields = () => {
+    document.getElementById("question").value = "";
+    setOptions([""]);
+    setCorrectOptions([""]);
+  };
+
+  const handleSubtopicChange = (value, level) => {
+    const updatedSubtopics = [...selectedSubtopics];
+    const parentSubtopics = level === 0 ? subtopics : updatedSubtopics[level - 1].subtopics;
+  
+    const selectedSubtopic = parentSubtopics.find((sub) => sub.name === value);
+  
+    if (selectedSubtopic) {
+      selectedSubtopic.isSelected = true; // Mark the selected subtopic as selected
+      updatedSubtopics[level] = selectedSubtopic;
+    }
+  
+    setSelectedSubtopics(updatedSubtopics.slice(0, level + 1));
+  };
+  
+
+  const addCorrectOption = () => {
+    if (correctOptions.length < options.length) {
+      setCorrectOptions([...correctOptions, ""]);
+    }
+  };
+
+  const renderSubtopicSelectors = (currentSubtopics, level) => {
+    if (!currentSubtopics || currentSubtopics.length === 0) {
+      return null;
+    }
+
+    const selectedSubtopic = selectedSubtopics[level] || null;
+
+    return (
+      <div key={level} className="relative z-0 w-full mb-0 group flex flex-col">
+      <label
+          htmlFor={`subtopic-select-${level}`}
+          className="block text-sm dark:text-white-400"
+      >
+          Subtopic
+      </label>
+  
+      <Select
+          id={`subtopic-select-${level}`}
+          showSearch
+          style={{ width: 200 }}
+          placeholder="Select Subtopic"
+          options={currentSubtopics.map((subtopic) => ({
+              value: subtopic.name,
+              label: subtopic.name,
+          }))}
+          value={selectedSubtopic ? selectedSubtopic.name : null}
+          onChange={(value) => handleSubtopicChange(value, level)}
+      />
+  
+      {selectedSubtopic && selectedSubtopic.subtopics && (
+          <div className="mt-5 mb-0">
+              {renderSubtopicSelectors(selectedSubtopic.subtopics, level + 1)}
+          </div>
+      )}
+  </div>
+  
+    );
+  };
 
   return (
     <main className="p-4">
       <h1 className="text-center m-10 text-white-600">Create Questions</h1>
       <form className="max-w-md mx-auto" onSubmit={handleFormSubmit}>
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-        <Select
-    showSearch
-    style={{ width: 200 }}
-    placeholder="Select Standard"
-    onChange={(value) => {
-        setStandard(value);
-    }}
-    options={standards}
-/>
-          <label className="text-white-500 text-sm dark:text-white-400">Standard</label>
+          <Select
+            showSearch
+            style={{ width: 200 }}
+            placeholder="Select Standard"
+            onChange={(value) => setStandard(value)}
+            options={standards}
+            value={standard}
+          />
+          <label className="text-white-500 text-sm dark:text-white-400">
+            Standard
+          </label>
         </div>
 
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
@@ -157,17 +209,16 @@ const CreateQuestion = () => {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Subject"
-            onChange={(value) => {
-              setSubject(value);
-            }}
-            value={subject}
+            onChange={(value) => setSubject(value)}
             options={subjectList?.map((name) => ({
               value: name,
               label: name,
             }))}
-            required
+            value={subject}
           />
-          <label htmlFor="subject" className="text-white-500 text-sm dark:text-white-400">Subject</label>
+          <label className="text-white-500 text-sm dark:text-white-400">
+            Subject
+          </label>
         </div>
 
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
@@ -175,17 +226,16 @@ const CreateQuestion = () => {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Chapter"
-            onChange={(value) => {
-              setChapter(value);
-            }}
-            value={chapter}
+            onChange={(value) => setChapter(value)}
             options={chapterList?.map((chapter) => ({
               value: chapter.name,
               label: chapter.name,
             }))}
-            required
+            value={chapter}
           />
-          <label htmlFor="chapter" className="text-white-500 text-sm dark:text-white-400">Chapter</label>
+          <label className="text-white-500 text-sm dark:text-white-400">
+            Chapter
+          </label>
         </div>
 
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
@@ -193,55 +243,23 @@ const CreateQuestion = () => {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Topic"
-            onChange={(value) => {
-              setTopic(value);
-            }}
+            onChange={(value) => setTopic(value)}
+            options={topicList?.map((el) => ({
+              value: el.name,
+              label: el.name,
+            }))}
             value={topic}
-            options={topicList?.map((el) => ({ value: el.name, label: el.name }))}
-            required
           />
-          <label className="text-white-500 text-sm dark:text-white-400">Topic</label>
+          <label className="text-white-500 text-sm dark:text-white-400">
+            Topic
+          </label>
         </div>
 
-{topic && subtopics?.length > 0 && (
-    <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-        <Select
-            showSearch
-            style={{ width: 200 }}
-            placeholder="Select Subtopic"
-            onChange={(value) => setSubTopic(value)}
-            value={subTopic}
-            options={subtopics.map((el) => ({ value: el.name, label: el.name }))}
-        />
-        <label className="text-sm dark:text-white-400">Subtopic</label>
-    </div>
-)}
+        {topic && subtopics && subtopics.length > 0 && (
+          <div>{renderSubtopicSelectors(subtopics, 0)}</div>
+        )}
 
-
-        {/* Additional nested subtopics */}
-        {/* {Object.entries(nestedSubtopics).map(
-          ([subtopicName, nestedSubtopicValue]) => (
-            <div key={subtopicName} className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-              <Select
-                showSearch
-                style={{ width: 200 }}
-                placeholder={`Select ${subtopicName} Subtopic`}
-                onChange={(value) => {
-                  setNestedSubtopics((prev) => ({ ...prev, [subtopicName]: value }));
-                }}
-                value={nestedSubtopicValue}
-                options={subtopics?.map((el) => ({
-                  value: el.name,
-                  label: el.name,
-                }))}
-              />
-              <label className="text-sm dark:text-white-400">{subtopicName} Subtopic</label>
-            </div>
-          )
-        )} */}
-
-        {/* Level selection */}
-        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+        <div className="relative z-0 w-full mt-2 mb-5 group flex flex-col-reverse">
           <Select
             showSearch
             style={{ width: 200 }}
@@ -256,17 +274,18 @@ const CreateQuestion = () => {
               { value: "JeeAdvance", label: "JeeAdvance" },
             ]}
           />
-          <label className="text-white-500 text-sm dark:text-white-400">Level</label>
+          <label className="text-white-500 text-sm dark:text-white-400">
+            Level
+          </label>
         </div>
 
-        {/* Question input */}
         <div className="relative z-0 w-full mb-5 group">
           <input
             type="text"
             name="question"
             id="question"
             className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
-            placeholder="Add Questions"
+            placeholder=" "
             required
           />
           <label htmlFor="question" className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-grey-600 peer-focus:dark:text-grey-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">Add Questions</label>

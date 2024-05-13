@@ -17,6 +17,7 @@ const CreateSubject = () => {
       questionInput.value = "";
     }
   };
+ 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
 
@@ -24,31 +25,59 @@ const CreateSubject = () => {
     const data = {};
 
     for (let [name, value] of formData.entries()) {
-      if (data[name]) {
-        if (Array.isArray(data[name])) {
-          data[name].push(value);
+        if (data[name]) {
+            if (Array.isArray(data[name])) {
+                data[name].push(value);
+            } else {
+                data[name] = [data[name], value];
+            }
         } else {
-          data[name] = [data[name], value];
+            data[name] = value;
         }
-      } else {
-        data[name] = value;
-      }
     }
 
-    const formattedData = {
-      subjectName: data.subject,
-      standard: standard,
+    const chapters = [];
+    let chapterIndex = 0;
+
+    while (data[`chapterName${chapterIndex}`]) {
+        const chapterName = data[`chapterName${chapterIndex}`];
+        const topics = [];
+
+        let topicIndex = 0;
+        while (data[`chapter${chapterIndex}Topic${topicIndex}`]) {
+            topics.push(data[`chapter${chapterIndex}Topic${topicIndex}`]);
+            topicIndex++;
+        }
+
+        chapters.push({ name: chapterName, topics });
+        chapterIndex++;
+    }
+
+    const subjectData = {
+        subject: {
+            name: data.subject,
+            standard: standard,
+            chapters,
+        },
     };
 
-    dispatch(createSubject(formattedData));
-    if (!isLoading) {
-      toast.success("Subject added successfully!");
-      resetFields(event.target);
-  }
-
-    setStandard(standard)
-    resetFields(event.target);
-  };
+    try {
+        const response = await dispatch(createSubject(subjectData));
+        
+        const isSuccess = response?.success;
+        
+        if (isSuccess) {
+          toast.success('Subject created successfully!');
+          resetFields(event.target);
+            
+        } else {
+            toast.error(response?.message || 'Failed to add subject. Please try again.');
+        }
+    } catch (error) {
+        const errorMessage = error?.response?.data?.message || error?.message || 'Subject already exist!';
+        toast.error(errorMessage);
+    }
+};
 
   return (
     <main className=" p-4 ">

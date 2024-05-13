@@ -6,7 +6,6 @@
 
 #signin_page {
   @include flex;
-  // border: 2px solid red;
   height: 90vh;
 }
 .signin-box {
@@ -14,7 +13,6 @@
   flex-direction: column;
   border: 1px solid rgb(231, 231, 231);
   padding: 20px;
-  //    max-width: 600px;
   width: 400px;
 
   form {
@@ -44,6 +42,7 @@
   flex-direction: column;
   align-items: center;
   gap: 16px; 
+  width: auto;
   
   
   @media (max-width: 640px) {
@@ -63,23 +62,19 @@
 
   .box {
       background-color: #0b1c38;
-      width: auto; 
+      // width: auto; 
       margin: 0.75rem;
 
-      @media (min-width: 641px) {
-          width: 45%;
-      }
+      // @media (min-width: 641px) {
+      //     width: 45%;
+      // }
 
-      @media (min-width: 1025px) {
-          width: 30%; 
-      }
+      // @media (min-width: 1025px) {
+      //     width: 30%; 
+      // }
   }
 
-  // .heading {
-  //     overflow: hidden;
-  //     white-space: nowrap;
-  //     text-overflow: ellipsis;
-  // }
+
 
 
 
@@ -110,7 +105,6 @@
         }
       }
       .option input[type="radio"]:checked + .option-text {
-              background-color: #007bff;
               color: white;
         }
     }
