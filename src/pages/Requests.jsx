@@ -2,6 +2,7 @@ import  { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { profile as fetchProfile, verifyUser, clearErrors } from '../actions/userAction';
+import Loader from '../components/Loader';
 // import LoadingSpinner from '../components/LoadingSpinner'; // Replace with your own loading spinner component
 
 const Profile = () => {
@@ -42,17 +43,13 @@ const Profile = () => {
     return (
         <div >
             {loading ? (
-                <div>Loading...</div>
+                <Loader />
             ) : (
                 user ? (
                     <div className="flex flex-wrap">
-                        {/* <h1>Profile</h1>
-                        <p>Name: {user.name}</p>
-                        <p>Email: {user.email}</p> */}
-                        {/* Display other user profile data as needed */}
+                       
                         {user.requests && user.requests.length > 0 ? (
                             <div>
-                                {/* <h2>Requests</h2> */}
                                 {user.requests.map((request) => (
                                     <div key={request._id} className="relative flex flex-col mt-6 m-7 text-white-700 bg-gray-700 shadow-md bg-clip-border rounded-xl w-96">
                                         <div className="p-6">

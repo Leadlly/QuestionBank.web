@@ -8,6 +8,9 @@ import { getChapters } from "../actions/chapterAction";
 import { getTopics } from "../actions/topicAction";
 import { getSubtopics } from "../actions/subtopicAction";
 import { standards } from "../components/Options";
+import Loading from "./Loading";
+import {FaImage} from "react-icons/fa6"
+import { ImCross } from "react-icons/im";
 
 const CreateQuestion = () => {
   const dispatch = useDispatch();
@@ -17,10 +20,13 @@ const CreateQuestion = () => {
   const [chapter, setChapter] = useState(null);
   const [topic, setTopic] = useState(null);
   const [level, setLevel] = useState(null);
+  const [images, setImages] = useState([]);
   const [selectedSubtopics, setSelectedSubtopics] = useState([]);
+  const [optionImages, setOptionImages] = useState([]);
 
   const [options, setOptions] = useState([""]);
   const [correctOptions, setCorrectOptions] = useState([""]);
+  const [isSubtopicsLoading, setIsSubtopicsLoading] = useState(false);
 
   const { subjectList } = useSelector((state) => state.getSubject);
   const { chapterList } = useSelector((state) => state.getChapter);
@@ -39,7 +45,16 @@ const CreateQuestion = () => {
       dispatch(getTopics(subject, standard, chapter));
     }
     if (subject && standard && chapter && topic) {
-      dispatch(getSubtopics(subject, standard, chapter, topic));
+      setIsSubtopicsLoading(true);
+      dispatch(getSubtopics(subject, standard, chapter, topic))
+        .then(() => {
+          setIsSubtopicsLoading(false);
+        })
+        .catch(() => {
+          setIsSubtopicsLoading(false); 
+        });
+    } else {
+      setIsSubtopicsLoading(false); 
     }
   }, [dispatch, standard, subject, chapter, topic]);
 
@@ -54,38 +69,32 @@ const CreateQuestion = () => {
     const filteredCorrectOptions = correctOptions.filter(
       (option) => option.trim() !== ""
     );
-  
-// Frontend response modification
-const formattedData = {
-  question: data.question,
-  options: {
-    all: filteredOptions,
-    correct: filteredCorrectOptions,
-  },
-  standard,
-  subject,
-  chapter,
-  topic,
-  subtopics: selectedSubtopics[0].name,
-  level,
-  nestedSubTopic: selectedSubtopics
-  .filter(({ subtopics }) => subtopics && subtopics.length > 0)
-  .flatMap(({ subtopics }) =>
-    subtopics
-      .filter(({ isSelected }) => isSelected)
-      .map(({ name }) => name)
-  )
-  .join(', ')
 
-};
+    const formattedData = {
+      question: data.question,
+      options: {
+        all: filteredOptions,
+        correct: filteredCorrectOptions,
+      },
+      standard,
+      subject,
+      chapter,
+      topic,
+      subtopics: selectedSubtopics[0]?.name || "",
+      level,
+      nestedSubTopic: selectedSubtopics
+        .filter(({ subtopics }) => subtopics && subtopics.length > 0)
+        .flatMap(({ subtopics }) =>
+          subtopics
+            .filter(({ isSelected }) => isSelected)
+            .map(({ name }) => name)
+        )
+        .join(", "),
+    };
 
-
-
-
-  
     try {
       const response = await dispatch(createQuestion(formattedData));
-  
+
       if (response.success) {
         toast.success("Question added successfully!");
         resetFormFields();
@@ -96,8 +105,6 @@ const formattedData = {
       toast.error("Failed to create question. Please try again.");
     }
   };
-  
-  
 
   const handleInputChange = (index, event) => {
     const newOptions = [...options];
@@ -109,7 +116,20 @@ const formattedData = {
 
     setOptions(newOptions);
   };
-
+  const handleOptionImageUpload = (index, event) => {
+    const files = Array.from(event.target.files);
+    const updatedImages = [...optionImages];
+    updatedImages[index] = files;
+    setOptionImages(updatedImages);
+  };
+  const handleImageUpload = (event) => {
+    const files = Array.from(event.target.files);
+    if (files.length + images.length > 4) {
+      alert('You can upload up to 4 images only.');
+      return;
+    }
+    setImages([...images, ...files]);
+  };
   const handleSelectionChange = (index, event) => {
     const newCorrectOptions = [...correctOptions];
     newCorrectOptions[index] = event.target.value;
@@ -124,28 +144,36 @@ const formattedData = {
     document.getElementById("question").value = "";
     setOptions([""]);
     setCorrectOptions([""]);
+    setIsSubtopicsLoading(false);
   };
 
   const handleSubtopicChange = (value, level) => {
     const updatedSubtopics = [...selectedSubtopics];
-    const parentSubtopics = level === 0 ? subtopics : updatedSubtopics[level - 1].subtopics;
-  
+    const parentSubtopics =
+      level === 0 ? subtopics : updatedSubtopics[level - 1].subtopics;
+
     const selectedSubtopic = parentSubtopics.find((sub) => sub.name === value);
-  
+
     if (selectedSubtopic) {
-      selectedSubtopic.isSelected = true; // Mark the selected subtopic as selected
+      selectedSubtopic.isSelected = true;
       updatedSubtopics[level] = selectedSubtopic;
     }
-  
+
     setSelectedSubtopics(updatedSubtopics.slice(0, level + 1));
   };
-  
 
   const addCorrectOption = () => {
     if (correctOptions.length < options.length) {
       setCorrectOptions([...correctOptions, ""]);
     }
   };
+  const handleRemoveOptionImage = (indexToRemove) => {
+    setOptionImages(optionImages.filter((_, index) => index !== indexToRemove));
+  };
+  const handleRemoveImage = (indexToRemove) => {
+    setImages(images.filter((_, index) => index !== indexToRemove));
+  };
+    
 
   const renderSubtopicSelectors = (currentSubtopics, level) => {
     if (!currentSubtopics || currentSubtopics.length === 0) {
@@ -155,34 +183,33 @@ const formattedData = {
     const selectedSubtopic = selectedSubtopics[level] || null;
 
     return (
-      <div key={level} className="relative z-0 w-full mb-0 group flex flex-col">
-      <label
+      <div key={level} className="relative z-0 w-full mb-5 group flex flex-col">
+        <label
           htmlFor={`subtopic-select-${level}`}
           className="block text-sm dark:text-white-400"
-      >
+        >
           Subtopic
-      </label>
-  
-      <Select
+        </label>
+
+        <Select
           id={`subtopic-select-${level}`}
           showSearch
           style={{ width: 200 }}
           placeholder="Select Subtopic"
           options={currentSubtopics.map((subtopic) => ({
-              value: subtopic.name,
-              label: subtopic.name,
+            value: subtopic.name,
+            label: subtopic.name,
           }))}
           value={selectedSubtopic ? selectedSubtopic.name : null}
           onChange={(value) => handleSubtopicChange(value, level)}
-      />
-  
-      {selectedSubtopic && selectedSubtopic.subtopics && (
+        />
+
+        {selectedSubtopic && selectedSubtopic.subtopics && (
           <div className="mt-5 mb-0">
-              {renderSubtopicSelectors(selectedSubtopic.subtopics, level + 1)}
+            {renderSubtopicSelectors(selectedSubtopic.subtopics, level + 1)}
           </div>
-      )}
-  </div>
-  
+        )}
+      </div>
     );
   };
 
@@ -195,7 +222,14 @@ const formattedData = {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Standard"
-            onChange={(value) => setStandard(value)}
+            onChange={(value) => {
+              setStandard(value);
+              setSubject(null);
+              setChapter(null);
+              setTopic(null);
+              setSelectedSubtopics([]);
+              setIsSubtopicsLoading(false);
+            }}
             options={standards}
             value={standard}
           />
@@ -209,7 +243,13 @@ const formattedData = {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Subject"
-            onChange={(value) => setSubject(value)}
+            onChange={(value) => {
+              setSubject(value);
+              setChapter(null);
+              setTopic(null);
+              setSelectedSubtopics([]);
+              setIsSubtopicsLoading(false);
+            }}
             options={subjectList?.map((name) => ({
               value: name,
               label: name,
@@ -226,7 +266,12 @@ const formattedData = {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Chapter"
-            onChange={(value) => setChapter(value)}
+            onChange={(value) => {
+              setChapter(value);
+              setTopic(null);
+              setSelectedSubtopics([]);
+              setIsSubtopicsLoading(false);
+            }}
             options={chapterList?.map((chapter) => ({
               value: chapter.name,
               label: chapter.name,
@@ -243,7 +288,10 @@ const formattedData = {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Topic"
-            onChange={(value) => setTopic(value)}
+            onChange={(value) => {
+              setTopic(value);
+              setSelectedSubtopics([]);
+            }}
             options={topicList?.map((el) => ({
               value: el.name,
               label: el.name,
@@ -253,13 +301,18 @@ const formattedData = {
           <label className="text-white-500 text-sm dark:text-white-400">
             Topic
           </label>
+          {isSubtopicsLoading && (
+            <div className="loader absolute top-0 right-0">
+              <Loading />
+            </div>
+          )}
         </div>
 
         {topic && subtopics && subtopics.length > 0 && (
           <div>{renderSubtopicSelectors(subtopics, 0)}</div>
         )}
 
-        <div className="relative z-0 w-full mt-2 mb-5 group flex flex-col-reverse">
+        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
           <Select
             showSearch
             style={{ width: 200 }}
@@ -280,31 +333,110 @@ const formattedData = {
         </div>
 
         <div className="relative z-0 w-full mb-5 group">
-          <input
-            type="text"
-            name="question"
-            id="question"
-            className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
-            placeholder=" "
-            required
-          />
-          <label htmlFor="question" className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-grey-600 peer-focus:dark:text-grey-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">Add Questions</label>
-        </div>
+      <div className="relative flex items-center">
+        <input
+          type="text"
+          name="question"
+          id="question"
+          className="block py-2.5 mb-2 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
+          placeholder=" "
+          required
+        />
+        <label
+          htmlFor="question"
+          className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-grey-600 peer-focus:dark:text-grey-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+        >
+          Add Questions
+        </label>
+        <label htmlFor="imageUpload" className="cursor-pointer ml-2">
+          <FaImage className="text-blue-500 dark:text-blue-400" />
+          <span className="tooltip-text absolute bottom-full mb-2 w-max bg-black text-white text-xs rounded py-1 px-2 opacity-0 transition-opacity duration-300">
+                Upload images
+              </span>
+        </label>
+        <input
+          type="file"
+          id="imageUpload"
+          className="hidden"
+          multiple
+          accept="image/*"
+          onChange={handleImageUpload}
+        />
+      </div>
+      {images.map((image, index) => (
+  <div key={index} className="relative inline-block">
+    <img
+      src={URL.createObjectURL(image)}
+      alt={`upload-${index}`}
+      className="w-60 h-60 object-cover mr-2 mb-2"
+    />
+    <button
+      className="absolute top-4 right-6 transform translate-x-1/2 -translate-y-1/2 bg-white rounded-full p-1"
+      onClick={() => handleRemoveImage(index)}
+    >
+      <ImCross className="text-red-500" />
+    </button>
+  </div>
+))}
 
-        {options.map((option, index) => (
-          <div key={index} className="relative z-0 w-full mb-5 group">
+
+      </div>
+
+      {options.map((option, index) => (
+        <div key={index} className="relative z-0 w-full mb-5 group">
+          <div className="relative flex items-center">
             <input
               type="text"
-              name={`option${index}`}
+              name={`option-${index}`}
               value={option}
               onChange={(e) => handleInputChange(index, e)}
-              className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
+              className="block py-2.5 mb-2 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
               placeholder=" "
             />
-            <label htmlFor={`option${index}`} className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">Option {index + 1}</label>
+            <label
+              htmlFor={`option-${index}`}
+              className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+            >
+              Option {index + 1}
+            </label>
+            <label htmlFor={`optionImageUpload-${index}`} className="cursor-pointer ml-2">
+              <FaImage className="text-blue-500 dark:text-blue-400" />
+                 <span className="tooltip-text absolute bottom-full mb-2 w-max bg-black text-white text-xs rounded py-1 px-2 opacity-0 transition-opacity duration-300">
+                Upload images
+              </span>
+            </label>
+            
+            <input
+              type="file"
+              id={`optionImageUpload-${index}`}
+              className="hidden"
+              accept="image/*"
+              onChange={(event) => handleOptionImageUpload(index, event)}
+            />
           </div>
-        ))}
-        <div className="border text-white-600 mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer" onClick={addOption}>
+          {optionImages[index] && (
+ <div className="relative inline-block">
+ <img
+   src={URL.createObjectURL(optionImages[index][0])}
+   alt={`option-${index}`}
+   className="w-40 h-40 object-cover mr-2 mb-2"
+ />
+ <button
+   className="absolute top-4 right-5 transform translate-x-1/2 -translate-y-1/2 bg-white rounded-full p-1"
+   onClick={() => handleRemoveOptionImage(index)}
+ >
+   <ImCross className="text-red-500" />
+ </button>
+</div>
+
+)}
+
+        </div>
+      ))}
+        <div
+          className="border text-white-600 mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
+          onClick={addOption}
+        >
           Add more options
         </div>
 
@@ -316,25 +448,47 @@ const formattedData = {
               onChange={(e) => handleSelectionChange(index, e)}
               className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
             >
-              <option value="" disabled className="text-gray-900">Select Correct Option</option>
+              <option value="" disabled className="text-gray-900">
+                Select Correct Option
+              </option>
               {options
                 .filter((opt) => opt)
                 .map((name, optIndex) => (
-                  <option key={optIndex} value={name} className="text-gray-900">{name}</option>
+                  <option key={optIndex} value={name} className="text-gray-900">
+                    {name}
+                  </option>
                 ))}
             </select>
-            <label htmlFor={`correct_option_${index}`} className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">Correct Option</label>
+            <label
+              htmlFor={`correct_option_${index}`}
+              className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+            >
+              Correct Option
+            </label>
           </div>
         ))}
-        <div className="border mb-10 text-white-600 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer" onClick={addCorrectOption}>
+        <div
+          className="border mb-10 text-white-600 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
+          onClick={addCorrectOption}
+        >
           Add More Correct Options
         </div>
 
-        {/* Submit button */}
         {questionLoading ? (
-          <button type="submit" disabled className="text-white bg-white-500 hover:bg-white-800 focus:ring-4 focus:outline-none focus:ring-white-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-white-600 dark:hover:bg-white-700 dark:focus:ring-white-800">Submit</button>
+          <button
+            type="submit"
+            disabled
+            className="text-white bg-white-500 hover:bg-white-800 focus:ring-4 focus:outline-none focus:ring-white-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-white-600 dark:hover:bg-white-700 dark:focus:ring-white-800"
+          >
+            Submit
+          </button>
         ) : (
-          <button type="submit" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-white-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-white-600 dark:hover:bg-white-700 dark:focus:ring-white-800">Submit</button>
+          <button
+            type="submit"
+            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-white-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-white-600 dark:hover:bg-white-700 dark:focus:ring-white-800"
+          >
+            Submit
+          </button>
         )}
       </form>
     </main>

@@ -4,6 +4,7 @@ import "../styles/login.scss";
 import { Link, useNavigate, } from "react-router-dom";
 import {useDispatch, useSelector} from "react-redux";
 import { clearErrors, login } from "../actions/userAction";
+import Loader from "../components/Loader";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -34,6 +35,11 @@ const Login = () => {
 
   return (
     <>
+    {isLoading ? (
+      <Loader />
+    ) : (
+
+    
       <div id="signin_page">
         <div className="signin-box">
           <h2>Welcome to leadlly</h2>
@@ -69,6 +75,7 @@ const Login = () => {
           </form>
         </div>
       </div>
+      )}
     </>
   );
 };
