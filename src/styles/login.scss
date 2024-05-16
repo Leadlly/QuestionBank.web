@@ -131,3 +131,15 @@
   margin-right: 42%;
   margin-top: 5%;
 }
+.tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s;
+
+}
+label:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+

@@ -6,8 +6,8 @@ const Loading = () => {
   
   return (
     <div className="loading_1" >
-      <ClipLoader   height="20"
-    width="20"
+      <ClipLoader   height="15"
+    width="15"
     color="rgba(59, 130, 246, 1)"
     strokeWidth='loading'  />
     </div>

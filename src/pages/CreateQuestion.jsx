@@ -21,6 +21,7 @@ const CreateQuestion = () => {
   const [level, setLevel] = useState(null);
   const [images, setImages] = useState([]);
   const [selectedSubtopics, setSelectedSubtopics] = useState([]);
+  const [optionImages, setOptionImages] = useState([]);
 
   const [options, setOptions] = useState([""]);
   const [correctOptions, setCorrectOptions] = useState([""]);
@@ -113,6 +114,12 @@ const CreateQuestion = () => {
     }
 
     setOptions(newOptions);
+  };
+  const handleOptionImageUpload = (index, event) => {
+    const files = Array.from(event.target.files);
+    const updatedImages = [...optionImages];
+    updatedImages[index] = files;
+    setOptionImages(updatedImages);
   };
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files);
@@ -335,6 +342,9 @@ const CreateQuestion = () => {
         </label>
         <label htmlFor="imageUpload" className="cursor-pointer ml-2">
           <FaImage className="text-blue-500 dark:text-blue-400" />
+          <span className="tooltip-text absolute bottom-full mb-2 w-max bg-black text-white text-xs rounded py-1 px-2 opacity-0 transition-opacity duration-300">
+                Upload images
+              </span>
         </label>
         <input
           type="file"
@@ -347,7 +357,6 @@ const CreateQuestion = () => {
       </div>
       {images.length > 0 && (
         <div className="mt-4">
-          <p>Uploaded Images:</p>
           <div className="flex flex-wrap">
             {images.map((image, index) => (
               <img
@@ -362,24 +371,49 @@ const CreateQuestion = () => {
       )}
       </div>
 
-        {options.map((option, index) => (
-          <div key={index} className="relative z-0 w-full mb-5 group">
+      {options.map((option, index) => (
+        <div key={index} className="relative z-0 w-full mb-5 group">
+          <div className="relative flex items-center">
             <input
               type="text"
-              name={`option${index}`}
+              name={`option-${index}`}
               value={option}
               onChange={(e) => handleInputChange(index, e)}
               className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
               placeholder=" "
             />
             <label
-              htmlFor={`option${index}`}
+              htmlFor={`option-${index}`}
               className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
             >
               Option {index + 1}
             </label>
+            <label htmlFor={`optionImageUpload-${index}`} className="cursor-pointer ml-2">
+              <FaImage className="text-blue-500 dark:text-blue-400" />
+                 <span className="tooltip-text absolute bottom-full mb-2 w-max bg-black text-white text-xs rounded py-1 px-2 opacity-0 transition-opacity duration-300">
+                Upload images
+              </span>
+            </label>
+            
+            <input
+              type="file"
+              id={`optionImageUpload-${index}`}
+              className="hidden"
+              accept="image/*"
+              onChange={(event) => handleOptionImageUpload(index, event)}
+            />
           </div>
-        ))}
+          {optionImages[index] && (
+            <div className="mt-4">
+              <img
+                src={URL.createObjectURL(optionImages[index][0])}
+                alt={`option-${index}`}
+                className="w-20 h-20 object-cover mr-2 mb-2"
+              />
+            </div>
+          )}
+        </div>
+      ))}
         <div
           className="border text-white-600 mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
           onClick={addOption}

@@ -1,13 +1,13 @@
 import "../styles/login.scss";
-import { RingLoader } from "react-spinners";
+import { ClipLoader } from "react-spinners";
 
 const Loader = () => {
   return (
     <div className="loading">
-      <RingLoader
+      <ClipLoader
         height="100"
         width="100"
-        color="rgba(89, 50, 173, 1)"
+        color="rgba(59, 130, 246, 1)"
         aria-label="loading"
       />
     </div>
