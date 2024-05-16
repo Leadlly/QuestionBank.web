@@ -10,6 +10,7 @@ import { getSubtopics } from "../actions/subtopicAction";
 import { standards } from "../components/Options";
 import Loading from "./Loading";
 import {FaImage} from "react-icons/fa6"
+import { ImCross } from "react-icons/im";
 
 const CreateQuestion = () => {
   const dispatch = useDispatch();
@@ -50,10 +51,10 @@ const CreateQuestion = () => {
           setIsSubtopicsLoading(false);
         })
         .catch(() => {
-          setIsSubtopicsLoading(false); // Reset loading state on error as well
+          setIsSubtopicsLoading(false); 
         });
     } else {
-      setIsSubtopicsLoading(false); // Ensure loader stops if dependencies are not met
+      setIsSubtopicsLoading(false); 
     }
   }, [dispatch, standard, subject, chapter, topic]);
 
@@ -166,6 +167,13 @@ const CreateQuestion = () => {
       setCorrectOptions([...correctOptions, ""]);
     }
   };
+  const handleRemoveOptionImage = (indexToRemove) => {
+    setOptionImages(optionImages.filter((_, index) => index !== indexToRemove));
+  };
+  const handleRemoveImage = (indexToRemove) => {
+    setImages(images.filter((_, index) => index !== indexToRemove));
+  };
+    
 
   const renderSubtopicSelectors = (currentSubtopics, level) => {
     if (!currentSubtopics || currentSubtopics.length === 0) {
@@ -330,7 +338,7 @@ const CreateQuestion = () => {
           type="text"
           name="question"
           id="question"
-          className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
+          className="block py-2.5 mb-2 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
           placeholder=" "
           required
         />
@@ -355,20 +363,23 @@ const CreateQuestion = () => {
           onChange={handleImageUpload}
         />
       </div>
-      {images.length > 0 && (
-        <div className="mt-4">
-          <div className="flex flex-wrap">
-            {images.map((image, index) => (
-              <img
-                key={index}
-                src={URL.createObjectURL(image)}
-                alt={`upload-${index}`}
-                className="w-60 h-60 object-cover mr-2 mb-2"
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {images.map((image, index) => (
+  <div key={index} className="relative inline-block">
+    <img
+      src={URL.createObjectURL(image)}
+      alt={`upload-${index}`}
+      className="w-60 h-60 object-cover mr-2 mb-2"
+    />
+    <button
+      className="absolute top-4 right-6 transform translate-x-1/2 -translate-y-1/2 bg-white rounded-full p-1"
+      onClick={() => handleRemoveImage(index)}
+    >
+      <ImCross className="text-red-500" />
+    </button>
+  </div>
+))}
+
+
       </div>
 
       {options.map((option, index) => (
@@ -379,7 +390,7 @@ const CreateQuestion = () => {
               name={`option-${index}`}
               value={option}
               onChange={(e) => handleInputChange(index, e)}
-              className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
+              className="block py-2.5 mb-2 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
               placeholder=" "
             />
             <label
@@ -404,14 +415,22 @@ const CreateQuestion = () => {
             />
           </div>
           {optionImages[index] && (
-            <div className="mt-4">
-              <img
-                src={URL.createObjectURL(optionImages[index][0])}
-                alt={`option-${index}`}
-                className="w-20 h-20 object-cover mr-2 mb-2"
-              />
-            </div>
-          )}
+ <div className="relative inline-block">
+ <img
+   src={URL.createObjectURL(optionImages[index][0])}
+   alt={`option-${index}`}
+   className="w-40 h-40 object-cover mr-2 mb-2"
+ />
+ <button
+   className="absolute top-4 right-5 transform translate-x-1/2 -translate-y-1/2 bg-white rounded-full p-1"
+   onClick={() => handleRemoveOptionImage(index)}
+ >
+   <ImCross className="text-red-500" />
+ </button>
+</div>
+
+)}
+
         </div>
       ))}
         <div
