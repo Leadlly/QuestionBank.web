@@ -34,6 +34,7 @@ const CreateQuestion = () => {
   const { subtopics } = useSelector((state) => state.getSubtopic);
   const { isLoading: questionLoading } = useSelector((state) => state.question);
 
+  console.log(optionImages, "optionimages")
   useEffect(() => {
     if (standard) {
       dispatch(getSubjects(standard));
@@ -58,6 +59,20 @@ const CreateQuestion = () => {
     }
   }, [dispatch, standard, subject, chapter, topic]);
 
+  const uploadImageToS3 = async(file, signedUrl) =>{
+    const response = await fetch(signedUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+      },
+      body: file,
+    });
+  
+    if (!response.ok) {
+      throw new Error('Failed to upload image to S3');
+    }
+  }
+
   const handleFormSubmit = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -70,12 +85,20 @@ const CreateQuestion = () => {
       (option) => option.trim() !== ""
     );
 
+    const formattedImages = images.map((file) => {
+      return {
+        name: file.name,
+        type: file.type
+      }
+    })
+
     const formattedData = {
       question: data.question,
       options: {
         all: filteredOptions,
         correct: filteredCorrectOptions,
       },
+      images: formattedImages,
       standard,
       subject,
       chapter,
@@ -95,6 +118,15 @@ const CreateQuestion = () => {
     try {
       const response = await dispatch(createQuestion(formattedData));
 
+  
+
+      const uploadPromises = images.map((file, index) => {
+        const signedUrl = response.signedUrls[index];
+        return uploadImageToS3(file, signedUrl);
+      });
+  
+      await Promise.all(uploadPromises);
+      
       if (response.success) {
         toast.success("Question added successfully!");
         resetFormFields();
