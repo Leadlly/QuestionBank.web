@@ -93,52 +93,59 @@ const CreateSubtopic = () => {
     setSubtopics(updatedSubtopics);
   };
 
-  const SubtopicInput = ({ subtopic, index, onChange, onAddNested }) => (
-    <div className="relative z-0 w-full mb-5 group" key={index}>
-      <input
-        type="text"
-        ref={inputRef}
-        name={`subtopic-${index}`}
-        id={`subtopic-${index}`}
-        className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
-        placeholder="Subtopic Name"
-        value={subtopic.name}
-        onChange={(e) => onChange(index, "name", e.target.value)}
-        required
-      />
-      <button
-        className="mt-8 p-4 border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
-        type="button"
-        onClick={() => onAddNested(index)}
-      >
-        Add Nested Subtopic
-      </button>
-      {subtopic.subtopics.map((nestedSubtopic, nestedIndex) => (
-        <div key={nestedIndex} style={{ marginLeft: "20px" }}>
-          <SubtopicInput
-            subtopic={nestedSubtopic}
-            index={nestedIndex}
-            onChange={(idx, key, value) =>
-              onChange(index, `subtopics.${idx}.${key}`, value)
-            }
-            onAddNested={() => onAddNested(index)}
-          />
-        </div>
-      ))}
-    </div>
-  );
+  const SubtopicInput = ({ subtopic, index, nestedIndex, onChange, onAddNested }) => {
+    const inputRef = useRef(null);
+    const keyPrefix = nestedIndex !== undefined ? `${index}.subtopics.${nestedIndex}` : `${index}`;
+  
+    useEffect(() => {
+      if (inputRef.current && nestedIndex === undefined) {
+        inputRef.current.focus();
+      }
+    }, [nestedIndex]);
+  
+    return (
+      <div className="relative z-0 w-full mb-5 group" key={keyPrefix}>
+        <input
+          type="text"
+          ref={inputRef}
+          name={`subtopic-${keyPrefix}`}
+          id={`subtopic-${keyPrefix}`}
+          className="block py-2.5 px-0 w-full text-sm text-black bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
+          placeholder={nestedIndex !== undefined ? "Nested Subtopic Name" : "Subtopic Name"}
+          value={subtopic.name}
+          onChange={(e) => onChange(index, nestedIndex !== undefined ? `subtopics.${nestedIndex}.name` : 'name', e.target.value)}
+          required
+        />
+        <button
+          className="mt-8 p-4 border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
+          type="button"
+          onClick={() => onAddNested(index)}
+        >
+          Add Nested Subtopic
+        </button>
+        {subtopic.subtopics.map((nestedSubtopic, nestedIdx) => (
+          <div key={nestedIdx} style={{ marginLeft: "20px" }}>
+            <SubtopicInput
+              subtopic={nestedSubtopic}
+              index={index}
+              nestedIndex={nestedIdx}
+              onChange={onChange}
+              onAddNested={onAddNested}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
 
   SubtopicInput.propTypes = {
     subtopic: PropTypes.shape({
       name: PropTypes.string.isRequired,
-      subtopics: PropTypes.arrayOf(
-        PropTypes.shape({
-          name: PropTypes.string.isRequired,
-          subtopics: PropTypes.arrayOf(PropTypes.object),
-        })
-      ).isRequired,
+      subtopics: PropTypes.arrayOf(PropTypes.object).isRequired,
     }).isRequired,
     index: PropTypes.number.isRequired,
+    nestedIndex: PropTypes.number, // Add this line for nestedIndex validation
     onChange: PropTypes.func.isRequired,
     onAddNested: PropTypes.func.isRequired,
   };

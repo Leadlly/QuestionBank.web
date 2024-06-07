@@ -28,44 +28,42 @@ const CreateTopic = () => {
         }
     }, [standard, subject, dispatch]);
 
-   
     const handleFormSubmit = async (event) => {
         event.preventDefault();
-        
-        if (isSubmitting) return;  
-        
-        setIsSubmitting(true);  
-        
-       
+
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
+
         const formattedTopics = topics
             .map((topic) => {
                 if (typeof topic.name !== 'string' || topic.name.trim() === '') {
                     console.error(`Invalid topic name: ${topic.name}`);
-                    return null;  
+                    return null;
                 }
                 return {
-                    name: topic.name.trim(),  
+                    name: topic.name.trim(),
                     subtopics: Array.isArray(topic.subtopics) ? topic.subtopics : [],
                 };
             })
-            .filter(topic => topic !== null);  
-        
+            .filter(topic => topic !== null);
+
         if (formattedTopics.length === 0) {
             toast.error("Please provide at least one valid topic.");
             setIsSubmitting(false);
             return;
         }
-    
+
         const formattedData = {
             standard: standard,
             subjectName: subject,
             chapterName: chapter,
             topics: formattedTopics,
         };
-    
+
         try {
             const result = await dispatch(createTopic(formattedData));
-    
+
             if (result && result.success) {
                 toast.success("Topics added successfully!");
                 setTopics([{ name: "" }]);
@@ -74,27 +72,17 @@ const CreateTopic = () => {
                 toast.error(errorMessage);
             }
         } catch (error) {
-    toast.error(error);
+            toast.error(error);
         } finally {
             setIsSubmitting(false);
         }
     };
-    
-    
-    
 
     const handleTopicChange = (index, newName) => {
         const updatedTopics = [...topics];
-        
-        if (typeof newName === 'string') {
-            updatedTopics[index].name = newName.trim();
-            setTopics(updatedTopics);
-        } else {
-            console.error('Invalid topic name input:', newName);
-        }
+        updatedTopics[index].name = newName;
+        setTopics(updatedTopics);
     };
-    
-    
 
     const handleAddTopic = () => {
         setTopics([...topics, { name: "", subtopics: [] }]);
