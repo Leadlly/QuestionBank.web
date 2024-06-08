@@ -9,8 +9,9 @@ import { getTopics } from "../actions/topicAction";
 import { getSubtopics } from "../actions/subtopicAction";
 import { standards } from "../components/Options";
 import Loading from "./Loading";
-import {FaImage} from "react-icons/fa6"
+import { FaImage } from "react-icons/fa6";
 import { ImCross } from "react-icons/im";
+import { FaCheck } from "react-icons/fa";
 
 const CreateQuestion = () => {
   const dispatch = useDispatch();
@@ -34,6 +35,7 @@ const CreateQuestion = () => {
   const { subtopics } = useSelector((state) => state.getSubtopic);
   const { isLoading: questionLoading } = useSelector((state) => state.question);
 
+  // console.log(optionImages, "optionimages");
   useEffect(() => {
     if (standard) {
       dispatch(getSubjects(standard));
@@ -51,12 +53,26 @@ const CreateQuestion = () => {
           setIsSubtopicsLoading(false);
         })
         .catch(() => {
-          setIsSubtopicsLoading(false); 
+          setIsSubtopicsLoading(false);
         });
     } else {
-      setIsSubtopicsLoading(false); 
+      setIsSubtopicsLoading(false);
     }
   }, [dispatch, standard, subject, chapter, topic]);
+
+  const uploadImageToS3 = async (file, signedUrl) => {
+    const response = await fetch(signedUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type,
+      },
+      body: file,
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to upload image to S3");
+    }
+  };
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
@@ -65,17 +81,25 @@ const CreateQuestion = () => {
     for (const [name, value] of formData.entries()) {
       data[name] = value;
     }
+  
     const filteredOptions = options.filter((option) => option.trim() !== "");
-    const filteredCorrectOptions = correctOptions.filter(
-      (option) => option.trim() !== ""
-    );
-
+    const formattedQuestionImage = images.map((file) => ({
+      name: file.name,
+      type: file.type,
+    }));
+    const formattedOptionImages = optionImages.map((file) => ({
+      name: file?.name,
+      type: file?.type,
+    }));
+  
     const formattedData = {
       question: data.question,
-      options: {
-        all: filteredOptions,
-        correct: filteredCorrectOptions,
-      },
+      options: filteredOptions.map((option, index) => ({
+        name: option,
+        image: formattedOptionImages[index] ? [formattedOptionImages[index]] : [],
+        isCorrect: correctOptions.includes(index),
+      })),
+      images: formattedQuestionImage,
       standard,
       subject,
       chapter,
@@ -91,16 +115,31 @@ const CreateQuestion = () => {
         )
         .join(", "),
     };
-
+  
     try {
       const response = await dispatch(createQuestion(formattedData));
-
+  
+      const { signedUrls, optionsSignedUrls } = response;
+  
+      // Upload question images
+      const uploadQuestionImages = images.map((file, index) => {
+        const signedUrl = signedUrls[index];
+        return uploadImageToS3(file, signedUrl);
+      });
+  
+      // Upload option images
+      const uploadOptionImages = optionImages.map((file, index) => {
+        const signedUrl = optionsSignedUrls[index];
+        return uploadImageToS3(file, signedUrl);
+      });
+  
+      await Promise.all([...uploadQuestionImages, ...uploadOptionImages]);
+  
       if (response.success) {
         toast.success("Question added successfully!");
         resetFormFields();
-      } else {
-        toast.error("Failed to create question. Please try again.");
       }
+
     } catch (error) {
       toast.error("Failed to create question. Please try again.");
     }
@@ -116,24 +155,29 @@ const CreateQuestion = () => {
 
     setOptions(newOptions);
   };
+  const handleOptionSelect = (index) => {
+    const newCorrectOptions = [...correctOptions];
+    if (newCorrectOptions.includes(index)) {
+      newCorrectOptions.splice(newCorrectOptions.indexOf(index), 1);
+    } else {
+      newCorrectOptions.splice(0, newCorrectOptions.length, index);
+    }
+    setCorrectOptions(newCorrectOptions);
+  };
   const handleOptionImageUpload = (index, event) => {
     const files = Array.from(event.target.files);
     const updatedImages = [...optionImages];
-    updatedImages[index] = files;
+    updatedImages[index] = files[0]; // Replace the existing image with the new one
     setOptionImages(updatedImages);
   };
+
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files);
     if (files.length + images.length > 4) {
-      alert('You can upload up to 4 images only.');
+      alert("You can upload up to 4 images only.");
       return;
     }
     setImages([...images, ...files]);
-  };
-  const handleSelectionChange = (index, event) => {
-    const newCorrectOptions = [...correctOptions];
-    newCorrectOptions[index] = event.target.value;
-    setCorrectOptions(newCorrectOptions);
   };
 
   const addOption = () => {
@@ -145,6 +189,8 @@ const CreateQuestion = () => {
     setOptions([""]);
     setCorrectOptions([""]);
     setIsSubtopicsLoading(false);
+    setImages([]); // Clear question images
+    setOptionImages([]); 
   };
 
   const handleSubtopicChange = (value, level) => {
@@ -162,18 +208,17 @@ const CreateQuestion = () => {
     setSelectedSubtopics(updatedSubtopics.slice(0, level + 1));
   };
 
-  const addCorrectOption = () => {
-    if (correctOptions.length < options.length) {
-      setCorrectOptions([...correctOptions, ""]);
-    }
-  };
   const handleRemoveOptionImage = (indexToRemove) => {
-    setOptionImages(optionImages.filter((_, index) => index !== indexToRemove));
+    setOptionImages((prevOptionImages) => {
+      const updatedImages = [...prevOptionImages];
+      updatedImages[indexToRemove] = null;
+      return updatedImages;
+    });
   };
+
   const handleRemoveImage = (indexToRemove) => {
     setImages(images.filter((_, index) => index !== indexToRemove));
   };
-    
 
   const renderSubtopicSelectors = (currentSubtopics, level) => {
     if (!currentSubtopics || currentSubtopics.length === 0) {
@@ -188,14 +233,14 @@ const CreateQuestion = () => {
           htmlFor={`subtopic-select-${level}`}
           className="block text-sm dark:text-white-400"
         >
-          Subtopic
+          {level === 0 ? "Subtopic" : `Nested Subtopic`}
         </label>
 
         <Select
           id={`subtopic-select-${level}`}
           showSearch
           style={{ width: 200 }}
-          placeholder="Select Subtopic"
+          placeholder={`Select ${level === 0 ? "Subtopic" : `Nested Subtopic`}`}
           options={currentSubtopics.map((subtopic) => ({
             value: subtopic.name,
             label: subtopic.name,
@@ -333,145 +378,125 @@ const CreateQuestion = () => {
         </div>
 
         <div className="relative z-0 w-full mb-5 group">
-      <div className="relative flex items-center">
-        <input
-          type="text"
-          name="question"
-          id="question"
-          className="block py-2.5 mb-2 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
-          placeholder=" "
-          required
-        />
-        <label
-          htmlFor="question"
-          className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-grey-600 peer-focus:dark:text-grey-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
-        >
-          Add Questions
-        </label>
-        <label htmlFor="imageUpload" className="cursor-pointer ml-2">
-          <FaImage className="text-blue-500 dark:text-blue-400" />
-          <span className="tooltip-text absolute bottom-full mb-2 w-max bg-black text-white text-xs rounded py-1 px-2 opacity-0 transition-opacity duration-300">
-                Upload images
-              </span>
-        </label>
-        <input
-          type="file"
-          id="imageUpload"
-          className="hidden"
-          multiple
-          accept="image/*"
-          onChange={handleImageUpload}
-        />
-      </div>
-      {images.map((image, index) => (
-  <div key={index} className="relative inline-block">
-    <img
-      src={URL.createObjectURL(image)}
-      alt={`upload-${index}`}
-      className="w-60 h-60 object-cover mr-2 mb-2"
-    />
-    <button
-      className="absolute top-4 right-6 transform translate-x-1/2 -translate-y-1/2 bg-white rounded-full p-1"
-      onClick={() => handleRemoveImage(index)}
-    >
-      <ImCross className="text-red-500" />
-    </button>
-  </div>
-))}
-
-
-      </div>
-
-      {options.map((option, index) => (
-        <div key={index} className="relative z-0 w-full mb-5 group">
           <div className="relative flex items-center">
             <input
               type="text"
-              name={`option-${index}`}
-              value={option}
-              onChange={(e) => handleInputChange(index, e)}
+              name="question"
+              id="question"
               className="block py-2.5 mb-2 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
               placeholder=" "
+              required
             />
             <label
-              htmlFor={`option-${index}`}
-              className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+              htmlFor="question"
+              className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-grey-600 peer-focus:dark:text-grey-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
             >
-              Option {index + 1}
+              Add Questions
             </label>
-            <label htmlFor={`optionImageUpload-${index}`} className="cursor-pointer ml-2">
+            <label htmlFor="imageUpload" className="cursor-pointer ml-2">
               <FaImage className="text-blue-500 dark:text-blue-400" />
-                 <span className="tooltip-text absolute bottom-full mb-2 w-max bg-black text-white text-xs rounded py-1 px-2 opacity-0 transition-opacity duration-300">
+              <span className="tooltip-text absolute bottom-full mb-2 w-max bg-black text-white text-xs rounded py-1 px-2 opacity-0 transition-opacity duration-300">
                 Upload images
               </span>
             </label>
-            
             <input
               type="file"
-              id={`optionImageUpload-${index}`}
+              id="imageUpload"
               className="hidden"
+              multiple
               accept="image/*"
-              onChange={(event) => handleOptionImageUpload(index, event)}
+              onChange={handleImageUpload}
             />
           </div>
-          {optionImages[index] && (
- <div className="relative inline-block">
- <img
-   src={URL.createObjectURL(optionImages[index][0])}
-   alt={`option-${index}`}
-   className="w-40 h-40 object-cover mr-2 mb-2"
- />
- <button
-   className="absolute top-4 right-5 transform translate-x-1/2 -translate-y-1/2 bg-white rounded-full p-1"
-   onClick={() => handleRemoveOptionImage(index)}
- >
-   <ImCross className="text-red-500" />
- </button>
-</div>
-
-)}
-
+          {images.map((image, index) => (
+            <div key={index} className="relative inline-block">
+              <img
+                src={URL.createObjectURL(image)}
+                alt={`upload-${index}`}
+                className="w-60 h-60 object-cover mr-2 mb-2"
+              />
+              <button
+                className="absolute top-4 right-6 transform translate-x-1/2 -translate-y-1/2 bg-white rounded-full p-1"
+                onClick={() => handleRemoveImage(index)}
+              >
+                <ImCross className="text-red-500" />
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
+
+        {options.map((option, index) => (
+          <div key={index} className="relative z-0 w-full mb-5 group">
+            <div className="flex items-center">
+              <input
+                type="text"
+                name={`option-${index}`}
+                value={option}
+                onChange={(e) => handleInputChange(index, e)}
+                className="block py-2.5 mb-2 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
+                placeholder=" "
+              />
+              <label
+                htmlFor={`option-${index}`}
+                className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+              >
+                Option {index + 1}
+              </label>
+              <label
+                htmlFor={`optionImageUpload-${index}`}
+                className="cursor-pointer ml-2"
+              >
+                <FaImage className="text-blue-500 dark:text-blue-400" />
+                <span className="tooltip-text absolute bottom-full mb-2 w-max bg-black text-white text-xs rounded py-1 px-2 opacity-0 transition-opacity duration-300">
+                  Upload images
+                </span>
+              </label>
+              <input
+                type="file"
+                id={`optionImageUpload-${index}`}
+                className="hidden"
+                accept="image/*"
+                onChange={(event) => handleOptionImageUpload(index, event)}
+              />
+              <div
+                className={`ml-2 w-4 h-4 rounded-sm ${
+                  correctOptions.includes(index)
+                    ? "bg-blue-500"
+                    : "bg-white-300"
+                } flex items-center justify-center cursor-pointer border border-gray-300 hover:border-blue-500`}
+                onClick={() => handleOptionSelect(index)}
+              >
+                {correctOptions.includes(index) && (
+                  <FaCheck className="text-white" />
+                )}
+              </div>
+            </div>
+            {optionImages[index] && optionImages[index] !== null && (
+              <div
+                key={`option-image-${index}`}
+                className="relative inline-block"
+              >
+                <img
+                  src={URL.createObjectURL(optionImages[index])}
+                  alt={`Option ${index}`}
+                  className="w-60 h-60 object-cover mr-2 mb-2"
+                />
+                <button
+                  type="button"
+                  className="absolute top-4 right-6 transform translate-x-1/2 -translate-y-1/2 bg-white rounded-full p-1"
+                  onClick={() => handleRemoveOptionImage(index)}
+                >
+                  <ImCross className="text-red-500" />
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
         <div
           className="border text-white-600 mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
           onClick={addOption}
         >
           Add more options
-        </div>
-
-        {correctOptions.map((correctOption, index) => (
-          <div key={index} className="relative z-0 w-full mb-5 group">
-            <select
-              name={`correct_option_${index}`}
-              value={correctOption}
-              onChange={(e) => handleSelectionChange(index, e)}
-              className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
-            >
-              <option value="" disabled className="text-gray-900">
-                Select Correct Option
-              </option>
-              {options
-                .filter((opt) => opt)
-                .map((name, optIndex) => (
-                  <option key={optIndex} value={name} className="text-gray-900">
-                    {name}
-                  </option>
-                ))}
-            </select>
-            <label
-              htmlFor={`correct_option_${index}`}
-              className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
-            >
-              Correct Option
-            </label>
-          </div>
-        ))}
-        <div
-          className="border mb-10 text-white-600 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
-          onClick={addCorrectOption}
-        >
-          Add More Correct Options
         </div>
 
         {questionLoading ? (

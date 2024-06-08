@@ -25,7 +25,10 @@ export const createQuestion = (questionData) => (dispatch) => {
             const { data } = response;
             dispatch({
                 type: CREATE_QUESTION_SUCCESS,
-                payload: data.question,
+                payload: {
+                    question: data.question,
+                    signedUrls: data.signedUrls, // Dispatch signedUrls along with question
+                },
             });
             resolve(data);
         })
@@ -43,6 +46,7 @@ export const createQuestion = (questionData) => (dispatch) => {
         });
     });
 };
+
 
 export const deleteQuestion = (id) => async (dispatch) => {
     try {
