@@ -16,35 +16,61 @@ import { clearErrors, profile } from "./actions/userAction";
 
 function App() {
   const dispatch = useDispatch();
-
-  const { isAuthenticated,  error } = useSelector((state) => state.user);
+  const { isAuthenticated, error, user } = useSelector((state) => state.user);
 
   useEffect(() => {
     if (error) {
-      toast.error(error.response ? error.response.data.message : "Something went wrong");
+      toast.error(
+        error.response ? error.response.data.message : "Something went wrong"
+      );
       dispatch(clearErrors());
-  }
+    }
     dispatch(profile());
   }, [dispatch]);
 
   window.addEventListener("contextmenu", (e) => e.preventDefault());
 
+  const isAdmin = user && user.role === "admin";
+console.log(isAdmin)
   return (
     <Router>
       {isAuthenticated && <Navbar />}
-      
       <Routes>
-        <Route path="/" element={isAuthenticated ? <CreateQuestion /> : <Login />} />
-        <Route path="/chapter" element={isAuthenticated ? <CreateChapter /> : <Login />} />
-        <Route path="/topic" element={isAuthenticated ? <CreateTopic /> : <Login />} />
-        <Route path="/subtopic" element={isAuthenticated ? <CreateSubtopic /> : <Login />} />
-        <Route path="/subject" element={isAuthenticated ? <CreateSubject /> : <Login />} />
-        <Route path="/request" element={isAuthenticated ? <Requests /> : <Login />} />
-        <Route path="/profile" element={isAuthenticated ? <Profile /> : <Login />} />
+        <Route
+          path="/"
+          element={isAuthenticated ? <CreateQuestion /> : <Login />}
+        />
+        <Route
+          path="/profile"
+          element={isAuthenticated ? <Profile /> : <Login />}
+        />
+        {isAdmin && (
+          <>
+            <Route
+              path="/chapter"
+              element={isAuthenticated ? <CreateChapter /> : <Login />}
+            />
+            <Route
+              path="/topic"
+              element={isAuthenticated ? <CreateTopic /> : <Login />}
+            />
+            <Route
+              path="/subtopic"
+              element={isAuthenticated ? <CreateSubtopic /> : <Login />}
+            />
+            <Route
+              path="/subject"
+              element={isAuthenticated ? <CreateSubject /> : <Login />}
+            />
+            <Route
+              path="/request"
+              element={isAuthenticated ? <Requests /> : <Login />}
+            />
+          </>
+        )}
         <Route path="/signup" element={<SignUp />} />
         <Route path="/login" element={<Login />} />
       </Routes>
-
       <Toaster />
     </Router>
   );
