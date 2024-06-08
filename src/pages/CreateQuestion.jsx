@@ -81,29 +81,22 @@ const CreateQuestion = () => {
     for (const [name, value] of formData.entries()) {
       data[name] = value;
     }
+  
     const filteredOptions = options.filter((option) => option.trim() !== "");
-
-    const formattedQuestionImage = images.map((file) => {
-      return {
-        name: file.name,
-        type: file.type,
-      };
-    });
-    const formattedOptionImages = optionImages.map((file) => {
-      return {
-        name: file.name,
-        type: file.type,
-      };
-    });
-    console.log(optionImages);
-
+    const formattedQuestionImage = images.map((file) => ({
+      name: file.name,
+      type: file.type,
+    }));
+    const formattedOptionImages = optionImages.map((file) => ({
+      name: file?.name,
+      type: file?.type,
+    }));
+  
     const formattedData = {
       question: data.question,
       options: filteredOptions.map((option, index) => ({
-        option,
-        image: formattedOptionImages[index]
-          ? formattedOptionImages[index]
-          : null,
+        name: option,
+        image: formattedOptionImages[index] ? [formattedOptionImages[index]] : [],
         isCorrect: correctOptions.includes(index),
       })),
       images: formattedQuestionImage,
@@ -122,23 +115,31 @@ const CreateQuestion = () => {
         )
         .join(", "),
     };
-
+  
     try {
       const response = await dispatch(createQuestion(formattedData));
-
-      const uploadPromises = images.map((file, index) => {
-        const signedUrl = response.signedUrls[index];
+  
+      const { signedUrls, optionsSignedUrls } = response;
+  
+      // Upload question images
+      const uploadQuestionImages = images.map((file, index) => {
+        const signedUrl = signedUrls[index];
         return uploadImageToS3(file, signedUrl);
       });
-
-      await Promise.all(uploadPromises);
-
+  
+      // Upload option images
+      const uploadOptionImages = optionImages.map((file, index) => {
+        const signedUrl = optionsSignedUrls[index];
+        return uploadImageToS3(file, signedUrl);
+      });
+  
+      await Promise.all([...uploadQuestionImages, ...uploadOptionImages]);
+  
       if (response.success) {
         toast.success("Question added successfully!");
         resetFormFields();
-      } else {
-        toast.error("Failed to create question. Please try again.");
       }
+
     } catch (error) {
       toast.error("Failed to create question. Please try again.");
     }
@@ -188,6 +189,8 @@ const CreateQuestion = () => {
     setOptions([""]);
     setCorrectOptions([""]);
     setIsSubtopicsLoading(false);
+    setImages([]); // Clear question images
+    setOptionImages([]); 
   };
 
   const handleSubtopicChange = (value, level) => {
