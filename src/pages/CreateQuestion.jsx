@@ -35,7 +35,6 @@ const CreateQuestion = () => {
   const { subtopics } = useSelector((state) => state.getSubtopic);
   const { isLoading: questionLoading } = useSelector((state) => state.question);
 
-  // console.log(optionImages, "optionimages");
   useEffect(() => {
     if (standard) {
       dispatch(getSubjects(standard));
@@ -103,8 +102,8 @@ const CreateQuestion = () => {
       standard,
       subject,
       chapter,
-      topic,
-      subtopics: subtopics.selectedSubtopics,
+      topics: topic,
+      subtopics: selectedSubtopics,
       level,
       // nestedSubTopic: selectedSubtopics
       //   .filter(({ subtopics }) => subtopics && subtopics.length > 0)
@@ -141,7 +140,7 @@ const CreateQuestion = () => {
       }
 
     } catch (error) {
-      toast.error("Failed to create question. Please try again.");
+      // toast.error("Failed to create question. Please try again.");
     }
   };
 
@@ -205,7 +204,7 @@ const CreateQuestion = () => {
       updatedSubtopics[level] = selectedSubtopic;
     }
 
-    setSelectedSubtopics(updatedSubtopics.slice(0, level + 1));
+    setSelectedSubtopics(value); //removed nested logic for now
   };
 
   const handleRemoveOptionImage = (indexToRemove) => {
@@ -240,6 +239,9 @@ const CreateQuestion = () => {
                 showSearch
                 style={{ width: 200 }}
                 placeholder={`Select ${level === 0 ? "Subtopic" : `Nested Subtopic`}`}
+                filterOption={(input, option) =>
+                  (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+               }
                 options={currentSubtopics.map((subtopic) => ({
                     value: subtopic.name,
                     label: subtopic.name,
@@ -286,6 +288,9 @@ const CreateQuestion = () => {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Subject"
+            filterOption={(input, option) =>
+              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
             onChange={(value) => {
               setSubject(value);
               setChapter(null);
@@ -310,6 +315,9 @@ const CreateQuestion = () => {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Chapter"
+            filterOption={(input, option) =>
+              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
             onChange={(value) => {
               setChapter(value);
               setTopic(null);
@@ -332,7 +340,10 @@ const CreateQuestion = () => {
           mode="multiple"
             showSearch
             style={{ width: 200 }}
-            placeholder="Select Topic"
+            placeholder="Select Topics"
+            filterOption={(input, option) =>
+              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
             onChange={(value) => {
               setTopic(value);
               setSelectedSubtopics([]);
@@ -362,6 +373,9 @@ const CreateQuestion = () => {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Level"
+            filterOption={(input, option) =>
+              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
             onChange={(value) => setLevel(value)}
             value={level}
             options={[

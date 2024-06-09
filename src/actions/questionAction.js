@@ -10,6 +10,7 @@ import {
 
 import axios from "axios";
 import { server } from "../main.jsx";
+import toast from "react-hot-toast";
 
 export const createQuestion = (questionData) => (dispatch) => {
     return new Promise((resolve, reject) => {
@@ -41,6 +42,7 @@ export const createQuestion = (questionData) => (dispatch) => {
                 type: CREATE_QUESTION_FAIL,
                 payload: errorMessage,
             });
+            toast.error(errorMessage)
 
             reject(errorMessage);
         });
