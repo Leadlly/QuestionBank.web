@@ -118,9 +118,6 @@ const CreateTopic = () => {
                         filterOption={(input, option) =>
                             option.label.toLowerCase().includes(input.toLowerCase())
                         }
-                        filterSort={(optionA, optionB) =>
-                            optionA.label.toLowerCase().localeCompare(optionB.label.toLowerCase())
-                        }
                         onChange={(value) => setSubject(value)}
                         value={subject}
                         options={subjectList?.map((name) => ({ value: name, label: name }))}
@@ -138,9 +135,6 @@ const CreateTopic = () => {
                         optionFilterProp="children"
                         filterOption={(input, option) =>
                             option.label.toLowerCase().includes(input.toLowerCase())
-                        }
-                        filterSort={(optionA, optionB) =>
-                            optionA.label.toLowerCase().localeCompare(optionB.label.toLowerCase())
                         }
                         onChange={(value) => setChapter(value)}
                         value={chapter}

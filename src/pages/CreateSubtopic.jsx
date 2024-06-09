@@ -184,11 +184,6 @@ const CreateSubtopic = () => {
             filterOption={(input, option) =>
               option.label.toLowerCase().includes(input.toLowerCase())
             }
-            filterSort={(optionA, optionB) =>
-              optionA.label
-                .toLowerCase()
-                .localeCompare(optionB.label.toLowerCase())
-            }
             onChange={(value) => {
               setSubject(value);
               getChapters(value);
@@ -221,11 +216,6 @@ const CreateSubtopic = () => {
             filterOption={(input, option) =>
               option.label.toLowerCase().includes(input.toLowerCase())
             }
-            filterSort={(optionA, optionB) =>
-              optionA.label
-                .toLowerCase()
-                .localeCompare(optionB.label.toLowerCase())
-            }
             onChange={(value) => {
               setChapter(value);
               getTopics(value);
@@ -256,11 +246,6 @@ const CreateSubtopic = () => {
             optionFilterProp="children"
             filterOption={(input, option) =>
               option.label.toLowerCase().includes(input.toLowerCase())
-            }
-            filterSort={(optionA, optionB) =>
-              optionA.label
-                .toLowerCase()
-                .localeCompare(optionB.label.toLowerCase())
             }
             onChange={(value) => {
               setTopic(value);
