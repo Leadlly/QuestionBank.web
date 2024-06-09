@@ -115,7 +115,15 @@ const CreateQuestion = () => {
       //   .join(", "),
     };
   
-    try {
+    try { 
+       const hasCorrectOption = formattedData.options.some(
+      (option) => option.isCorrect
+    );
+    if (!hasCorrectOption) {
+      toast.error("At least one option must be correct.");
+      return;
+    }
+
       const response = await dispatch(createQuestion(formattedData));
   
       const { signedUrls, optionsSignedUrls } = response;

@@ -13,7 +13,7 @@ const Profile = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (isAuthenticated === false) {
+    if (!isAuthenticated) {
       navigate("/login");
     }
   }, [navigate, isAuthenticated]);
@@ -22,14 +22,16 @@ const Profile = () => {
     if (window.confirm("Confirm before deletion")) {
       dispatch(deleteQuestion(id));
 
-      if (success) {
-        toast.success("Question deleted successfully");
-        if (selectedQuestion && selectedQuestion._id === id) {
-          setSelectedQuestion(null);
+      setTimeout(() => {
+        if (success) {
+          toast.success("Question deleted successfully");
+          if (selectedQuestion && selectedQuestion._id === id) {
+            setSelectedQuestion(null);
+          }
+        } else if (error) {
+          toast.error(error);
         }
-      } else if (error) {
-        toast.error(error);
-      }
+      }, 500); 
     }
   };
 
@@ -43,25 +45,58 @@ const Profile = () => {
             <h5 className="heading block mb-2 font-sans text-xl antialiased font-semibold leading-snug tracking-normal text-blue-white-900">
               Q. {selectedQuestion.question}
             </h5>
-            <div className="options">
-              {selectedQuestion.options.all.map((option, idx) => (
-                <label key={idx} className="option">
-                  <input
-                    type="radio"
-                    name={`option_${selectedQuestion._id}`}
-                    value={option}
+            {selectedQuestion.images.length > 0 && (
+              <div className="mt-4">
+                {selectedQuestion.images.map((image, index) => (
+                  <img
+                    key={index}
+                    src={image.url}
+                    alt={`Image ${index + 1}`}
+                    className="max-w-full h-auto mb-2"
                   />
-                  <span className="option-text">{option}</span>
-                </label>
-              ))}
+                ))}
+              </div>
+            )}
+            <div className="options">
+            <p>Options: </p>
+              {selectedQuestion.options && selectedQuestion.options.length > 0 ? (
+                selectedQuestion.options.map((option, idx) => (
+                  <div key={idx} className="mb-4">
+                   
+                    {option.images && option.images.length > 0 && (
+                      <div className="mt-2 ml-2">
+                        {option.images.map((image, index) => (
+                          <img
+                            key={index}
+                            src={image.url}
+                            alt={`Option ${option.name} Image ${index + 1}`}
+                            className="max-w-20 h-20 mb-2"
+                          />
+                        ))}
+                      </div>
+                    )}
+                     <label className="option">
+                      <input
+                        type="radio"
+                        name={`option_${selectedQuestion._id}`}
+                        value={option.name}
+                      />
+                      <span className="option-text">{option.name}</span>
+                    </label>
+                  </div>
+                ))
+              ) : (
+                <p>No options available</p>
+              )}
             </div>
             <p>Class: {selectedQuestion.standard}</p>
             <p>Subject: {selectedQuestion.subject}</p>
-            <p>Chapter: {selectedQuestion.chapter}</p>
-            <p>Topic: {selectedQuestion.topic}</p>
+            <p>Chapter: {selectedQuestion.chapter.join(", ")}</p>
+            <p>Topics: {selectedQuestion.topics.join(", ")}</p>
             <p>Level: {selectedQuestion.level}</p>
-            <p>Subtopics: {selectedQuestion.subtopics || "N/A"}</p>
+            <p>Subtopics: {selectedQuestion.subtopics.length > 0 ? selectedQuestion.subtopics.join(", ") : "N/A"}</p>
             <p>Nested Subtopic: {selectedQuestion.nestedSubTopic || "N/A"}</p>
+           
           </div>
           <div className="p-6 pt-0">
             <button
