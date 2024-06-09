@@ -368,9 +368,9 @@ const CreateQuestion = () => {
             onChange={(value) => setLevel(value)}
             value={level}
             options={[
-              { value: "Basic", label: "Basic" },
               { value: "Boards", label: "Boards" },
               { value: "Neet", label: "Neet" },
+              { value: "JeeMains_Easy", label: "JeeMains_Easy" },
               { value: "JeeMains", label: "JeeMains" },
               { value: "JeeAdvance", label: "JeeAdvance" },
             ]}
