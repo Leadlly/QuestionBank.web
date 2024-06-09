@@ -237,6 +237,7 @@ const CreateQuestion = () => {
         </label>
 
         <Select
+        mode="multiple"
           id={`subtopic-select-${level}`}
           showSearch
           style={{ width: 200 }}
@@ -308,6 +309,7 @@ const CreateQuestion = () => {
 
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
           <Select
+          mode="multiple"
             showSearch
             style={{ width: 200 }}
             placeholder="Select Chapter"
@@ -330,6 +332,7 @@ const CreateQuestion = () => {
 
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
           <Select
+          mode="multiple"
             showSearch
             style={{ width: 200 }}
             placeholder="Select Topic"
@@ -365,9 +368,9 @@ const CreateQuestion = () => {
             onChange={(value) => setLevel(value)}
             value={level}
             options={[
-              { value: "Basic", label: "Basic" },
               { value: "Boards", label: "Boards" },
               { value: "Neet", label: "Neet" },
+              { value: "JeeMains_Easy", label: "JeeMains_Easy" },
               { value: "JeeMains", label: "JeeMains" },
               { value: "JeeAdvance", label: "JeeAdvance" },
             ]}

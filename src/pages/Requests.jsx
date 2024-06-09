@@ -3,21 +3,16 @@ import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { profile as fetchProfile, verifyUser, clearErrors } from '../actions/userAction';
 import Loader from '../components/Loader';
-// import LoadingSpinner from '../components/LoadingSpinner'; // Replace with your own loading spinner component
-
 const Profile = () => {
     const dispatch = useDispatch();
 
-    // Use useSelector to access state from the Redux store
     const { loading, error, user } = useSelector((state) => state.user);
     const { success: verifySuccess, error: verifyError } = useSelector((state) => state.verification);
 
-    // Fetch user profile data when the component mounts
     useEffect(() => {
         dispatch(fetchProfile());
     }, [dispatch]);
 
-    // Display error messages and success messages
     useEffect(() => {
         if (error) {
             toast.error(error);
@@ -31,11 +26,10 @@ const Profile = () => {
 
         if (verifySuccess) {
             toast.success('User status updated successfully.');
-            dispatch(fetchProfile()); // Refetch the profile data
+            dispatch(fetchProfile()); 
         }
     }, [error, verifyError, verifySuccess, dispatch]);
 
-    // Handle user verification
     const handleVerification = (id) => {
         dispatch(verifyUser(id));
     };
@@ -46,10 +40,11 @@ const Profile = () => {
                 <Loader />
             ) : (
                 user ? (
-                    <div className="flex flex-wrap">
+                    <div >
                        
                         {user.requests && user.requests.length > 0 ? (
-                            <div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                       
                                 {user.requests.map((request) => (
                                     <div key={request._id} className="relative flex flex-col mt-6 m-7 text-white-700 bg-gray-700 shadow-md bg-clip-border rounded-xl w-96">
                                         <div className="p-6">

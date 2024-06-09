@@ -116,13 +116,13 @@ const CreateSubtopic = () => {
           onChange={(e) => onChange(index, nestedIndex !== undefined ? `subtopics.${nestedIndex}.name` : 'name', e.target.value)}
           required
         />
-        <button
+        {/* <button
           className="mt-8 p-4 border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
           type="button"
           onClick={() => onAddNested(index)}
         >
           Add Nested Subtopic
-        </button>
+        </button> */}
         {subtopic.subtopics.map((nestedSubtopic, nestedIdx) => (
           <div key={nestedIdx} style={{ marginLeft: "20px" }}>
             <SubtopicInput

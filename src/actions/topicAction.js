@@ -41,12 +41,12 @@ export const createTopic = (topicData) => async (dispatch) => {
     }
 };
 
-export const getTopics = (subjectName, standard, chapterName) => async (dispatch) => {
+export const getTopics = (subjectName, standard, chapterNames) => async (dispatch) => {
     try {
         dispatch({ type: GET_TOPICS_REQUEST });
 
         const { data } = await axios.get(
-            `${server}/api/get/topic?subjectName=${subjectName}&standard=${standard}&chapterName=${chapterName}`,
+            `${server}/api/get/topic?subjectName=${subjectName}&standard=${standard}&chapterNames=${chapterNames}`,
             {
                 withCredentials: true,
             }
