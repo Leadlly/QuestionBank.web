@@ -50,7 +50,7 @@ export const getSubtopics = (subject, standard, chapter, topic) => async (dispat
         dispatch({ type: GET_SUBTOPICS_REQUEST });
 
         const { data } = await axios.get(
-            `${server}/api/get/subtopic?subjectName=${subject}&standard=${standard}&chapterName=${chapter}&topicName=${topic}`,
+            `${server}/api/get/subtopic?subjectName=${subject}&standard=${standard}&chapterName=${chapter}&topicNames=${topic}`,
             {
                 withCredentials: true,
             }
