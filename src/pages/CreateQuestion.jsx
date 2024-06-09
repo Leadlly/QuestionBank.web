@@ -104,16 +104,16 @@ const CreateQuestion = () => {
       subject,
       chapter,
       topic,
-      subtopics: selectedSubtopics[0]?.name || "",
+      subtopics: subtopics.selectedSubtopics,
       level,
-      nestedSubTopic: selectedSubtopics
-        .filter(({ subtopics }) => subtopics && subtopics.length > 0)
-        .flatMap(({ subtopics }) =>
-          subtopics
-            .filter(({ isSelected }) => isSelected)
-            .map(({ name }) => name)
-        )
-        .join(", "),
+      // nestedSubTopic: selectedSubtopics
+      //   .filter(({ subtopics }) => subtopics && subtopics.length > 0)
+      //   .flatMap(({ subtopics }) =>
+      //     subtopics
+      //       .filter(({ isSelected }) => isSelected)
+      //       .map(({ name }) => name)
+      //   )
+      //   .join(", "),
     };
   
     try {
@@ -222,42 +222,39 @@ const CreateQuestion = () => {
 
   const renderSubtopicSelectors = (currentSubtopics, level) => {
     if (!currentSubtopics || currentSubtopics.length === 0) {
-      return null;
+        return null;
     }
 
-    const selectedSubtopic = selectedSubtopics[level] || null;
-
     return (
-      <div key={level} className="relative z-0 w-full mb-5 group flex flex-col">
-        <label
-          htmlFor={`subtopic-select-${level}`}
-          className="block text-sm dark:text-white-400"
-        >
-          {level === 0 ? "Subtopic" : `Nested Subtopic`}
-        </label>
+        <div key={level} className="relative z-0 w-full mb-5 group flex flex-col">
+            <label
+                htmlFor={`subtopic-select-${level}`}
+                className="block text-sm dark:text-white-400"
+            >
+                {level === 0 ? "Subtopic" : `Nested Subtopic`}
+            </label>
 
-        <Select
-        mode="multiple"
-          id={`subtopic-select-${level}`}
-          showSearch
-          style={{ width: 200 }}
-          placeholder={`Select ${level === 0 ? "Subtopic" : `Nested Subtopic`}`}
-          options={currentSubtopics.map((subtopic) => ({
-            value: subtopic.name,
-            label: subtopic.name,
-          }))}
-          value={selectedSubtopic ? selectedSubtopic.name : null}
-          onChange={(value) => handleSubtopicChange(value, level)}
-        />
+            <Select
+                mode="multiple"
+                id={`subtopic-select-${level}`}
+                showSearch
+                style={{ width: 200 }}
+                placeholder={`Select ${level === 0 ? "Subtopic" : `Nested Subtopic`}`}
+                options={currentSubtopics.map((subtopic) => ({
+                    value: subtopic.name,
+                    label: subtopic.name,
+                }))}
+                onChange={(value) => handleSubtopicChange(value, level)}
+            />
 
-        {selectedSubtopic && selectedSubtopic.subtopics && (
-          <div className="mt-5 mb-0">
-            {renderSubtopicSelectors(selectedSubtopic.subtopics, level + 1)}
-          </div>
-        )}
-      </div>
+            {currentSubtopics.map((subtopic) => (
+                <div key={`${subtopic._id}-${level}`} className="mt-3 ml-6">
+                    {renderSubtopicSelectors(subtopic.subtopics, level + 1)}
+                </div>
+            ))}
+        </div>
     );
-  };
+  }
 
   return (
     <main className="p-4">
