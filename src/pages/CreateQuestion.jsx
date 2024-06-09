@@ -35,7 +35,6 @@ const CreateQuestion = () => {
   const { subtopics } = useSelector((state) => state.getSubtopic);
   const { isLoading: questionLoading } = useSelector((state) => state.question);
 
-  // console.log(optionImages, "optionimages");
   useEffect(() => {
     if (standard) {
       dispatch(getSubjects(standard));
@@ -103,17 +102,17 @@ const CreateQuestion = () => {
       standard,
       subject,
       chapter,
-      topic,
-      subtopics: selectedSubtopics[0]?.name || "",
+      topics: topic,
+      subtopics: selectedSubtopics,
       level,
-      nestedSubTopic: selectedSubtopics
-        .filter(({ subtopics }) => subtopics && subtopics.length > 0)
-        .flatMap(({ subtopics }) =>
-          subtopics
-            .filter(({ isSelected }) => isSelected)
-            .map(({ name }) => name)
-        )
-        .join(", "),
+      // nestedSubTopic: selectedSubtopics
+      //   .filter(({ subtopics }) => subtopics && subtopics.length > 0)
+      //   .flatMap(({ subtopics }) =>
+      //     subtopics
+      //       .filter(({ isSelected }) => isSelected)
+      //       .map(({ name }) => name)
+      //   )
+      //   .join(", "),
     };
   
     try {
@@ -141,7 +140,7 @@ const CreateQuestion = () => {
       }
 
     } catch (error) {
-      toast.error("Failed to create question. Please try again.");
+      // toast.error("Failed to create question. Please try again.");
     }
   };
 
@@ -205,7 +204,7 @@ const CreateQuestion = () => {
       updatedSubtopics[level] = selectedSubtopic;
     }
 
-    setSelectedSubtopics(updatedSubtopics.slice(0, level + 1));
+    setSelectedSubtopics(value); //removed nested logic for now
   };
 
   const handleRemoveOptionImage = (indexToRemove) => {
@@ -222,42 +221,42 @@ const CreateQuestion = () => {
 
   const renderSubtopicSelectors = (currentSubtopics, level) => {
     if (!currentSubtopics || currentSubtopics.length === 0) {
-      return null;
+        return null;
     }
 
-    const selectedSubtopic = selectedSubtopics[level] || null;
-
     return (
-      <div key={level} className="relative z-0 w-full mb-5 group flex flex-col">
-        <label
-          htmlFor={`subtopic-select-${level}`}
-          className="block text-sm dark:text-white-400"
-        >
-          {level === 0 ? "Subtopic" : `Nested Subtopic`}
-        </label>
+        <div key={level} className="relative z-0 w-full mb-5 group flex flex-col">
+            <label
+                htmlFor={`subtopic-select-${level}`}
+                className="block text-sm dark:text-white-400"
+            >
+                {level === 0 ? "Subtopic" : `Nested Subtopic`}
+            </label>
 
-        <Select
-        mode="multiple"
-          id={`subtopic-select-${level}`}
-          showSearch
-          style={{ width: 200 }}
-          placeholder={`Select ${level === 0 ? "Subtopic" : `Nested Subtopic`}`}
-          options={currentSubtopics.map((subtopic) => ({
-            value: subtopic.name,
-            label: subtopic.name,
-          }))}
-          value={selectedSubtopic ? selectedSubtopic.name : null}
-          onChange={(value) => handleSubtopicChange(value, level)}
-        />
+            <Select
+                mode="multiple"
+                id={`subtopic-select-${level}`}
+                showSearch
+                style={{ width: 200 }}
+                placeholder={`Select ${level === 0 ? "Subtopic" : `Nested Subtopic`}`}
+                filterOption={(input, option) =>
+                  (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+               }
+                options={currentSubtopics.map((subtopic) => ({
+                    value: subtopic.name,
+                    label: subtopic.name,
+                }))}
+                onChange={(value) => handleSubtopicChange(value, level)}
+            />
 
-        {selectedSubtopic && selectedSubtopic.subtopics && (
-          <div className="mt-5 mb-0">
-            {renderSubtopicSelectors(selectedSubtopic.subtopics, level + 1)}
-          </div>
-        )}
-      </div>
+            {currentSubtopics.map((subtopic) => (
+                <div key={`${subtopic._id}-${level}`} className="mt-3 ml-6">
+                    {renderSubtopicSelectors(subtopic.subtopics, level + 1)}
+                </div>
+            ))}
+        </div>
     );
-  };
+  }
 
   return (
     <main className="p-4">
@@ -289,6 +288,9 @@ const CreateQuestion = () => {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Subject"
+            filterOption={(input, option) =>
+              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
             onChange={(value) => {
               setSubject(value);
               setChapter(null);
@@ -313,6 +315,9 @@ const CreateQuestion = () => {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Chapter"
+            filterOption={(input, option) =>
+              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
             onChange={(value) => {
               setChapter(value);
               setTopic(null);
@@ -335,7 +340,10 @@ const CreateQuestion = () => {
           mode="multiple"
             showSearch
             style={{ width: 200 }}
-            placeholder="Select Topic"
+            placeholder="Select Topics"
+            filterOption={(input, option) =>
+              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
             onChange={(value) => {
               setTopic(value);
               setSelectedSubtopics([]);
@@ -365,6 +373,9 @@ const CreateQuestion = () => {
             showSearch
             style={{ width: 200 }}
             placeholder="Select Level"
+            filterOption={(input, option) =>
+              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
             onChange={(value) => setLevel(value)}
             value={level}
             options={[
