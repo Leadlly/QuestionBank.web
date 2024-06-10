@@ -82,7 +82,7 @@ const Profile = () => {
                         value={option.name}
                         checked={option.tag === 'Correct'}
                       />
-                      <span className="option-text">{option.name}</span>
+                      <span className="option-text" dangerouslySetInnerHTML={{ __html: option.name }} />
                     </label>
                   </div>
                 ))
