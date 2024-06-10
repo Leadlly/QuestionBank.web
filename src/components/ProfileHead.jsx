@@ -219,7 +219,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                     </Tab>
                 </Tab.List>
 
-                <Tab.Panels className="mt-2">
+                <Tab.Panels className="mt-2 max-h-64 overflow-y-auto">
     <Tab.Panel
         className={classNames(
             'rounded-xl bg-white p-3',
@@ -238,7 +238,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                                     onClick={() => handleQuestionClick(question)}
                                 >
                                     <p className="text-sm font-medium text-gray-900 leading-5">
-                                        Q. {question.question}
+                                    Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
                                     </p>
                                 </li>
                             ))
@@ -263,7 +263,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                                 onClick={() => handleQuestionClick(question)}
                             >
                                 <p className="text-sm font-medium text-gray-900 leading-5 cursor-pointer">
-                                    Q. {question.question}
+                                Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
                                 </p>
                             </li>
                         ))
@@ -297,7 +297,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                                     onClick={() => handleQuestionClick(question)}
                                 >
                                     <p className="text-sm font-medium text-gray-900 leading-5">
-                                        Q. {question.question}
+                                    Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
                                     </p>
                                 </li>
                             ))
@@ -322,7 +322,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                                 onClick={() => handleQuestionClick(question)}
                             >
                                 <p className="text-sm font-medium text-gray-900 leading-5 cursor-pointer">
-                                    Q. {question.question}
+                                Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
                                 </p>
                             </li>
                         ))
