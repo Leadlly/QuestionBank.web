@@ -429,7 +429,7 @@ const CreateQuestion = () => {
                   { indent: "-1" },
                   { indent: "+1" },
                 ],
-                ["link", "image"],
+                ["link"],
                 ["clean"],
                 [{ script: "sub" }, { script: "super" }], // Subscript and superscript
               ],
