@@ -106,12 +106,15 @@ const Navbar = () => {
                                 )}
 
                                 {isAuthenticated && (
-                                    <Button
-                                        className="text-black-300 hover:bg-gray-700 hover:text-white rounded-md px-5 py-0 text-sm font-medium"
-                                        onClick={handleLogout}
-                                    >
-                                        Log Out
-                                    </Button>
+                                    <>
+                                       
+                                        <Button
+                                            className="text-black-300 hover:bg-gray-700 hover:text-white rounded-md px-5 py-0 text-sm font-medium"
+                                            onClick={handleLogout}
+                                        >
+                                            Log Out
+                                        </Button>
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -152,7 +155,7 @@ const Navbar = () => {
                             </Link>
                         )}
 
-                        {isAdmin && (
+                        {isAuthenticated && (
                             <div className="relative ml-3">
                                 <Link to="/profile">
                                     <button
@@ -223,13 +226,17 @@ const Navbar = () => {
                             </Link>
                         </>
                     )}
+
                     {isAuthenticated && (
-                        <Button
-                            onClick={handleLogout}
-                            className="text-black-300 hover:bg-gray-700 hover:text-white rounded-md px-5 py-0 text-sm font-medium"
-                        >
-                            Log Out
-                        </Button>
+                        <>
+                           
+                            <Button
+                                onClick={handleLogout}
+                                className="text-black-300 hover:bg-gray-700 hover:text-white rounded-md px-5 py-0 text-sm font-medium"
+                            >
+                                Log Out
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
