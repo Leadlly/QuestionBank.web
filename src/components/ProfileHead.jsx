@@ -316,126 +316,125 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                     </Tab>
                 </Tab.List>
 
-                <Tab.Panels className="mt-2">
-                    <Tab.Panel
-                        className={classNames(
-                            'rounded-xl bg-white p-3',
-                            'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2'
-                        )}
-                    >
-                        {selectedSubject ? (
-                            activeTabIndex === 0 ? (
-                                <ul>
-                                    {isAdmin ? (
-                                        filteredQuestions.length > 0 ? (
-                                            filteredQuestions.map((question, index) => (
-                                                <li
-                                                    key={index}
-                                                    className="relative rounded-md p-3 hover:bg-gray-100 cursor-pointer"
-                                                    onClick={() => handleQuestionClick(question)}
-                                                >
-                                                    <p className="text-sm font-medium text-gray-900 leading-5">
-                                                        Q. {question.question}
-                                                    </p>
-                                                </li>
-                                            ))
-                                        ) : (
-                                            <li className="relative text-gray-900 rounded-md p-3">
-                                                No questions found.
-                                            </li>
-                                        )
-                                    ) : (
-                                        <li className="relative text-gray-900 rounded-md p-3">
-                                            Admin access required to view all questions.
-                                        </li>
-                                    )}
-                                </ul>
-                            ) : activeTabIndex === 1 ? (
-                                <ul>
-                                    {filteredMyQuestions.length > 0 ? (
-                                        filteredMyQuestions.map((question, index) => (
-                                            <li
-                                                key={index}
-                                                className="relative rounded-md p-3 hover:bg-gray-100
-                                                cursor-pointer"
-                                                onClick={() => handleQuestionClick(question)}
-                                            >
-                                                <p className="text-sm font-medium text-gray-900 leading-5">
-                                                    Q. {question.question}
-                                                </p>
-                                            </li>
-                                        ))
-                                    ) : (
-                                        <li className="relative text-gray-900 rounded-md p-3">
-                                            No questions available for the selected subject.
-                                        </li>
-                                    )}
-                                </ul>
-                            ) : null
+                <Tab.Panels className="mt-2 max-h-64 overflow-y-auto">
+    <Tab.Panel
+        className={classNames(
+            'rounded-xl bg-white p-3',
+            'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2'
+        )}
+    >
+        {selectedSubject ? (
+            activeTabIndex === 0 ? (
+                <ul>
+                    {isAdmin ? (
+                        filteredQuestions.length > 0 ? (
+                            filteredQuestions.map((question, index) => (
+                                <li
+                                    key={index}
+                                    className="relative rounded-md p-3 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => handleQuestionClick(question)}
+                                >
+                                    <p className="text-sm font-medium text-gray-900 leading-5">
+                                    Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
+                                    </p>
+                                </li>
+                            ))
                         ) : (
-                            <p className="text-gray-900">Please select a subject to view questions.</p>
-                        )}
-                    </Tab.Panel>
+                            <li className="relative text-gray-900 rounded-md p-3">
+                                No questions found.
+                            </li>
+                        )
+                    ) : (
+                        <li className="relative text-gray-900 rounded-md p-3">
+                            Admin access required to view all questions.
+                        </li>
+                    )}
+                </ul>
+            ) : activeTabIndex === 1 ? (
+                <ul>
+                    {filteredMyQuestions.length > 0 ? (
+                        filteredMyQuestions.map((question, index) => (
+                            <li
+                                key={index}
+                                className="relative rounded-md p-3 hover:bg-gray-100"
+                                onClick={() => handleQuestionClick(question)}
+                            >
+                                <p className="text-sm font-medium text-gray-900 leading-5 cursor-pointer">
+                                Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
+                                </p>
+                            </li>
+                        ))
+                    ) : (
+                        <li className="relative text-gray-900 rounded-md p-3">
+                            No questions available for the selected subject.
+                        </li>
+                    )}
+                </ul>
+            ) : null
+        ) : (
+            <p className="text-gray-900">Please select a subject to view questions.</p>
+        )}
+    </Tab.Panel>
 
-                    <Tab.Panel
-                        className={classNames(
-                            'rounded-xl bg-white p-3',
-                            'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2'
-                        )}
-                    >
-                        {selectedSubject ? (
-                            activeTabIndex === 0 ? (
-                                <ul>
-                                    {isAdmin ? (
-                                        filteredQuestions.length > 0 ? (
-                                            filteredQuestions.map((question, index) => (
-                                                <li
-                                                    key={index}
-                                                    className="relative rounded-md p-3 hover:bg-gray-100 cursor-pointer"
-                                                    onClick={() => handleQuestionClick(question)}
-                                                >
-                                                    <p className="text-sm font-medium text-gray-900 leading-5">
-                                                        Q. {question.question}
-                                                    </p>
-                                                </li>
-                                            ))
-                                        ) : (
-                                            <li className="relative text-gray-900 rounded-md p-3">
-                                                No questions found.
-                                            </li>
-                                        )
-                                    ) : (
-                                        <li className="relative text-gray-900 rounded-md p-3">
-                                            Admin access required to view all questions.
-                                        </li>
-                                    )}
-                                </ul>
-                            ) : activeTabIndex === 1 ? (
-                                <ul>
-                                    {filteredMyQuestions.length > 0 ? (
-                                        filteredMyQuestions.map((question, index) => (
-                                            <li
-                                                key={index}
-                                                className="relative rounded-md p-3 hover:bg-gray-100 cursor-pointer"
-                                                onClick={() => handleQuestionClick(question)}
-                                            >
-                                                <p className="text-sm font-medium text-gray-900 leading-5">
-                                                    Q. {question.question}
-                                                </p>
-                                            </li>
-                                        ))
-                                    ) : (
-                                        <li className="relative text-gray-900 rounded-md p-3">
-                                            No questions available for the selected subject.
-                                        </li>
-                                    )}
-                                </ul>
-                            ) : null
+    <Tab.Panel
+        className={classNames(
+            'rounded-xl bg-white p-3',
+            'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2'
+        )}
+    >
+        {selectedSubject ? (
+            activeTabIndex === 0 ? (
+                <ul>
+                    {isAdmin ? (
+                        filteredQuestions.length > 0 ? (
+                            filteredQuestions.map((question, index) => (
+                                <li
+                                    key={index}
+                                    className="relative rounded-md p-3 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => handleQuestionClick(question)}
+                                >
+                                    <p className="text-sm font-medium text-gray-900 leading-5">
+                                    Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
+                                    </p>
+                                </li>
+                            ))
                         ) : (
-                            <p className="text-gray-900">Please select a subject to view questions.</p>
-                        )}
-                    </Tab.Panel>
-                </Tab.Panels>
+                            <li className="relative text-gray-900 rounded-md p-3">
+                                No questions found.
+                            </li>
+                        )
+                    ) : (
+                        <li className="relative text-gray-900 rounded-md p-3">
+                            Admin access required to view all questions.
+                        </li>
+                    )}
+                </ul>
+            ) : activeTabIndex === 1 ? (
+                <ul>
+                    {filteredMyQuestions.length > 0 ? (
+                        filteredMyQuestions.map((question, index) => (
+                            <li
+                                key={index}
+                                className="relative rounded-md p-3 hover:bg-gray-100"
+                                onClick={() => handleQuestionClick(question)}
+                            >
+                                <p className="text-sm font-medium text-gray-900 leading-5 cursor-pointer">
+                                Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
+                                </p>
+                            </li>
+                        ))
+                    ) : (
+                        <li className="relative text-gray-900 rounded-md p-3">
+                            No questions available for the selected subject.
+                        </li>
+                    )}
+                </ul>
+            ) : null
+        ) : (
+            <p className="text-gray-900">Please select a subject to view questions.</p>
+        )}
+    </Tab.Panel>
+</Tab.Panels>
             </Tab.Group>
         </div>
     );

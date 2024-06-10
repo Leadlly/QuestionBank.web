@@ -42,8 +42,8 @@ const Profile = () => {
       {selectedQuestion ? (
         <div className="box relative flex flex-col mt-6 m-7 text-white-700 shadow-md bg-clip-border rounded-xl">
           <div className="p-6">
-            <h5 className="heading block mb-2 font-sans text-xl antialiased font-semibold leading-snug tracking-normal text-blue-white-900">
-              Q. {selectedQuestion.question}
+          <h5 className="heading block mb-2 font-sans text-xl antialiased font-semibold leading-snug tracking-normal text-blue-white-900">
+              Q. <span dangerouslySetInnerHTML={{ __html: selectedQuestion.question }} />
             </h5>
             {selectedQuestion.images.length > 0 && (
               <div className="mt-4">
@@ -80,8 +80,9 @@ const Profile = () => {
                         type="radio"
                         name={`option_${selectedQuestion._id}`}
                         value={option.name}
+                        checked={option.tag === 'Correct'}
                       />
-                      <span className="option-text">{option.name}</span>
+                      <span className="option-text" dangerouslySetInnerHTML={{ __html: option.name }} />
                     </label>
                   </div>
                 ))

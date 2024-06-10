@@ -12,6 +12,8 @@ import Loading from "./Loading";
 import { FaImage } from "react-icons/fa6";
 import { ImCross } from "react-icons/im";
 import { FaCheck } from "react-icons/fa";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 const CreateQuestion = () => {
   const dispatch = useDispatch();
@@ -25,6 +27,7 @@ const CreateQuestion = () => {
   const [selectedSubtopics, setSelectedSubtopics] = useState([]);
   const [optionImages, setOptionImages] = useState([]);
 
+  const [question, setQuestion] = useState("")
   const [options, setOptions] = useState([""]);
   const [correctOptions, setCorrectOptions] = useState([""]);
   const [isSubtopicsLoading, setIsSubtopicsLoading] = useState(false);
@@ -69,16 +72,22 @@ const CreateQuestion = () => {
     });
 
     if (!response.ok) {
+      toast.error(`Image upload failed: ${file.name}`)
       throw new Error("Failed to upload image to S3");
     }
   };
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
-    const formData = new FormData(event.target);
-    const data = {};
-    for (const [name, value] of formData.entries()) {
-      data[name] = value;
+    // const formData = new FormData(event.target);
+    // const data = {};
+    // for (const [name, value] of formData.entries()) {
+    //   data[name] = value;
+    // }
+
+    if (!question || !question.replace(/<[^>]*>/g, '').trim()) {
+      toast.error("Question field is compulsory");
+      return;
     }
   
     const filteredOptions = options.filter((option) => option.trim() !== "");
@@ -92,7 +101,7 @@ const CreateQuestion = () => {
     }));
   
     const formattedData = {
-      question: data.question,
+      question: question,
       options: filteredOptions.map((option, index) => ({
         name: option,
         image: formattedOptionImages[index] ? [formattedOptionImages[index]] : [],
@@ -152,9 +161,9 @@ const CreateQuestion = () => {
     }
   };
 
-  const handleInputChange = (index, event) => {
+  const handleInputChange = (index, value) => {
     const newOptions = [...options];
-    newOptions[index] = event.target.value;
+    newOptions[index] = value;
 
     if (newOptions[index].trim() !== "" && newOptions.length < 4) {
       newOptions.push("");
@@ -192,8 +201,8 @@ const CreateQuestion = () => {
   };
 
   const resetFormFields = () => {
-    document.getElementById("question").value = "";
-    setOptions([""]);
+    setQuestion("")
+    setOptions([]);
     setCorrectOptions([""]);
     setIsSubtopicsLoading(false);
     setImages([]); // Clear question images
@@ -376,7 +385,7 @@ const CreateQuestion = () => {
           <div>{renderSubtopicSelectors(subtopics, 0)}</div>
         )}
 
-        <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
+        <div className="relative z-0 w-full mb-8 group flex flex-col-reverse">
           <Select
             showSearch
             style={{ width: 200 }}
@@ -387,11 +396,11 @@ const CreateQuestion = () => {
             onChange={(value) => setLevel(value)}
             value={level}
             options={[
-              { value: "Boards", label: "Boards" },
-              { value: "Neet", label: "Neet" },
-              { value: "JeeMains_Easy", label: "JeeMains_Easy" },
-              { value: "JeeMains", label: "JeeMains" },
-              { value: "JeeAdvance", label: "JeeAdvance" },
+              { value: "boards", label: "Boards" },
+              { value: "neet", label: "Neet" },
+              { value: "jeemains_easy", label: "JeeMains_Easy" },
+              { value: "jeemains", label: "JeeMains" },
+              { value: "jeeadvance", label: "JeeAdvance" },
             ]}
           />
           <label className="text-white-500 text-sm dark:text-white-400">
@@ -401,17 +410,42 @@ const CreateQuestion = () => {
 
         <div className="relative z-0 w-full mb-5 group">
           <div className="relative flex items-center">
-            <input
+            {/* <input
               type="text"
               name="question"
               id="question"
               className="block py-2.5 mb-2 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
               placeholder=" "
               required
-            />
+            /> */}
+            <div className="mt-5">
+             <ReactQuill
+            theme="snow"
+            className=" bg-slate-50 text-black"
+            value={question}
+            onChange={setQuestion}
+            modules={{
+              toolbar: [
+                [{ header: "1" }, { header: "2" }, { font: [] }],
+                [{ size: [] }],
+                ["bold", "italic", "underline", "strike", "blockquote"],
+                [
+                  { list: "ordered" },
+                  { list: "bullet" },
+                  { indent: "-1" },
+                  { indent: "+1" },
+                ],
+                ["link"],
+                ["clean"],
+                [{ script: "sub" }, { script: "super" }], // Subscript and superscript
+              ],
+            }}
+          
+          />
+          </div>
             <label
               htmlFor="question"
-              className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-grey-600 peer-focus:dark:text-grey-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+              className="peer-focus:font-medium absolute text-lg text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-grey-600 peer-focus:dark:text-grey-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
             >
               Add Questions
             </label>
@@ -450,17 +484,35 @@ const CreateQuestion = () => {
         {options.map((option, index) => (
           <div key={index} className="relative z-0 w-full mb-5 group">
             <div className="flex items-center">
-              <input
+              {/* <input
                 type="text"
                 name={`option-${index}`}
                 value={option}
                 onChange={(e) => handleInputChange(index, e)}
                 className="block py-2.5 mb-2 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
                 placeholder=" "
-              />
+              /> */}
+
+            <div className="mt-5">
+            <ReactQuill
+            theme="snow"
+            className=" bg-slate-200 text-black"
+            value={option}
+            onChange={(value) => handleInputChange(index, value)}
+            modules={{
+              toolbar: [
+                ["bold", "italic", "underline", "strike", "blockquote"],
+                ["link"],
+                // ["clean"],
+                [{ script: "sub" }, { script: "super" }], // Subscript and superscript
+              ],
+            }}
+          
+          />
+          </div>
               <label
                 htmlFor={`option-${index}`}
-                className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+                className="peer-focus:font-medium absolute text-lg text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
               >
                 Option {index + 1}
               </label>
@@ -518,7 +570,7 @@ const CreateQuestion = () => {
           className="border text-white-600 mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
           onClick={addOption}
         >
-          Add more options
+          Add options
         </div>
 
         {questionLoading ? (
