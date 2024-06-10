@@ -396,11 +396,11 @@ const CreateQuestion = () => {
             onChange={(value) => setLevel(value)}
             value={level}
             options={[
-              { value: "Boards", label: "Boards" },
-              { value: "Neet", label: "Neet" },
-              { value: "JeeMains_Easy", label: "JeeMains_Easy" },
-              { value: "JeeMains", label: "JeeMains" },
-              { value: "JeeAdvance", label: "JeeAdvance" },
+              { value: "boards", label: "Boards" },
+              { value: "neet", label: "Neet" },
+              { value: "jeemains_easy", label: "JeeMains_Easy" },
+              { value: "jeemains", label: "JeeMains" },
+              { value: "jeeadvance", label: "JeeAdvance" },
             ]}
           />
           <label className="text-white-500 text-sm dark:text-white-400">
