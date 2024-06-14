@@ -1,351 +1,525 @@
-import { useEffect, useState } from 'react';
-import PropTypes from 'prop-types';
-import { Tab } from '@headlessui/react';
-import axios from 'axios';
-import classNames from 'classnames';
-import { server } from '../main';
-import toast from 'react-hot-toast';
-import { standards } from '../components/Options';
+import { useEffect, useState } from "react";
+import PropTypes from "prop-types";
+import { Tab } from "@headlessui/react";
+import axios from "axios";
+import classNames from "classnames";
+import toast from "react-hot-toast";
+import { useSelector, useDispatch } from "react-redux";
+import { Select } from "antd";
+import { standards } from "../components/Options";
+import { server } from "../main";
 import "../styles/login.scss";
-import { useSelector } from 'react-redux';
+import { getSubjects } from "../actions/subjectAction";
+import { getChapters } from "../actions/chapterAction";
+import { getTopics } from "../actions/topicAction";
+import { getSubtopics } from "../actions/subtopicAction";
 
 const ProfileHead = ({ setSelectedQuestion }) => {
-    const [questions, setQuestions] = useState([]);
-    const [myQuestions, setMyQuestions] = useState([]);
-    const [selectedStandard, setSelectedStandard] = useState('');
-    const [selectedSubject, setSelectedSubject] = useState('');
-    const [subjects, setSubjects] = useState([]);
-    const [mySubjects, setMySubjects] = useState([]);
-    const [activeTabIndex, setActiveTabIndex] = useState(0);
-    const { user } = useSelector((state) => state.user);
+  const [questions, setQuestions] = useState([]);
+  const [myQuestions, setMyQuestions] = useState([]);
+  const [selectedStandard, setSelectedStandard] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedChapter, setSelectedChapter] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState("");
+  const [subjects, setSubjects] = useState([]);
+  const [mySubjects, setMySubjects] = useState([]);
+  const [chapters, setChapters] = useState([]);
+  const [myChapters, setMyChapters] = useState([]);
+  const [topics, setTopics] = useState([]);
+  const [myTopics, setMyTopics] = useState([]);
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
 
-    const isAdmin = user?.role === "admin";
 
-    useEffect(() => {
-        // Fetch questions and subjects when selectedStandard changes or tab changes
-        if (selectedStandard) {
-            if (activeTabIndex === 0) {
-                fetchQuestionsAndSubjects(selectedStandard);
-                setSelectedQuestion(null);
-            } else if (activeTabIndex === 1) {
-                fetchUserQuestions(selectedStandard);
-                setSelectedQuestion(null);
-            }
-        }
-    }, [selectedStandard, activeTabIndex]);
 
-    // Reset selectedSubject when selectedStandard changes
-    useEffect(() => {
-        setSelectedSubject('');
-    }, [selectedStandard]);
+  const dispatch = useDispatch();
 
-    const fetchQuestionsAndSubjects = async (standard) => {
-        try {
-            const response = await axios.get(`${server}/api/get/question?standard=${standard}`, {
-                withCredentials: true,
-            });
+  const { subjectList } = useSelector((state) => state.getSubject);
+  const { chapterList } = useSelector((state) => state.getChapter);
+  const { topicList } = useSelector((state) => state.getTopic);
 
-            if (response.data.success) {
-                const questions = response.data.questions;
-                setQuestions(questions);
+  useEffect(() => {
+    if (selectedStandard) {
+      dispatch(getSubjects(selectedStandard));
+    }
+    if (selectedSubject && selectedStandard) {
+      dispatch(getChapters(selectedSubject, selectedStandard));
+    }
+    if (selectedSubject && selectedStandard && selectedChapter) {
+      dispatch(getTopics(selectedSubject, selectedStandard, selectedChapter));
+    }
+  }, [dispatch, selectedStandard, selectedSubject, selectedChapter]);
 
-                const uniqueSubjects = Array.from(new Set(questions.map(q => q.subject)));
-                setSubjects(uniqueSubjects);
+  const { user } = useSelector((state) => state.user);
 
-                setSelectedSubject('');
-            } else {
-                setQuestions([]);
-                setSubjects([]);
-                toast.error(`No questions available for the selected standard.`);
-            }
-        } catch (error) {
-            toast.error("Error fetching questions and subjects.");
-            console.error(error);
-        }
-    };
+  const isAdmin = user?.role === "admin";
 
-    const fetchUserQuestions = async (standard) => {
-        try {
-            const response = await axios.get(`${server}/api/user/myquestion?standard=${standard}`, {
-                withCredentials: true,
-            });
+  useEffect(() => {
+    if (selectedStandard) {
+      if (activeTabIndex === 0) {
+        fetchQuestions(
+          selectedStandard,
+          selectedSubject,
+          selectedChapter,
+          selectedTopic,
+          selectedUser
+        );
+      } else if (activeTabIndex === 1) {
+        fetchUserQuestions(
+          selectedStandard,
+          selectedSubject,
+          selectedChapter,
+          selectedTopic
+        );
+      }
+    }
+  }, [
+    selectedStandard,
+    selectedSubject,
+    selectedChapter,
+    selectedTopic,
+    activeTabIndex,
+    selectedUser,
+  ]);
 
-            if (response.data.success) {
-                const questions = response.data.questions;
-                setMyQuestions(questions);
+  const fetchQuestions = async (
+    standard,
+    subject,
+    chapter,
+    topic,
+    createdBy
+  ) => {
+    try {
+      const response = await axios.get(`${server}/api/get/question`, {
+        params: { standard, subject, chapter, topic, createdBy },
+        withCredentials: true,
+      });
 
-                const uniqueSubjects = Array.from(new Set(questions.map(q => q.subject)));
-                setMySubjects(uniqueSubjects);
 
-                setSelectedSubject('');
-            } else {
-                setMyQuestions([]);
-                setMySubjects([]);
-                toast.error(`No questions found for the selected standard.`);
-            }
-        } catch (error) {
-            toast.error("Error fetching questions.");
-            console.error(error);
-        }
-    };
+      if (response.data.success) {
+        const questions = response.data.questions;
+        setQuestions(questions);
 
-    const handleTabChange = (index) => {
-        setSelectedQuestion(null);
-        setActiveTabIndex(index);
-        setSelectedStandard('');
-        setSelectedSubject('');
+        // const uniqueSubjects = Array.from(
+        //   new Set(questions.map((q) => q.subject))
+        // );
+        // setSubjects(uniqueSubjects);
+
+        // const uniqueChapters = Array.from(
+        //   new Set(questions.flatMap((q) => q.chapter))
+        // );
+        // setChapters(uniqueChapters);
+
+        // const uniqueTopics = Array.from(
+        //   new Set(questions.flatMap((q) => q.topics))
+        // );
+        // setTopics(uniqueTopics);
+      } else {
+        // setQuestions([]);
+        // setSubjects([]);
+        // setChapters([]);
+        // setTopics([]);
+        // toast.error(`No questions available for the selected standard.`);
+      }
+    } catch (error) {
+    //   toast.error("Error fetching questions and subjects.");
+      console.error(error);
+    }
+  };
+
+  const fetchUserQuestions = async (standard, subject, chapter, topic) => {
+
+    try {
+      const response = await axios.get(`${server}/api/get/myquestion`, {
+        params: { standard, subject, chapter, topic },
+        withCredentials: true,
+      });
+
+        const questions = response.data.questions;
+        setMyQuestions(questions);
+
+        // const uniqueSubjects = Array.from(
+        //   new Set(questions.map((q) => q.subject))
+        // );
+        // setMySubjects(uniqueSubjects);
+
+        // const uniqueChapters = Array.from(
+        //   new Set(questions.flatMap((q) => q.chapter))
+        // );
+        // setMyChapters(uniqueChapters);
+
+        // const uniqueTopics = Array.from(
+        //   new Set(questions.flatMap((q) => q.topics))
+        // );
+        // setMyTopics(uniqueTopics);
     
-        // Fetch questions when clicking on the active tab
-        if (selectedStandard) {
-            if (index === 0) {
-                fetchQuestionsAndSubjects(selectedStandard);
-            } else if (index === 1) {
-                fetchUserQuestions(selectedStandard);
-            }
+    } catch (error) {
+    //   toast.error("Error fetching questions.");
+      console.error(error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      if (isAdmin) {
+        const response = await axios.get(`${server}/api/get/users`, {
+          withCredentials: true,
+        });
+        if (response.data.success) {
+          setUsers(response.data.users);
+        } else {
+          toast.error("Failed to fetch users.");
         }
-    };
-    
-    
+      }
+    } catch (error) {
+    //   toast.error("Error fetching users.");
+      console.error(error);
+    }
+  };
 
-    // Set active tab index based on isAdmin status
-    useEffect(() => {
-        if (!isAdmin) {
-            setActiveTabIndex(1); // Set to My Questions tab if not admin
-        }
-    }, [isAdmin]);
+  useEffect(() => {
+    fetchUsers();
+  }, [isAdmin]);
 
-    const filteredQuestions = selectedSubject
-        ? questions.filter(question => question.subject === selectedSubject)
-        : questions;
+  const handleTabChange = (index) => {
+    setSelectedQuestion(null);
+    setActiveTabIndex(index);
 
-    const filteredMyQuestions = selectedSubject
-        ? myQuestions.filter(question => question.subject === selectedSubject)
-        : myQuestions;
+    // Reset selected fields
+    setSelectedSubject("");
+    setSelectedChapter("");
+    setSelectedTopic("");
 
-    const handleQuestionClick = (question) => {
-        setSelectedQuestion(question);
-    };
+    // Clear data arrays
+    setSubjects([]);
+    setChapters([]);
+    setTopics([]);
+    setMySubjects([]);
+    setMyChapters([]);
+    setMyTopics([]);
+    setQuestions([]);
+    setSelectedUser(null)
+    setMyQuestions([]);
 
-    return (
-        <div className="w-full max-w-md px-2 py-4 sm:px-2">
-            <div className="mb-4">
-                <label htmlFor="standard-select" className="block text-sm font-medium text-gray-900 mb-2">
-                    Select a Standard:
-                </label>
-                <select
-                    id="standard-select"
-                    value={selectedStandard}
-                    onChange={(e) => setSelectedStandard(e.target.value)}
-                    className="block w-full p-2 border text-gray-900 border-gray-300 rounded-md shadow-sm cursor-pointer"
-                >
-                    <option value="" disabled>
-                        Select Standard
-                    </option>
-                    {standards.map((standard, index) => (
-                        <option key={index} value={standard.value}>
-                            {standard.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
+    if (selectedStandard) {
+      if (index === 0) {
+        fetchQuestions(
+          selectedStandard,
+          selectedSubject,
+          selectedChapter,
+          selectedTopic
+        );
+      } else if (index === 1) {
+        fetchUserQuestions(
+          selectedStandard,
+          selectedSubject,
+          selectedChapter,
+          selectedTopic
+        );
+      }
+    }
+  };
 
-            <div className="mb-4">
-                <label htmlFor="subject-select" className="block text-sm font-medium text-gray-900 mb-2">
-                    Select a Subject:
-                </label>
-                <select
-                    id="subject-select"
-                    value={selectedSubject}
-                    onChange={(e) => setSelectedSubject(e.target.value)}
-                    className="block w-full p-2 border text-gray-900 border-gray-300 rounded-md shadow-sm cursor-pointer"
-                >
-                    <option value="">
-                        Select Subject
-                    </option>
-                    {activeTabIndex === 1 ? (
-                        mySubjects.length > 0 ? (
-                            mySubjects.map((subject, index) => (
-                                <option key={index} value={subject}>
-                                    {subject}
-                                </option>
-                            ))
-                        ) : (
-                            <option value="" disabled>
-                                No subjects found.
-                            </option>
-                        )
-                    ) : (
-                        subjects.length > 0 ? (
-                            subjects.map((subject, index) => (
-                                <option key={index} value={subject}>
-                                    {subject}
-                                </option>
-                            ))
-                        ) : (
-                            <option value="" disabled>
-                                No subjects found.
-                            </option>
-                        )
-                    )}
-                </select>
-            </div>
+  useEffect(() => {
+    if (!isAdmin) {
+      setActiveTabIndex(1);
+    }
+  }, [isAdmin]);
 
-            <Tab.Group onChange={handleTabChange}>
-                <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
-                    {isAdmin && (
-                        <Tab
-                            className={({ selected }) =>
-                                classNames(
-                                    'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                                    'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                                    selected ? 'bg-white text-blue-700 shadow' : 'text-blue-100 hover:bg-white/[0.12] hover:text-black'
-                                )
-                            }
-                        >
-                            All Questions
-                        </Tab>
-                    )}
+  useEffect(() => {
+    setSelectedSubject("");
+    setSelectedChapter("");
+    setSelectedTopic("");
+    setSelectedUser("")
+    setSubjects([]);
+    setChapters([]);
+    setTopics([]);
+    setMySubjects([]);
+    setMyChapters([]);
+    setMyTopics([]);
+    setQuestions([]);
+    setMyQuestions([]);
+  }, [user]);
 
-                    <Tab
-                        className={({ selected }) =>
-                            classNames(
-                                'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                                'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                                selected ? 'bg-white text-blue-700 shadow' : 'text-blue-100 hover:bg-white/[0.12] hover:text-black'
-                            )
-                        }
-                    >
-                        My Questions
-                    </Tab>
-                </Tab.List>
+  const filteredQuestions = questions.filter(
+    (question) =>
+      (!selectedSubject || question.subject === selectedSubject) &&
+      (!selectedUser || question.createdBy === selectedUser)
+  );
 
-                <Tab.Panels className="mt-2 max-h-64 overflow-y-auto">
-    <Tab.Panel
-        className={classNames(
-            'rounded-xl bg-white p-3',
-            'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2'
-        )}
-    >
-        {selectedSubject ? (
-            activeTabIndex === 0 ? (
-                <ul>
-                    {isAdmin ? (
-                        filteredQuestions.length > 0 ? (
-                            filteredQuestions.map((question, index) => (
-                                <li
-                                    key={index}
-                                    className="relative rounded-md p-3 hover:bg-gray-100 cursor-pointer"
-                                    onClick={() => handleQuestionClick(question)}
-                                >
-                                    <p className="text-sm font-medium text-gray-900 leading-5">
-                                    Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
-                                    </p>
-                                </li>
-                            ))
-                        ) : (
-                            <li className="relative text-gray-900 rounded-md p-3">
-                                No questions found.
-                            </li>
-                        )
-                    ) : (
-                        <li className="relative text-gray-900 rounded-md p-3">
-                            Admin access required to view all questions.
-                        </li>
-                    )}
-                </ul>
-            ) : activeTabIndex === 1 ? (
-                <ul>
-                    {filteredMyQuestions.length > 0 ? (
-                        filteredMyQuestions.map((question, index) => (
-                            <li
-                                key={index}
-                                className="relative rounded-md p-3 hover:bg-gray-100"
-                                onClick={() => handleQuestionClick(question)}
-                            >
-                                <p className="text-sm font-medium text-gray-900 leading-5 cursor-pointer">
-                                Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
-                                </p>
-                            </li>
-                        ))
-                    ) : (
-                        <li className="relative text-gray-900 rounded-md p-3">
-                            No questions available for the selected subject.
-                        </li>
-                    )}
-                </ul>
-            ) : null
-        ) : (
-            <p className="text-gray-900">Please select a subject to view questions.</p>
-        )}
-    </Tab.Panel>
+  const filteredMyQuestions = selectedSubject
+    ? myQuestions.filter((question) => question.subject === selectedSubject)
+    : myQuestions;
 
-    <Tab.Panel
-        className={classNames(
-            'rounded-xl bg-white p-3',
-            'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2'
-        )}
-    >
-        {selectedSubject ? (
-            activeTabIndex === 0 ? (
-                <ul>
-                    {isAdmin ? (
-                        filteredQuestions.length > 0 ? (
-                            filteredQuestions.map((question, index) => (
-                                <li
-                                    key={index}
-                                    className="relative rounded-md p-3 hover:bg-gray-100 cursor-pointer"
-                                    onClick={() => handleQuestionClick(question)}
-                                >
-                                    <p className="text-sm font-medium text-gray-900 leading-5">
-                                    Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
-                                    </p>
-                                </li>
-                            ))
-                        ) : (
-                            <li className="relative text-gray-900 rounded-md p-3">
-                                No questions found.
-                            </li>
-                        )
-                    ) : (
-                        <li className="relative text-gray-900 rounded-md p-3">
-                            Admin access required to view all questions.
-                        </li>
-                    )}
-                </ul>
-            ) : activeTabIndex === 1 ? (
-                <ul>
-                    {filteredMyQuestions.length > 0 ? (
-                        filteredMyQuestions.map((question, index) => (
-                            <li
-                                key={index}
-                                className="relative rounded-md p-3 hover:bg-gray-100"
-                                onClick={() => handleQuestionClick(question)}
-                            >
-                                <p className="text-sm font-medium text-gray-900 leading-5 cursor-pointer">
-                                Q. <span dangerouslySetInnerHTML={{ __html: question.question }} />
-                                </p>
-                            </li>
-                        ))
-                    ) : (
-                        <li className="relative text-gray-900 rounded-md p-3">
-                            No questions available for the selected subject.
-                        </li>
-                    )}
-                </ul>
-            ) : null
-        ) : (
-            <p className="text-gray-900">Please select a subject to view questions.</p>
-        )}
-    </Tab.Panel>
-</Tab.Panels>
-
-            </Tab.Group>
-        </div>
+  const handleUserChange = (value) => {
+    setSelectedUser(value);
+    fetchQuestions(
+      selectedStandard,
+      selectedSubject,
+      selectedChapter,
+      selectedTopic,
+      value
     );
+  };
+
+//   const handleSubjectChange = (value) => {
+//     setSelectedSubject(value);
+//     setSelectedChapter("");
+//     setSelectedTopic("");
+
+//     if (activeTabIndex === 0) {
+//       fetchQuestions(selectedStandard, value);
+//     } else if (activeTabIndex === 1) {
+//       fetchUserQuestions(selectedStandard, value);
+//     }
+//   };
+
+//   const handleChapterChange = (value) => {
+//     setSelectedChapter(value);
+//     setSelectedTopic("");
+
+//     if (activeTabIndex === 0) {
+//       fetchQuestions(selectedStandard, selectedSubject, value);
+//     } else if (activeTabIndex === 1) {
+//       fetchUserQuestions(selectedStandard, selectedSubject, value);
+//     }
+//   };
+
+//   const handleTopicChange = (value) => {
+//     setSelectedTopic(value);
+
+//     if (activeTabIndex === 0) {
+//       fetchQuestions(selectedStandard, selectedSubject, selectedChapter, value);
+//     } else if (activeTabIndex === 1) {
+//       fetchUserQuestions(
+//         selectedStandard,
+//         selectedSubject,
+//         selectedChapter,
+//         value
+//       );
+//     }
+//   };
+
+  const handleQuestionClick = (question) => {
+    setSelectedQuestion(question);
+  };
+
+  return (
+    <div className="w-full max-w-md px-2 py-4 sm:px-2">
+      <div className="flex space-x-4 mb-4">
+        <div className="w-1/2">
+          <div className="mb-4">
+            <label className="text-white-500 text-sm dark:text-white-400">
+              Standard
+            </label>
+            <Select
+              style={{ width: 200 }}
+              showSearch
+              value={selectedStandard}
+              onChange={(value) => {
+                setSelectedStandard(value);
+                setSelectedSubject("");
+                setSelectedChapter("");
+                setSelectedTopic("");
+              }}
+              options={standards.map((standard) => ({
+                value: standard.value,
+                label: standard.label,
+              }))}
+            />
+          </div>
+        </div>
+        <div className="w-1/2">
+          <div className="mb-4">
+            <label className="text-white-500 text-sm dark:text-white-400">
+              Subject
+            </label>
+            <Select
+              style={{ width: 200 }}
+              showSearch
+              value={selectedSubject}
+              onChange={(value) => {
+                setSelectedSubject(value)
+                setSelectedChapter("");
+                setSelectedTopic("");
+            }}
+              filterOption={(input, option) =>
+                (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+              options={subjectList?.map((name) => ({
+                value: name,
+                label: name,
+              }))}
+            />
+          </div>
+        </div>
+      </div>
+      <div className="flex space-x-4 mb-4">
+        <div className="w-1/2">
+          <div className="mb-4">
+            <label className="text-white-500 text-sm dark:text-white-400">
+              Chapter
+            </label>
+            <Select
+              style={{ width: 200 }}
+              showSearch
+              value={selectedChapter}
+              onChange={(value)=> {
+                setSelectedChapter(value)
+                setSelectedTopic("");
+            }}
+              filterOption={(input, option) =>
+                (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+              options={chapterList?.map((chapter) => ({
+                value: chapter.name,
+                label: chapter.name,
+              }))}
+            />
+          </div>
+        </div>
+        <div className="w-1/2">
+          <div className="mb-4">
+            <label className="text-white-500 text-sm dark:text-white-400">
+              Topic
+            </label>
+            <Select
+              style={{ width: 200 }}
+              showSearch
+              value={selectedTopic}
+              filterOption={(input, option) =>
+                (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+              onChange={(value) => (setSelectedTopic(value))}
+              options={topicList?.map((el) => ({
+                value: el.name,
+                label: el.name,
+              }))}
+            />
+          </div>
+        </div>
+      </div>
+      <div className="flex space-x-4 mb-4">
+        <div className="w-1/2">
+          {isAdmin && activeTabIndex === 0 && (
+            <div className="mb-4">
+              <label className="text-white-500 text-sm dark:text-white-400">
+                User
+              </label>
+              <Select
+                style={{ width: 200 }}
+                showSearch
+                value={selectedUser}
+                onChange={handleUserChange}
+                filterOption={(input, option) =>
+                  (option.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                options={users.map((user) => ({
+                  value: user._id,
+                  label: user.name,
+                }))}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+      <Tab.Group selectedIndex={activeTabIndex} onChange={handleTabChange}>
+        <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
+          {isAdmin && (
+            <Tab
+              key="all-questions"
+              className={({ selected }) =>
+                classNames(
+                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700",
+                  "ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2",
+                  selected
+                    ? "bg-white shadow"
+                    : "text-blue-100 hover:bg-white/[0.12] hover:text-white"
+                )
+              }
+            >
+              All Questions
+            </Tab>
+          )}
+          <Tab
+            key="my-questions"
+            className={({ selected }) =>
+              classNames(
+                "w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700",
+                "ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2",
+                selected
+                  ? "bg-white shadow"
+                  : "text-blue-100 hover:bg-white/[0.12] hover:text-white"
+              )
+            }
+          >
+            My Questions
+          </Tab>
+        </Tab.List>
+        <Tab.Panels className="mt-2">
+          {isAdmin && (
+            <Tab.Panel key="all-questions" className="rounded-xl bg-white p-3">
+              <div className="max-h-64 overflow-y-auto">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Total Questions: {filteredQuestions.length}
+                </h3>
+                {filteredQuestions.length === 0 ? (
+                  <div className="text-center text-gray-500">
+                    No questions found.
+                  </div>
+                ) : (
+                  filteredQuestions.map((question, index) => (
+                    <div
+                      key={question._id}
+                      onClick={() => handleQuestionClick(question)}
+                      className="cursor-pointer text-gray-900 p-2 "
+                    >
+                      <b>Q.{index + 1}.{" "}</b>
+                      <span
+                        dangerouslySetInnerHTML={{ __html: question.question }}
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+            </Tab.Panel>
+          )}
+          <Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
+            <div className="max-h-64 overflow-y-auto">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Total Questions: {filteredMyQuestions.length}
+              </h3>
+              {filteredMyQuestions.length === 0 ? (
+                <div className="text-center text-gray-500">
+                  No questions found.
+                </div>
+              ) : (
+                filteredMyQuestions.map((question, index) => (
+                  <div
+                    key={question._id}
+                    onClick={() => handleQuestionClick(question)}
+                    className="cursor-pointe text-gray-900 r p-2 cursor-pointer"
+                  >
+                    <b>Q.{index + 1}.{" "}</b>
+                    <span
+                      dangerouslySetInnerHTML={{ __html: question.question }}
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+          </Tab.Panel>
+        </Tab.Panels>
+      </Tab.Group>
+    </div>
+  );
 };
 
 ProfileHead.propTypes = {
-    setSelectedQuestion: PropTypes.func.isRequired,
+  setSelectedQuestion: PropTypes.func.isRequired,
 };
 
 export default ProfileHead;
