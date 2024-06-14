@@ -56,7 +56,6 @@ const ProfileHead = ({ setSelectedQuestion }) => {
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
-    if (selectedStandard) {
       if (activeTabIndex === 0) {
         fetchQuestions(
           selectedStandard,
@@ -73,7 +72,6 @@ const ProfileHead = ({ setSelectedQuestion }) => {
           selectedTopic
         );
       }
-    }
   }, [
     selectedStandard,
     selectedSubject,
