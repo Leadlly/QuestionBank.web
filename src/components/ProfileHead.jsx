@@ -4,11 +4,15 @@ import { Tab } from "@headlessui/react";
 import axios from "axios";
 import classNames from "classnames";
 import toast from "react-hot-toast";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Select } from "antd";
 import { standards } from "../components/Options";
 import { server } from "../main";
 import "../styles/login.scss";
+import { getSubjects } from "../actions/subjectAction";
+import { getChapters } from "../actions/chapterAction";
+import { getTopics } from "../actions/topicAction";
+import { getSubtopics } from "../actions/subtopicAction";
 
 const ProfileHead = ({ setSelectedQuestion }) => {
   const [questions, setQuestions] = useState([]);
@@ -26,6 +30,26 @@ const ProfileHead = ({ setSelectedQuestion }) => {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+
+
+
+  const dispatch = useDispatch();
+
+  const { subjectList } = useSelector((state) => state.getSubject);
+  const { chapterList } = useSelector((state) => state.getChapter);
+  const { topicList } = useSelector((state) => state.getTopic);
+
+  useEffect(() => {
+    if (selectedStandard) {
+      dispatch(getSubjects(selectedStandard));
+    }
+    if (selectedSubject && selectedStandard) {
+      dispatch(getChapters(selectedSubject, selectedStandard));
+    }
+    if (selectedSubject && selectedStandard && selectedChapter) {
+      dispatch(getTopics(selectedSubject, selectedStandard, selectedChapter));
+    }
+  }, [dispatch, selectedStandard, selectedSubject, selectedChapter]);
 
   const { user } = useSelector((state) => state.user);
 
@@ -72,71 +96,66 @@ const ProfileHead = ({ setSelectedQuestion }) => {
         withCredentials: true,
       });
 
+
       if (response.data.success) {
         const questions = response.data.questions;
         setQuestions(questions);
 
-        const uniqueSubjects = Array.from(
-          new Set(questions.map((q) => q.subject))
-        );
-        setSubjects(uniqueSubjects);
+        // const uniqueSubjects = Array.from(
+        //   new Set(questions.map((q) => q.subject))
+        // );
+        // setSubjects(uniqueSubjects);
 
-        const uniqueChapters = Array.from(
-          new Set(questions.flatMap((q) => q.chapter))
-        );
-        setChapters(uniqueChapters);
+        // const uniqueChapters = Array.from(
+        //   new Set(questions.flatMap((q) => q.chapter))
+        // );
+        // setChapters(uniqueChapters);
 
-        const uniqueTopics = Array.from(
-          new Set(questions.flatMap((q) => q.topics))
-        );
-        setTopics(uniqueTopics);
+        // const uniqueTopics = Array.from(
+        //   new Set(questions.flatMap((q) => q.topics))
+        // );
+        // setTopics(uniqueTopics);
       } else {
-        setQuestions([]);
-        setSubjects([]);
-        setChapters([]);
-        setTopics([]);
-        toast.error(`No questions available for the selected standard.`);
+        // setQuestions([]);
+        // setSubjects([]);
+        // setChapters([]);
+        // setTopics([]);
+        // toast.error(`No questions available for the selected standard.`);
       }
     } catch (error) {
-      toast.error("Error fetching questions and subjects.");
+    //   toast.error("Error fetching questions and subjects.");
       console.error(error);
     }
   };
 
   const fetchUserQuestions = async (standard, subject, chapter, topic) => {
+
     try {
       const response = await axios.get(`${server}/api/get/myquestion`, {
         params: { standard, subject, chapter, topic },
         withCredentials: true,
       });
 
-      if (response.data.success) {
         const questions = response.data.questions;
         setMyQuestions(questions);
 
-        const uniqueSubjects = Array.from(
-          new Set(questions.map((q) => q.subject))
-        );
-        setMySubjects(uniqueSubjects);
+        // const uniqueSubjects = Array.from(
+        //   new Set(questions.map((q) => q.subject))
+        // );
+        // setMySubjects(uniqueSubjects);
 
-        const uniqueChapters = Array.from(
-          new Set(questions.flatMap((q) => q.chapter))
-        );
-        setMyChapters(uniqueChapters);
+        // const uniqueChapters = Array.from(
+        //   new Set(questions.flatMap((q) => q.chapter))
+        // );
+        // setMyChapters(uniqueChapters);
 
-        const uniqueTopics = Array.from(
-          new Set(questions.flatMap((q) => q.topics))
-        );
-        setMyTopics(uniqueTopics);
-      } else {
-        setMyQuestions([]);
-        setMySubjects([]);
-        setMyChapters([]);
-        setMyTopics([]);
-        toast.error(response.data.message);
-      }
+        // const uniqueTopics = Array.from(
+        //   new Set(questions.flatMap((q) => q.topics))
+        // );
+        // setMyTopics(uniqueTopics);
+    
     } catch (error) {
-      toast.error("Error fetching questions.");
+    //   toast.error("Error fetching questions.");
       console.error(error);
     }
   };
@@ -147,7 +166,6 @@ const ProfileHead = ({ setSelectedQuestion }) => {
         const response = await axios.get(`${server}/api/get/users`, {
           withCredentials: true,
         });
-        console.log(response.data);
         if (response.data.success) {
           setUsers(response.data.users);
         } else {
@@ -155,7 +173,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
         }
       }
     } catch (error) {
-      toast.error("Error fetching users.");
+    //   toast.error("Error fetching users.");
       console.error(error);
     }
   };
@@ -245,43 +263,43 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     );
   };
 
-  const handleSubjectChange = (value) => {
-    setSelectedSubject(value);
-    setSelectedChapter("");
-    setSelectedTopic("");
+//   const handleSubjectChange = (value) => {
+//     setSelectedSubject(value);
+//     setSelectedChapter("");
+//     setSelectedTopic("");
 
-    if (activeTabIndex === 0) {
-      fetchQuestions(selectedStandard, value);
-    } else if (activeTabIndex === 1) {
-      fetchUserQuestions(selectedStandard, value);
-    }
-  };
+//     if (activeTabIndex === 0) {
+//       fetchQuestions(selectedStandard, value);
+//     } else if (activeTabIndex === 1) {
+//       fetchUserQuestions(selectedStandard, value);
+//     }
+//   };
 
-  const handleChapterChange = (value) => {
-    setSelectedChapter(value);
-    setSelectedTopic("");
+//   const handleChapterChange = (value) => {
+//     setSelectedChapter(value);
+//     setSelectedTopic("");
 
-    if (activeTabIndex === 0) {
-      fetchQuestions(selectedStandard, selectedSubject, value);
-    } else if (activeTabIndex === 1) {
-      fetchUserQuestions(selectedStandard, selectedSubject, value);
-    }
-  };
+//     if (activeTabIndex === 0) {
+//       fetchQuestions(selectedStandard, selectedSubject, value);
+//     } else if (activeTabIndex === 1) {
+//       fetchUserQuestions(selectedStandard, selectedSubject, value);
+//     }
+//   };
 
-  const handleTopicChange = (value) => {
-    setSelectedTopic(value);
+//   const handleTopicChange = (value) => {
+//     setSelectedTopic(value);
 
-    if (activeTabIndex === 0) {
-      fetchQuestions(selectedStandard, selectedSubject, selectedChapter, value);
-    } else if (activeTabIndex === 1) {
-      fetchUserQuestions(
-        selectedStandard,
-        selectedSubject,
-        selectedChapter,
-        value
-      );
-    }
-  };
+//     if (activeTabIndex === 0) {
+//       fetchQuestions(selectedStandard, selectedSubject, selectedChapter, value);
+//     } else if (activeTabIndex === 1) {
+//       fetchUserQuestions(
+//         selectedStandard,
+//         selectedSubject,
+//         selectedChapter,
+//         value
+//       );
+//     }
+//   };
 
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
@@ -321,21 +339,18 @@ const ProfileHead = ({ setSelectedQuestion }) => {
               style={{ width: 200 }}
               showSearch
               value={selectedSubject}
-              onChange={handleSubjectChange}
+              onChange={(value) => {
+                setSelectedSubject(value)
+                setSelectedChapter("");
+                setSelectedTopic("");
+            }}
               filterOption={(input, option) =>
                 (option.label ?? "").toLowerCase().includes(input.toLowerCase())
               }
-              options={
-                activeTabIndex === 1
-                  ? mySubjects.map((subject) => ({
-                      value: subject,
-                      label: subject,
-                    }))
-                  : subjects.map((subject) => ({
-                      value: subject,
-                      label: subject,
-                    }))
-              }
+              options={subjectList?.map((name) => ({
+                value: name,
+                label: name,
+              }))}
             />
           </div>
         </div>
@@ -350,23 +365,17 @@ const ProfileHead = ({ setSelectedQuestion }) => {
               style={{ width: 200 }}
               showSearch
               value={selectedChapter}
-              onChange={handleChapterChange}
+              onChange={(value)=> {
+                setSelectedChapter(value)
+                setSelectedTopic("");
+            }}
               filterOption={(input, option) =>
                 (option.label ?? "").toLowerCase().includes(input.toLowerCase())
               }
-              options={
-                selectedSubject
-                  ? activeTabIndex === 1
-                    ? myChapters.map((chapter) => ({
-                        value: chapter,
-                        label: chapter,
-                      }))
-                    : chapters.map((chapter) => ({
-                        value: chapter,
-                        label: chapter,
-                      }))
-                  : []
-              }
+              options={chapterList?.map((chapter) => ({
+                value: chapter.name,
+                label: chapter.name,
+              }))}
             />
           </div>
         </div>
@@ -382,20 +391,11 @@ const ProfileHead = ({ setSelectedQuestion }) => {
               filterOption={(input, option) =>
                 (option.label ?? "").toLowerCase().includes(input.toLowerCase())
               }
-              onChange={handleTopicChange}
-              options={
-                selectedChapter
-                  ? activeTabIndex === 1
-                    ? myTopics.map((topic) => ({
-                        value: topic,
-                        label: topic,
-                      }))
-                    : topics.map((topic) => ({
-                        value: topic,
-                        label: topic,
-                      }))
-                  : []
-              }
+              onChange={(value) => (setSelectedTopic(value))}
+              options={topicList?.map((el) => ({
+                value: el.name,
+                label: el.name,
+              }))}
             />
           </div>
         </div>
