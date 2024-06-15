@@ -12,7 +12,7 @@ import "../styles/login.scss";
 import { getSubjects } from "../actions/subjectAction";
 import { getChapters } from "../actions/chapterAction";
 import { getTopics } from "../actions/topicAction";
-import { getSubtopics } from "../actions/subtopicAction";
+import Loading from "../pages/Loading"
 
 const ProfileHead = ({ setSelectedQuestion }) => {
   const [questions, setQuestions] = useState([]);
@@ -21,17 +21,22 @@ const ProfileHead = ({ setSelectedQuestion }) => {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedChapter, setSelectedChapter] = useState("");
   const [selectedTopic, setSelectedTopic] = useState("");
+  // eslint-disable-next-line no-unused-vars
   const [subjects, setSubjects] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [mySubjects, setMySubjects] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [chapters, setChapters] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [myChapters, setMyChapters] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [topics, setTopics] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [myTopics, setMyTopics] = useState([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
-
-
+  const [loading, setLoading] = useState(false)
 
   const dispatch = useDispatch();
 
@@ -88,73 +93,39 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     topic,
     createdBy
   ) => {
+    setLoading(true);
     try {
       const response = await axios.get(`${server}/api/get/question`, {
         params: { standard, subject, chapter, topic, createdBy },
         withCredentials: true,
       });
 
-
       if (response.data.success) {
         const questions = response.data.questions;
         setQuestions(questions);
-
-        // const uniqueSubjects = Array.from(
-        //   new Set(questions.map((q) => q.subject))
-        // );
-        // setSubjects(uniqueSubjects);
-
-        // const uniqueChapters = Array.from(
-        //   new Set(questions.flatMap((q) => q.chapter))
-        // );
-        // setChapters(uniqueChapters);
-
-        // const uniqueTopics = Array.from(
-        //   new Set(questions.flatMap((q) => q.topics))
-        // );
-        // setTopics(uniqueTopics);
-      } else {
-        // setQuestions([]);
-        // setSubjects([]);
-        // setChapters([]);
-        // setTopics([]);
-        // toast.error(`No questions available for the selected standard.`);
       }
     } catch (error) {
-    //   toast.error("Error fetching questions and subjects.");
       console.error(error);
+    } finally {
+      setLoading(false); 
     }
   };
 
   const fetchUserQuestions = async (standard, subject, chapter, topic) => {
 
+    setLoading(true); 
     try {
       const response = await axios.get(`${server}/api/get/myquestion`, {
         params: { standard, subject, chapter, topic },
         withCredentials: true,
       });
 
-        const questions = response.data.questions;
-        setMyQuestions(questions);
-
-        // const uniqueSubjects = Array.from(
-        //   new Set(questions.map((q) => q.subject))
-        // );
-        // setMySubjects(uniqueSubjects);
-
-        // const uniqueChapters = Array.from(
-        //   new Set(questions.flatMap((q) => q.chapter))
-        // );
-        // setMyChapters(uniqueChapters);
-
-        // const uniqueTopics = Array.from(
-        //   new Set(questions.flatMap((q) => q.topics))
-        // );
-        // setMyTopics(uniqueTopics);
-    
+      const questions = response.data.questions;
+      setMyQuestions(questions);
     } catch (error) {
-    //   toast.error("Error fetching questions.");
       console.error(error);
+    } finally {
+      setLoading(false); 
     }
   };
 
@@ -171,7 +142,6 @@ const ProfileHead = ({ setSelectedQuestion }) => {
         }
       }
     } catch (error) {
-    //   toast.error("Error fetching users.");
       console.error(error);
     }
   };
@@ -184,12 +154,10 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     setSelectedQuestion(null);
     setActiveTabIndex(index);
 
-    // Reset selected fields
     setSelectedSubject("");
     setSelectedChapter("");
     setSelectedTopic("");
 
-    // Clear data arrays
     setSubjects([]);
     setChapters([]);
     setTopics([]);
@@ -261,43 +229,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     );
   };
 
-//   const handleSubjectChange = (value) => {
-//     setSelectedSubject(value);
-//     setSelectedChapter("");
-//     setSelectedTopic("");
 
-//     if (activeTabIndex === 0) {
-//       fetchQuestions(selectedStandard, value);
-//     } else if (activeTabIndex === 1) {
-//       fetchUserQuestions(selectedStandard, value);
-//     }
-//   };
-
-//   const handleChapterChange = (value) => {
-//     setSelectedChapter(value);
-//     setSelectedTopic("");
-
-//     if (activeTabIndex === 0) {
-//       fetchQuestions(selectedStandard, selectedSubject, value);
-//     } else if (activeTabIndex === 1) {
-//       fetchUserQuestions(selectedStandard, selectedSubject, value);
-//     }
-//   };
-
-//   const handleTopicChange = (value) => {
-//     setSelectedTopic(value);
-
-//     if (activeTabIndex === 0) {
-//       fetchQuestions(selectedStandard, selectedSubject, selectedChapter, value);
-//     } else if (activeTabIndex === 1) {
-//       fetchUserQuestions(
-//         selectedStandard,
-//         selectedSubject,
-//         selectedChapter,
-//         value
-//       );
-//     }
-//   };
 
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
@@ -461,6 +393,10 @@ const ProfileHead = ({ setSelectedQuestion }) => {
           {isAdmin && (
             <Tab.Panel key="all-questions" className="rounded-xl bg-white p-3">
               <div className="max-h-64 overflow-y-auto">
+              {loading ? (
+                  <Loading />
+                ) : (
+                  <>
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   Total Questions: {filteredQuestions.length}
                 </h3>
@@ -482,11 +418,17 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                     </div>
                   ))
                 )}
+                </>
+        )}
               </div>
             </Tab.Panel>
           )}
           <Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
             <div className="max-h-64 overflow-y-auto">
+            {loading ? (
+                  <Loading />
+                ) : (
+                  <>
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 Total Questions: {filteredMyQuestions.length}
               </h3>
@@ -508,6 +450,8 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                   </div>
                 ))
               )}
+              </>
+                )}
             </div>
           </Tab.Panel>
         </Tab.Panels>
