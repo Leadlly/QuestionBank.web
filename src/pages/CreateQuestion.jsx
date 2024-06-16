@@ -136,10 +136,10 @@ const CreateQuestion = () => {
 
   const renderMathSymbols = () => (
     <div className="overflow-y-auto h-32 border bg-white text-gray-900 border-gray-300 rounded p-2">
-      <ol className="space-y-0">
+      <ol className="space-y-0 flex flex-wrap gap-2">
         {mathSymbols.map((item) => (
           <li key={item.symbol}>
-            <button onClick={() => insertSymbol(item.symbol)} className="p-2  rounded">
+            <button onClick={() => insertSymbol(item.symbol)} className="p-2 rounded border border-gray-400 hover:bg-gray-200">
               {item.symbol}
             </button>
           </li>
@@ -147,6 +147,7 @@ const CreateQuestion = () => {
       </ol>
     </div>
   );
+  
   
   
   useEffect(() => {
@@ -538,14 +539,14 @@ const CreateQuestion = () => {
             [{ 'script': 'sub' }, { 'script': 'super' }],
             [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
             [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-            ['direction', { 'align': [] }],
-            ['link', 'image', 'video', 'formula'],
+            [ { 'align': [] }],
+            ['link','formula'],
                   ],
                 }}
               />
               
             </div>
-          </div>
+          
 
             <label
               htmlFor="question"
@@ -584,7 +585,7 @@ const CreateQuestion = () => {
               </button>
             </div>
           ))}
-       
+       </div>
 
         {options.map((option, index) => (
           <div key={index} className="relative z-0 w-full mb-5 group">

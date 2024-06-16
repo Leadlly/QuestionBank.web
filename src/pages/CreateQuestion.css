@@ -1,11 +1,11 @@
 .symbol-btn{
-    padding: 5px;
+    padding: 2px;
     background-color: rgb(235, 27, 27);
-    width: 5rem;
+    width: 2rem;
     margin-bottom: 0.5rem;
     border-radius: 15px;
     text-align: center;
-    font-weight: 800;
+    font-weight: 400;
     font-size: 1rem;
 }
 .math-symbols{
