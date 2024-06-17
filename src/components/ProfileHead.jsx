@@ -252,6 +252,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                 setSelectedSubject("");
                 setSelectedChapter("");
                 setSelectedTopic("");
+                setSelectedQuestion(null);
               }}
               options={standards.map((standard) => ({
                 value: standard.value,
@@ -273,6 +274,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                 setSelectedSubject(value)
                 setSelectedChapter("");
                 setSelectedTopic("");
+                setSelectedQuestion(null);
             }}
               filterOption={(input, option) =>
                 (option.label ?? "").toLowerCase().includes(input.toLowerCase())
@@ -298,6 +300,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
               onChange={(value)=> {
                 setSelectedChapter(value)
                 setSelectedTopic("");
+                setSelectedQuestion(null);
             }}
               filterOption={(input, option) =>
                 (option.label ?? "").toLowerCase().includes(input.toLowerCase())

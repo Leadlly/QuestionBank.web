@@ -1,0 +1,14 @@
+.symbol-btn{
+    padding: 2px;
+    background-color: rgb(235, 27, 27);
+    width: 2rem;
+    margin-bottom: 0.5rem;
+    border-radius: 15px;
+    text-align: center;
+    font-weight: 400;
+    font-size: 1rem;
+}
+.math-symbols{
+    max-height: 160px;
+    overflow-y: auto;
+}
