@@ -273,7 +273,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
 
   return (
     <>
-   <button className=" border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">Todays Topper is <strong className=" text-red-600 bg-red-200 p-2 rounded-md">{topperUser?.name?.name.toUpperCase()}</strong> with <strong>{topperUser?.QuestionsCount} questions</strong></button>
+  {questions && <button className=" border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">Todays Topper is <strong className=" text-red-600 bg-red-200 p-2 rounded-md">{topperUser?.name?.name?.toUpperCase()}</strong> with <strong>{topperUser?.QuestionsCount} questions</strong></button>}
 
     <div className="w-full max-w-md px-2 py-4 sm:px-2">
 
