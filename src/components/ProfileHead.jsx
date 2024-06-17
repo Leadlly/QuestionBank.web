@@ -16,11 +16,12 @@ import Loading from "../pages/Loading"
 
 const ProfileHead = ({ setSelectedQuestion }) => {
   const [questions, setQuestions] = useState([]);
-  const [userTodayQuestions, setUserTodayQuestions] = useState([]);
-  const [userRank, setUserRank] = useState([]);
+  const [userTodayQuestions, setUserTodayQuestions] = useState('');
+  const [userRank, setUserRank] = useState('');
+  const [topperUser, setTopperUser] = useState('');
   const [myQuestions, setMyQuestions] = useState([]);
-  const [myRank, setMyRank] = useState([]);
-  const [myTodayQuestions, setTodayMyQuestions] = useState([]);
+  const [myRank, setMyRank] = useState('');
+  const [myTodayQuestions, setTodayMyQuestions] = useState('');
   const [selectedStandard, setSelectedStandard] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedChapter, setSelectedChapter] = useState("");
@@ -110,6 +111,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
         setQuestions(questions);
         setUserTodayQuestions(response.data?.todaysQuestionsCount)
         setUserRank(response.data?.userRank)
+        setTopperUser(response.data?.topperUser)
       }
     } catch (error) {
       console.error(error);
@@ -172,6 +174,10 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     setMyTopics([]);
     setSelectedUser(null)
     setSelectedStandard("");
+    setMyRank('')
+    setUserRank('')
+    setUserTodayQuestions('')
+    setTodayMyQuestions('')
   }
 
   const handleTabChange = (index) => {
@@ -191,6 +197,10 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     setQuestions([]);
     setSelectedUser(null)
     setMyQuestions([]);
+    setMyRank('')
+    setUserRank('')
+    setUserTodayQuestions('')
+    setTodayMyQuestions('')
 
     if (selectedStandard) {
       if (index === 0) {
@@ -244,6 +254,8 @@ const ProfileHead = ({ setSelectedQuestion }) => {
 
   const handleUserChange = (value) => {
     setSelectedUser(value);
+    setUserRank('')
+    setUserTodayQuestions('')
     fetchQuestions(
       selectedStandard,
       selectedSubject,
@@ -260,7 +272,11 @@ const ProfileHead = ({ setSelectedQuestion }) => {
   };
 
   return (
+    <>
+   <button className=" border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">Todays Topper is <strong className=" text-red-600 bg-red-200 p-2 rounded-md">{topperUser?.name?.name.toUpperCase()}</strong> with <strong>{topperUser?.QuestionsCount} questions</strong></button>
+
     <div className="w-full max-w-md px-2 py-4 sm:px-2">
+
       <div className="flex space-x-4 mb-4">
         <div className="w-1/2">
           <div className="mb-4">
@@ -421,7 +437,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
         </Tab.List>
         <Tab.Panels className="mt-2">
 
-        {selectedUser && <button className=" border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">Todays Total Questions: {userTodayQuestions}</button>} 
+        {selectedUser && <button className=" border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">Todays Total Questions: {userTodayQuestions || 0}</button>} 
         {selectedUser && userRank && <button className=" border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">Todays Rank: {userRank}</button>} 
           {isAdmin && (
             <Tab.Panel key="all-questions" className="rounded-xl bg-white p-3">
@@ -502,6 +518,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
         </Tab.Panels>
       </Tab.Group>
     </div>
+    </>
   );
 };
 
