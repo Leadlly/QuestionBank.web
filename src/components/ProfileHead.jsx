@@ -16,7 +16,11 @@ import Loading from "../pages/Loading"
 
 const ProfileHead = ({ setSelectedQuestion }) => {
   const [questions, setQuestions] = useState([]);
+  const [userTodayQuestions, setUserTodayQuestions] = useState([]);
+  const [userRank, setUserRank] = useState([]);
   const [myQuestions, setMyQuestions] = useState([]);
+  const [myRank, setMyRank] = useState([]);
+  const [myTodayQuestions, setTodayMyQuestions] = useState([]);
   const [selectedStandard, setSelectedStandard] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedChapter, setSelectedChapter] = useState("");
@@ -37,6 +41,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(false)
+  
 
   const dispatch = useDispatch();
 
@@ -103,6 +108,8 @@ const ProfileHead = ({ setSelectedQuestion }) => {
       if (response.data.success) {
         const questions = response.data.questions;
         setQuestions(questions);
+        setUserTodayQuestions(response.data?.todaysQuestionsCount)
+        setUserRank(response.data?.userRank)
       }
     } catch (error) {
       console.error(error);
@@ -122,6 +129,8 @@ const ProfileHead = ({ setSelectedQuestion }) => {
 
       const questions = response.data.questions;
       setMyQuestions(questions);
+      setTodayMyQuestions(response.data?.todaysQuestionsCount)
+      setMyRank(response.data?.userRank)
     } catch (error) {
       console.error(error);
     } finally {
@@ -149,6 +158,21 @@ const ProfileHead = ({ setSelectedQuestion }) => {
   useEffect(() => {
     fetchUsers();
   }, [isAdmin]);
+
+  const handleResetFilters = () =>{
+    setSelectedSubject("");
+    setSelectedChapter("");
+    setSelectedTopic("");
+
+    setSubjects([]);
+    setChapters([]);
+    setTopics([]);
+    setMySubjects([]);
+    setMyChapters([]);
+    setMyTopics([]);
+    setSelectedUser(null)
+    setSelectedStandard("");
+  }
 
   const handleTabChange = (index) => {
     setSelectedQuestion(null);
@@ -358,6 +382,9 @@ const ProfileHead = ({ setSelectedQuestion }) => {
             </div>
           )}
         </div>
+        <div className="w-1/2 m-5">
+          <button className=" border-green-600 border-2 p-2 bg-green-900 rounded-lg" onClick={handleResetFilters}>Reset Filters</button>
+        </div>
       </div>
       <Tab.Group selectedIndex={activeTabIndex} onChange={handleTabChange}>
         <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
@@ -393,6 +420,9 @@ const ProfileHead = ({ setSelectedQuestion }) => {
           </Tab>
         </Tab.List>
         <Tab.Panels className="mt-2">
+
+        {selectedUser && <button className=" border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">Todays Total Questions: {userTodayQuestions}</button>} 
+        {selectedUser && userRank && <button className=" border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">Todays Rank: {userRank}</button>} 
           {isAdmin && (
             <Tab.Panel key="all-questions" className="rounded-xl bg-white p-3">
               <div className="max-h-64 overflow-y-auto">
@@ -426,6 +456,18 @@ const ProfileHead = ({ setSelectedQuestion }) => {
               </div>
             </Tab.Panel>
           )}
+
+{activeTabIndex === 1 ? (
+  <div>
+    <button className="border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">
+      Todays Total Questions: {myTodayQuestions}
+    </button>
+    <button className="border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">
+      Todays Rank: {myRank || 0}
+    </button>
+  </div>
+) : null}
+
           <Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
             <div className="max-h-64 overflow-y-auto">
             {loading ? (
