@@ -2,7 +2,7 @@ import { createStore, combineReducers, applyMiddleware } from 'redux';
 import {thunk} from 'redux-thunk'; 
 import { composeWithDevTools } from '@redux-devtools/extension';
 import { userQuestionsReducer, userReducer, userRegistrationReducer, verifyUserReducer } from './reducers/userReducer';
-import { createQuestionReducer, deleteQuestionReducer } from './reducers/questionReducer';
+import { createQuestionReducer, deleteQuestionReducer, editQuestionReducer } from './reducers/questionReducer';
 import { createSubjectReducer, getSubjectReducer } from './reducers/subjectReducer';
 import { createChapterReducer, getChaptersReducer } from './reducers/chapterReducer';
 import { createTopicReducer, getTopicsReducer } from './reducers/topicReducer';
@@ -27,6 +27,7 @@ const store = createStore(
     userquestion: userQuestionsReducer,
     nestedsubtopic:nestedSubtopicReducer,
     verification: verifyUserReducer,
+    editQuestion: editQuestionReducer,
   }),
   composeWithDevTools(applyMiddleware(...middleware))
 );

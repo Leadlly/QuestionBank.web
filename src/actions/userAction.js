@@ -28,6 +28,7 @@ import toast from "react-hot-toast";
 export const login = (email, password) => async (dispatch) => {
     try {
         dispatch({type: LOGIN_REQUEST});
+        
       const { data } = await axios.post(
         `${server}/api/user/login`,
         {
