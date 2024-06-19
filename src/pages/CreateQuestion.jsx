@@ -37,6 +37,7 @@ const CreateQuestion = () => {
   const { topicList } = useSelector((state) => state.getTopic);
   const { subtopics } = useSelector((state) => state.getSubtopic);
   const { isLoading: questionLoading } = useSelector((state) => state.question);
+  const [appendedSymbols, setAppendedSymbols] = useState(Array.from({ length: options.length }, () => ''));
 
 
   const mathSymbols = [
@@ -134,6 +135,27 @@ const CreateQuestion = () => {
     setShowSymbols(false);
   };
 
+  const appendSymbolToOption = (symbol, index) => {
+    // Clone the current appendedSymbols array
+    const newAppendedSymbols = [...appendedSymbols];
+    // Append the symbol to the specified option index
+    newAppendedSymbols[index] += symbol;
+    // Update the appendedSymbols state with the new array
+    setAppendedSymbols(newAppendedSymbols);
+
+    // Clone the current options array
+    const newOptions = [...options];
+    // Append the symbol to the specified option index
+    newOptions[index] += symbol;
+    // Update the options state with the new array
+    setOptions(newOptions);
+
+    // Optionally, close the symbol panel after insertion
+    setShowSymbols(false);
+  };
+  
+
+
   const renderMathSymbols = () => (
     <div className="overflow-y-auto h-32 border bg-white text-gray-900 border-gray-300 rounded p-2">
       <ol className="space-y-0 flex flex-wrap gap-2">
@@ -147,6 +169,25 @@ const CreateQuestion = () => {
       </ol>
     </div>
   );
+
+  
+  const renderSymbols = (index) => (
+    <div className="overflow-y-auto h-32 border bg-white text-gray-900 border-gray-300 rounded p-2">
+      <ol className="space-y-0 flex flex-wrap gap-2">
+        {mathSymbols.map((item) => (
+          <li key={item.symbol}>
+            <button
+              onClick={() => appendSymbolToOption(item.symbol, index)}
+              className="p-2 rounded border border-gray-400 hover:bg-gray-200"
+            >
+              {item.symbol}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+  
   
   
   
@@ -260,15 +301,17 @@ const CreateQuestion = () => {
   };
 
   const handleInputChange = (index, value) => {
+    // Update options array with the new value
     const newOptions = [...options];
     newOptions[index] = value;
-
-    if (newOptions[index].trim() !== "" && newOptions.length < 4) {
+  
+    if (index === newOptions.length - 1 && newOptions[index].trim() !== "" && newOptions.length < 4) {
       newOptions.push("");
     }
-
+  
     setOptions(newOptions);
   };
+  
   const handleOptionSelect = (index) => {
     const newCorrectOptions = [...correctOptions];
     if (newCorrectOptions.includes(index)) {
@@ -600,15 +643,15 @@ const CreateQuestion = () => {
               /> */}
 
             <div className="mt-5">
+          
             <button
-                type="button"
-                onClick={() => setShowSymbols((prev) => !prev)}
-                className="symbol-btn"
-              >
-                ∑
-              </button>
-            {showSymbols &&
-                       renderMathSymbols()}
+          type="button"
+          onClick={() => setShowSymbols((prev) => !prev)}
+          className="symbol-btn"
+        >
+          ∑
+        </button>
+        {showSymbols && renderSymbols(index)}
             <ReactQuill
             theme="snow"
             className=" bg-slate-200 text-black"
