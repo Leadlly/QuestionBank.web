@@ -5,6 +5,9 @@ import {
     DELETE_QUESTION_REQUEST,
     DELETE_QUESTION_SUCCESS,
     DELETE_QUESTION_FAIL,
+    QUESTION_EDIT_REQUEST,
+    QUESTION_EDIT_SUCCESS,
+    QUESTION_EDIT_FAIL,
     CLEAR_ERRORS
 } from "../constants/questionConstants.js"
 
@@ -92,6 +95,39 @@ export const checkQuestionExists = async (questionData) => {
       throw error;
     }
   };
+
+  export const editQuestion = (questionId, updatedQuestion) => async (dispatch) => {
+    try {
+      dispatch({ type: QUESTION_EDIT_REQUEST });
+  
+      const { data } = await axios.put(
+        `${server}/api/edit/question/${questionId}`,
+        { question: updatedQuestion }, // Ensure payload is an object
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true,
+        }
+      );
+  
+      dispatch({
+        type: QUESTION_EDIT_SUCCESS,
+        payload: data.question,
+      });
+  
+      return data.question;
+    } catch (error) {
+      dispatch({
+        type: QUESTION_EDIT_FAIL,
+        payload: error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message,
+      });
+      throw error;
+    }
+  };
+
 
 export const clearErrors = () => (dispatch) => {
     dispatch({ type: CLEAR_ERRORS });

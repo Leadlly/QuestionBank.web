@@ -14,7 +14,7 @@ import { getChapters } from "../actions/chapterAction";
 import { getTopics } from "../actions/topicAction";
 import Loading from "../pages/Loading"
 
-const ProfileHead = ({ setSelectedQuestion }) => {
+const ProfileHead = ({ setSelectedQuestion, toBottom  }) => {
   const [questions, setQuestions] = useState([]);
   const [userTodayQuestions, setUserTodayQuestions] = useState('');
   const [userRank, setUserRank] = useState('');
@@ -269,6 +269,8 @@ const ProfileHead = ({ setSelectedQuestion }) => {
 
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
+    toBottom();
+    
   };
 
   return (
@@ -524,6 +526,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
 
 ProfileHead.propTypes = {
   setSelectedQuestion: PropTypes.func.isRequired,
+  toBottom: PropTypes.func.isRequired
 };
 
 export default ProfileHead;

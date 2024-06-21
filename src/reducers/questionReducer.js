@@ -5,6 +5,9 @@ import {
     DELETE_QUESTION_REQUEST,
     DELETE_QUESTION_SUCCESS,
     DELETE_QUESTION_FAIL,
+    QUESTION_EDIT_REQUEST,
+    QUESTION_EDIT_SUCCESS,
+    QUESTION_EDIT_FAIL,
     CLEAR_ERRORS,
 } from "../constants/questionConstants";
 
@@ -77,3 +80,30 @@ export const deleteQuestionReducer = (state = initialState, action) => {
             return state;
     }
 };
+
+export const editQuestionReducer = (state = initialState, action) => {
+    switch (action.type) {
+      case QUESTION_EDIT_REQUEST:
+        return {
+          ...state,
+          isloading: true,
+        };
+      case QUESTION_EDIT_SUCCESS:
+        return {
+          ...state,
+          isloading: false,
+          success: true,
+          error: null,
+        };
+      case QUESTION_EDIT_FAIL:
+        return {
+          ...state,
+          isloading: false,
+          success: false,
+          error: action.payload,
+        };
+      default:
+        return state;
+    }
+  };
+  
