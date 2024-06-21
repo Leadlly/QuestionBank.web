@@ -633,14 +633,7 @@ const CreateQuestion = () => {
         {options.map((option, index) => (
           <div key={index} className="relative z-0 w-full mb-5 group">
             <div className="flex items-center">
-              {/* <input
-                type="text"
-                name={`option-${index}`}
-                value={option}
-                onChange={(e) => handleInputChange(index, e)}
-                className="block py-2.5 mb-2 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
-                placeholder=" "
-              /> */}
+              
 
             <div className="mt-5">
           

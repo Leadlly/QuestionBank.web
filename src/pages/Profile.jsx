@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import  { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -7,19 +7,141 @@ import ProfileHead from "../components/ProfileHead";
 import { LuPencilLine } from "react-icons/lu";
 import { server } from "../main";
 import axios from "axios";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import { animateScroll as scroll } from "react-scroll";
 
 const Profile = () => {
   const navigate = useNavigate();
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editedQuestion, setEditedQuestion] = useState(""); // Initialize empty
-  const [editedOption, setEditedOption] = useState({ id: "", name: "", tag: "" }); // State for editing option
-
+  const [editedQuestion, setEditedQuestion] = useState("");
+  const [editedOption, setEditedOption] = useState({ id: "", name: "", tag: "" });
+  const [showSymbols, setShowSymbols] = useState(false);
+  const [showOptionSymbols, setShowOptionSymbols] = useState(false);
   const { isAuthenticated } = useSelector((state) => state.user);
   const { success: deleteSuccess, error: deleteError } = useSelector((state) => state.delete);
   const { success: editSuccess, error: editError } = useSelector((state) => state.editQuestion);
   const dispatch = useDispatch();
 
+  const mathSymbols = [
+    { symbol: '⁰', name: 'Numerator' },  
+    { symbol: '₁', name: 'Denominator' },
+    { symbol: '/', name: 'Fraction' },
+    { symbol: '∑', name: 'Summation' },
+    { symbol: '∫', name: 'Integral' },
+    { symbol: '√', name: 'Square Root' },
+    { symbol: '∞', name: 'Infinity' },
+    { symbol: 'π', name: 'Pi' },
+    { symbol: 'α', name: 'Alpha' },
+    { symbol: 'β', name: 'Beta' },
+    { symbol: 'γ', name: 'Gamma' },
+    { symbol: 'Δ', name: 'Delta' },
+    { symbol: 'θ', name: 'Theta' },
+    { symbol: 'λ', name: 'Lambda' },
+    { symbol: 'μ', name: 'Mu' },
+    { symbol: 'σ', name: 'Sigma' },
+    { symbol: 'φ', name: 'Phi' },
+    { symbol: 'ω', name: 'Omega' },
+    { symbol: '∂', name: 'Partial Derivative' },
+    { symbol: '±', name: 'Plus-Minus' },
+    { symbol: '÷', name: 'Division' },
+    { symbol: '×', name: 'Multiplication' },
+    { symbol: '≠', name: 'Not Equal' },
+    { symbol: '≈', name: 'Approximately Equal' },
+    { symbol: '∝', name: 'Proportional To' },
+    { symbol: '∈', name: 'Element Of' },
+    { symbol: '∉', name: 'Not an Element Of' },
+    { symbol: '∩', name: 'Intersection' },
+    { symbol: '∪', name: 'Union' },
+    { symbol: '∀', name: 'For All' },
+    { symbol: '∃', name: 'There Exists' },
+    { symbol: '∴', name: 'Therefore' },
+    { symbol: '∵', name: 'Because' },
+    { symbol: '⊂', name: 'Subset' },
+    { symbol: '⊃', name: 'Superset' },
+    { symbol: '⊆', name: 'Subset or Equal' },
+    { symbol: '⊇', name: 'Superset or Equal' },
+    { symbol: '⊥', name: 'Perpendicular' },
+    { symbol: '⋅', name: 'Dot Product' },
+    { symbol: '⊗', name: 'Tensor Product' },
+    { symbol: '∇', name: 'Nabla (Del)' },
+    { symbol: '⊕', name: 'Direct Sum' },
+    { symbol: '⊖', name: 'Circled Minus' },
+    { symbol: '⊙', name: 'Circled Dot' },
+    { symbol: '⊘', name: 'Circled Slash' },
+    { symbol: '⊚', name: 'Circled Ring' },
+    { symbol: '∟', name: 'Right Angle' },
+    { symbol: '∘', name: 'Function Composition' },
+    { symbol: 'ℵ', name: 'Aleph' },
+    { symbol: 'ℶ', name: 'Beth' },
+    { symbol: 'ℷ', name: 'Gimel' },
+    { symbol: 'ℸ', name: 'Dalet' },
+    { symbol: '⊈', name: 'Not a Subset' },
+    { symbol: '⊉', name: 'Not a Superset' },
+    { symbol: '∥', name: 'Parallel' },
+    { symbol: '∦', name: 'Not Parallel' },
+    { symbol: '⊢', name: 'Right Tack' },
+    { symbol: '⊣', name: 'Left Tack' },
+    { symbol: '⊨', name: 'Double Right Tack' },
+    { symbol: '⊭', name: 'Not Double Right Tack' },
+    { symbol: '⊬', name: 'Not Right Tack' },
+    { symbol: '⊧', name: 'Models' },
+    { symbol: '⊩', name: 'Forces' },
+    { symbol: '⊪', name: 'Not Forces' },
+    { symbol: '∣', name: 'Divides' },
+    { symbol: '∤', name: 'Does Not Divide' },
+    { symbol: '≡', name: 'Identical To' },
+    { symbol: '≢', name: 'Not Identical To' },
+    { symbol: '≣', name: 'Strictly Equivalent To' },
+    { symbol: '≦', name: 'Less Than or Equal To' },
+    { symbol: '≧', name: 'Greater Than or Equal To' },
+    { symbol: '≪', name: 'Much Less Than' },
+    { symbol: '≫', name: 'Much Greater Than' },
+    { symbol: '≲', name: 'Less Than or Equivalent To' },
+    { symbol: '≳', name: 'Greater Than or Equivalent To' },
+    { symbol: '≍', name: 'Equivalently' },
+    { symbol: '≉', name: 'Not Approximately Equal To' },
+    { symbol: '∉', name: 'Not An Element Of' },
+    { symbol: '⊛', name: 'Circled Asterisk' },
+    { symbol: '⊜', name: 'Circled Equal' },
+    { symbol: '⊝', name: 'Circled Dash' },
+    { symbol: '⊞', name: 'Circled Plus' },
+    { symbol: '⊟', name: 'Circled Minus' },
+    { symbol: '⊠', name: 'Circled Times' },
+    { symbol: '⊡', name: 'Circled Divide' },
+    { symbol: '⊫', name: 'Triple Turnstile' },
+  ];
+  
+  const insertSymbol = (symbol) => {
+    setEditedQuestion((prev) => `${prev}${symbol}`);
+    setShowSymbols(false);
+  };
+
+  const insertOptionSymbol = (symbol) => {
+    setEditedOption((prev) => ({
+      ...prev,
+      name: `${prev.name}${symbol}`
+    }));
+    setShowOptionSymbols(false);
+  };
+
+
+  const renderMathSymbols = (insertFunc) => (
+    <div className="overflow-y-auto h-32 border bg-white text-gray-900 border-gray-300 rounded p-2">
+      <ol className="space-y-0 flex flex-wrap gap-2">
+        {mathSymbols.map((item) => (
+          <li key={item.symbol}>
+            <button onClick={() => insertFunc(item.symbol)} className="p-2 rounded border border-gray-400 hover:bg-gray-200">
+              {item.symbol}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+
+  
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
@@ -40,6 +162,7 @@ const Profile = () => {
     }
   }, [editSuccess, editError, editedQuestion]);
 
+
   const handleDelete = async (id) => {
     if (window.confirm("Confirm before deletion")) {
       dispatch(deleteQuestion(id));
@@ -47,19 +170,19 @@ const Profile = () => {
       setTimeout(() => {
         if (deleteSuccess) {
           toast.success("Question deleted successfully");
-          
-          // Reset selected question to null to re-render the component
-          setSelectedQuestion(null);
+          if (selectedQuestion && selectedQuestion._id === id) {
+            setSelectedQuestion(null);
+          }
         } else if (deleteError) {
           toast.error(deleteError);
         }
-      }, 500);
+      }, 500); 
     }
   };
 
   const handleEditQuestion = (question) => {
-    setEditedQuestion(question.question); // Initialize editedQuestion with current question text
-    setSelectedQuestion(question); // Optionally update selectedQuestion state
+    setEditedQuestion(question.question);
+    setSelectedQuestion(question);
     setIsEditModalOpen(true);
   };
 
@@ -89,9 +212,9 @@ const Profile = () => {
       );
   
       if (response.status === 200) {
-        const updatedQuestion = response.data.question; // Ensure backend sends updated question data
+        const updatedQuestion = response.data.question;
         toast.success(response.data.message);
-        setSelectedQuestion(updatedQuestion); // Update state with updated question
+        setSelectedQuestion(updatedQuestion);
       } else {
         toast.error(response.data.message || "Failed to update option");
       }
@@ -114,14 +237,14 @@ const Profile = () => {
     }
   };
 
-  const handleTextareaChange = (e) => {
-    setEditedQuestion(e.target.value);
+  const handleTextareaChange = (value) => {
+    setEditedQuestion(value);
   };
 
-  const handleOptionNameChange = (e) => {
+  const handleOptionNameChange = (value) => {
     setEditedOption({
       ...editedOption,
-      name: e.target.value,
+      name: value,
     });
   };
 
@@ -141,9 +264,13 @@ const Profile = () => {
     }
   };
 
+  const toBottom = () => {
+    scroll.scrollToBottom({ delay: 0, duration: 0 });
+  };
+
  return (
   <div className="question_box pt-14">
-    <ProfileHead setSelectedQuestion={setSelectedQuestion} />
+    <ProfileHead setSelectedQuestion={setSelectedQuestion} toBottom={toBottom} />
 
     {selectedQuestion ? (
       <div className="box relative flex flex-col mt-6 m-7 text-white-700 shadow-md bg-clip-border rounded-xl">
@@ -246,55 +373,96 @@ const Profile = () => {
       >
         <div className="bg-white rounded-lg shadow-lg p-6 w-1/3 text-gray-900">
           <h3 className="text-xl mb-4">
-            {editedOption.id ? "Edit Option" : "Edit Question"}
+            {<span dangerouslySetInnerHTML={{ __html: editedOption.id }} /> ? "Edit Option" : "Edit Question"}
           </h3>
-          {editedOption.id ? (
+          {<span dangerouslySetInnerHTML={{ __html: editedOption.id }} /> ? (
             <>
               <label className="block mb-2">Option Name:</label>
-              <input
-                type="text"
-                className="w-full border border-gray-300 p-2 rounded mb-4"
+              <button
+                    type="button"
+                    className="bg-gray-300 text-gray-800 p-2 rounded"
+                    onClick={() => setShowOptionSymbols(!showOptionSymbols)}
+                  >
+                    &#x221A;
+                  </button>
+                  {showOptionSymbols && renderMathSymbols(insertOptionSymbol)}
+              <ReactQuill
                 value={editedOption.name}
                 onChange={handleOptionNameChange}
+                theme="snow"
+                modules={{
+                  toolbar: [
+                    [{ 'font': [] }, { 'size': [] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'script': 'sub' }, { 'script': 'super' }],
+            [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
+            [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+            [ { 'align': [] }],
+            ['link','formula'],
+                  ],
+                }}
               />
-
-              <label className="block mb-2">Option Tag:</label>
-              <input
-                type="text"
-                className="w-full border border-gray-300 p-2 rounded mb-4"
+              <label className="block mb-2 mt-4">Tag:</label>
+              <select
+                className="border rounded-lg p-2 w-full"
                 value={editedOption.tag}
                 onChange={handleOptionTagChange}
-              />
+              >
+                <option value="">Select Tag</option>
+                <option value="Correct">Correct</option>
+                <option value="InCorrect">InCorrect</option>
+              </select>
             </>
           ) : (
-            <textarea
-              className="w-full border border-gray-300 p-2 rounded mb-4"
-              rows="5"
-              value={editedQuestion}
-              onChange={handleTextareaChange}
-            />
+            <>
+              <label className="block mb-2">Question:</label>
+              <button
+                  type="button"
+                  className="bg-gray-300 text-gray-800 p-2 rounded"
+                  onClick={() => setShowSymbols(!showSymbols)}
+                >
+                  &#x221A;
+                </button>
+                {showSymbols && renderMathSymbols(insertSymbol)}
+              <ReactQuill
+                value={editedQuestion}
+                onChange={handleTextareaChange}
+                theme="snow"
+                modules={{
+                  toolbar: [
+                    [{ 'font': [] }, { 'size': [] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'script': 'sub' }, { 'script': 'super' }],
+            [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
+            [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+            [ { 'align': [] }],
+            ['link','formula'],
+                  ],
+                }}
+              />
+            </>
           )}
-          <div className="flex justify-end">
+          <div className="mt-4 flex justify-end">
             <button
-              className="bg-gray-500 text-white py-2 px-4 rounded mr-2"
-              onClick={closeModal}
-            >
-              Cancel
-            </button>
-            <button
-              className="bg-blue-500 text-white py-2 px-4 rounded"
+              className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
               onClick={handleSaveChanges}
             >
               Save
+            </button>
+            <button
+              className="bg-gray-500 text-white px-4 py-2 rounded"
+              onClick={closeModal}
+            >
+              Cancel
             </button>
           </div>
         </div>
       </div>
     )}
-
   </div>
 );
-
 };
 
 export default Profile;
