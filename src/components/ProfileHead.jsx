@@ -43,9 +43,9 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPageAllQuestions, setCurrentPageAllQuestions] = useState(1);
+  const [currentPageMyQuestions, setCurrentPageMyQuestions] = useState(1);
+  
   const questionsPerPage = 50;
 
   const dispatch = useDispatch();
@@ -198,12 +198,12 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     setMyChapters([]);
     setMyTopics([]);
     setQuestions([]);
-    setSelectedUser(null);
+    setSelectedUser(null)
     setMyQuestions([]);
-    setMyRank("");
-    setUserRank("");
-    setUserTodayQuestions("");
-    setTodayMyQuestions("");
+    setMyRank('')
+    setUserRank('')
+    setUserTodayQuestions('')
+    setTodayMyQuestions('')
 
     if (selectedStandard) {
       if (index === 0) {
@@ -234,7 +234,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     setSelectedSubject("");
     setSelectedChapter("");
     setSelectedTopic("");
-    setSelectedUser("");
+    setSelectedUser("")
     setSubjects([]);
     setChapters([]);
     setTopics([]);
@@ -281,28 +281,28 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     toBottom();
   };
 
-  // Pagination functions
   const handleNextPage = () => {
-    setCurrentPage((prevPage) => prevPage + 1);
+    if (activeTabIndex === 0) {
+      setCurrentPageAllQuestions((prev) => prev + 1);
+    } else if (activeTabIndex === 1) {
+      setCurrentPageMyQuestions((prev) => prev + 1);
+    }
   };
 
   const handlePrevPage = () => {
-    setCurrentPage((prevPage) => prevPage - 1);
+    if (activeTabIndex === 0) {
+      setCurrentPageAllQuestions((prev) => prev - 1);
+    } else if (activeTabIndex === 1) {
+      setCurrentPageMyQuestions((prev) => prev - 1);
+    }
   };
 
   const paginate = (array, pageSize, pageNumber) =>
     array.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
 
-  const totalQuestionsPages = Math.ceil(
-    filteredQuestions.length / questionsPerPage
-  );
-  const totalMyQuestionsPages = Math.ceil(
-    filteredMyQuestions.length / questionsPerPage
-  );
+  const totalQuestionsPages = Math.ceil(filteredQuestions.length / questionsPerPage);
+  const totalMyQuestionsPages = Math.ceil(filteredMyQuestions.length / questionsPerPage);
 
-
- 
-  // Attach scroll event listener when component mounts
 
   return (
     <>
@@ -455,38 +455,38 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
         </div>
 
         <Tab.Group selectedIndex={activeTabIndex} onChange={handleTabChange}>
-          <Tab.List className="flex p-1 space-x-1 bg-blue-900/20 rounded-xl">
-            {isAdmin && (
-              <Tab
-                key="All Questions"
-                className={({ selected }) =>
-                  classNames(
-                    "w-full py-2.5 text-sm leading-5 font-medium text-white rounded-lg",
-                    "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-blue-400 ring-white ring-opacity-60",
-                    selected
-                      ? "bg-white shadow text-blue-600"
-                      : "text-blue-100 hover:bg-white/[0.12] hover:text-white"
-                  )
-                }
-              >
-                All Questions
-              </Tab>
-            )}
+        <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
+          {isAdmin && (
             <Tab
-              key="My Questions"
+              key="all-questions"
               className={({ selected }) =>
                 classNames(
-                  "w-full py-2.5 text-sm leading-5 font-medium text-white rounded-lg",
-                  "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-blue-400 ring-white ring-opacity-60",
+                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700",
+                  "ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2",
                   selected
-                    ? "bg-white shadow text-blue-600"
+                    ? "bg-white shadow"
                     : "text-blue-100 hover:bg-white/[0.12] hover:text-white"
                 )
               }
             >
-              My Questions
+              All Questions
             </Tab>
-          </Tab.List>
+          )}
+          <Tab
+            key="my-questions"
+            className={({ selected }) =>
+              classNames(
+                "w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700",
+                "ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2",
+                selected
+                  ? "bg-white shadow"
+                  : "text-blue-100 hover:bg-white/[0.12] hover:text-white"
+              )
+            }
+          >
+            My Questions
+          </Tab>
+        </Tab.List>
           <div className="mt-2 mb-4">
         <input
           type="text"
@@ -496,147 +496,141 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
           className="w-full p-2 border text-gray-900 rounded-lg"
         />
       </div>
-          <Tab.Panels className="mt-2">
-            {selectedUser && (
-              <button className=" border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">
-                Todays Total Questions: {userTodayQuestions || 0}
-              </button>
-            )}
-            {selectedUser && userRank && (
-              <button className=" border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">
-                Todays Rank: {userRank}
-              </button>
-            )}
-            {isAdmin && (
-             <Tab.Panel key="All Questions" className="rounded-xl bg-white p-3 relative">
-             <div className="overflow-y-auto max-h-64">
-               {loading ? (
-                 <Loading />
-               ) : (
-                 <>
-                   <h3 className="text-lg font-medium text-gray-900 mb-4">
-                     Total Questions: {filteredQuestions.length}
-                   </h3>
-                   {filteredQuestions.length === 0 ? (
-                     <div className="text-center text-gray-500">
-                       No questions found.
-                     </div>
-                   ) : (
-                     <div className="overflow-y-auto">
-                       {paginate(filteredQuestions, questionsPerPage, currentPage).map((question, index) => (
-                         <div
-                           key={question._id}
-                           onClick={() => handleQuestionClick(question)}
-                           className="cursor-pointer text-gray-900 p-2"
-                         >
-                           <b>Q.{index + 1}. </b>
-                           <span dangerouslySetInnerHTML={{ __html: question.question }} />
-                         </div>
-                       ))}
-                     </div>
-                   )}
-                 </>
-               )}
-             </div>
-             <div className="flex justify-between mt-4">
-               <button
-                 className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-                 onClick={handlePrevPage}
-                 disabled={currentPage === 1}
-               >
-                 Prev
-               </button>
-               <div className="flex items-center text-gray-900">
-                 {totalQuestionsPages > 0 && (
-                   <span className="mr-4">
-                     Page {currentPage} of {totalQuestionsPages}
-                   </span>
-                 )}
-               </div>
-               <button
-                 className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-                 onClick={handleNextPage}
-                 disabled={currentPage === totalQuestionsPages || totalQuestionsPages === 0}
-               >
-                 Next
-               </button>
-             </div>
-           </Tab.Panel>
-           
-            )}
-
-            {activeTabIndex === 1 ? (
-              <div>
-                <button className="border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">
-                  Todays Total Questions: {myTodayQuestions}
-                </button>
-                <button className="border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">
-                  Todays Rank: {myRank || 0}
-                </button>
+      <Tab.Panels className="mt-2">
+  {selectedUser && (
+    <button className="border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">
+      Todays Total Questions: {userTodayQuestions || 0}
+    </button>
+  )}
+  {selectedUser && userRank && (
+    <button className="border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">
+      Todays Rank: {userRank}
+    </button>
+  )}
+  {isAdmin && (
+    <Tab.Panel key="All Questions" className="rounded-xl bg-white p-3 relative">
+      <div className="overflow-y-auto max-h-64">
+        {loading ? (
+          <Loading />
+        ) : (
+          <>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Total Questions: {filteredQuestions.length}
+            </h3>
+            {filteredQuestions.length === 0 ? (
+              <div className="text-center text-gray-500">
+                No questions found.
               </div>
-            ) : null}
-
-            <Tab.Panel key="My Questions"  className="rounded-xl bg-white p-3">
-              <div className="max-h-64 overflow-y-auto">
-                {loading ? (
-                  <Loading />
-                ) : (
-                  <>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Total Questions: {filteredMyQuestions.length}
-              </h3>
-              {filteredMyQuestions.length === 0 ? (
-                <div className="text-center text-gray-500">
-                  No questions found.
-                </div>
-              ):(
-                   <div className="mt-4">
-                     
-                    {paginate(
-                      filteredMyQuestions,
-                      questionsPerPage,
-                      currentPage
-                    ).map((question, index) => (
-                      <div
-                           key={question._id}
-                           onClick={() => handleQuestionClick(question)}
-                           className="cursor-pointer text-gray-900 p-2"
-                         >
-                           <b>Q.{index + 1}. </b>
-                           <span dangerouslySetInnerHTML={{ __html: question.question }} />
-                         </div>
-                    ))}
-                    <div className="flex justify-between mt-4">
-                    <button
-                 className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-                 onClick={handlePrevPage}
-                 disabled={currentPage === 1}
-               >
-                 Prev
-               </button>
-                  <div className="flex items-center text-gray-900">
-                 {totalMyQuestionsPages > 0 && (
-                   <span className="mr-4">
-                     Page {currentPage} of {totalMyQuestionsPages}
-                   </span>
-                 )}
-               </div>
-                  <button
-                    className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-                    onClick={handleNextPage}
-                    disabled={currentPage === totalMyQuestionsPages}
+            ) : (
+              <div className="overflow-y-auto">
+               {paginate(filteredQuestions, questionsPerPage, currentPageAllQuestions).map((question, index) => (
+                  <div
+                    key={question._id}
+                    onClick={() => handleQuestionClick(question)}
+                    className="cursor-pointer text-gray-900 p-2"
                   >
-                    Next
-                  </button>
+                    <b>Q.{(currentPageAllQuestions - 1) * questionsPerPage + index + 1}. </b>
+                    <span dangerouslySetInnerHTML={{ __html: question.question }} />
                   </div>
-                  </div>
-              )}
-                  </>
-                )}
-               
+                ))}
               </div>
-            </Tab.Panel>
-          </Tab.Panels>
+            )}
+          </>
+        )}
+      </div>
+      <div className="flex justify-between mt-4">
+        <button
+          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+          onClick={handlePrevPage}
+          disabled={currentPageAllQuestions === 1}
+        >
+          Prev
+        </button>
+        <div className="flex items-center text-gray-900">
+          {totalQuestionsPages > 0 && (
+            <span className="mr-4">
+              Page {currentPageAllQuestions} of {totalQuestionsPages}
+            </span>
+          )}
+        </div>
+        <button
+          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+          onClick={handleNextPage}
+          disabled={currentPageAllQuestions === totalQuestionsPages || totalQuestionsPages === 0}
+        >
+          Next
+        </button>
+      </div>
+    </Tab.Panel>
+  )}
+
+  {activeTabIndex === 1 && (
+    <div>
+      <button className="border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">
+        Todays Total Questions: {myTodayQuestions}
+      </button>
+      <button className="border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">
+        Todays Rank: {myRank || 0}
+      </button>
+    </div>
+  )}
+
+  <Tab.Panel key="My Questions" className="rounded-xl bg-white p-3">
+    <div className="max-h-64 overflow-y-auto">
+      {loading ? (
+        <Loading />
+      ) : (
+        <>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Total Questions: {filteredMyQuestions.length}
+          </h3>
+          {filteredMyQuestions.length === 0 ? (
+            <div className="text-center text-gray-500">
+              No questions found.
+            </div>
+          ) : (
+            <div className="mt-4">
+              {paginate(filteredMyQuestions, questionsPerPage, currentPageMyQuestions).map((question, index) => (
+                <div
+                  key={question._id}
+                  onClick={() => handleQuestionClick(question)}
+                  className="cursor-pointer text-gray-900 p-2"
+                >
+                  <b>Q.{(currentPageMyQuestions - 1) * questionsPerPage + index + 1}. </b>
+                  <span dangerouslySetInnerHTML={{ __html: question.question }} />
+                </div>
+              ))}
+              <div className="flex justify-between mt-4">
+                <button
+                  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+                  onClick={handlePrevPage}
+                  disabled={currentPageMyQuestions === 1}
+                >
+                  Prev
+                </button>
+                <div className="flex items-center text-gray-900">
+                  {totalMyQuestionsPages > 0 && (
+                    <span className="mr-4">
+                      Page {currentPageMyQuestions} of {totalMyQuestionsPages}
+                    </span>
+                  )}
+                </div>
+                <button
+                  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
+                  onClick={handleNextPage}
+                  disabled={currentPageMyQuestions === totalMyQuestionsPages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  </Tab.Panel>
+</Tab.Panels>
+
         </Tab.Group>
       </div>
     </>
