@@ -265,7 +265,8 @@ const Profile = () => {
   };
 
   const toBottom = () => {
-    scroll.scrollToBottom({ delay: 0, duration: 0 });
+    scroll.scrollToBottom({ delay: 0, duration: 0 , behavior: 'smooth'});
+    
   };
 
  return (
@@ -364,103 +365,103 @@ const Profile = () => {
     ) : (
       <div>No question selected</div>
     )}
-
-    {isEditModalOpen && (
-      <div
-        id="modalOverlay"
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-        onClick={handleModalClick}
-      >
-        <div className="bg-white rounded-lg shadow-lg p-6 w-1/3 text-gray-900">
-          <h3 className="text-xl mb-4">
-            {<span dangerouslySetInnerHTML={{ __html: editedOption.id }} /> ? "Edit Option" : "Edit Question"}
-          </h3>
-          {<span dangerouslySetInnerHTML={{ __html: editedOption.id }} /> ? (
-            <>
-              <label className="block mb-2">Option Name:</label>
-              <button
-                    type="button"
-                    className="bg-gray-300 text-gray-800 p-2 rounded"
-                    onClick={() => setShowOptionSymbols(!showOptionSymbols)}
-                  >
-                    &#x221A;
-                  </button>
-                  {showOptionSymbols && renderMathSymbols(insertOptionSymbol)}
-              <ReactQuill
-                value={editedOption.name}
-                onChange={handleOptionNameChange}
-                theme="snow"
-                modules={{
-                  toolbar: [
-                    [{ 'font': [] }, { 'size': [] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ 'color': [] }, { 'background': [] }],
-            [{ 'script': 'sub' }, { 'script': 'super' }],
-            [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
-            [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-            [ { 'align': [] }],
-            ['link','formula'],
-                  ],
-                }}
-              />
-              <label className="block mb-2 mt-4">Tag:</label>
-              <select
-                className="border rounded-lg p-2 w-full"
-                value={editedOption.tag}
-                onChange={handleOptionTagChange}
-              >
-                <option value="">Select Tag</option>
-                <option value="Correct">Correct</option>
-                <option value="InCorrect">InCorrect</option>
-              </select>
-            </>
-          ) : (
-            <>
-              <label className="block mb-2">Question:</label>
-              <button
-                  type="button"
-                  className="bg-gray-300 text-gray-800 p-2 rounded"
-                  onClick={() => setShowSymbols(!showSymbols)}
-                >
-                  &#x221A;
-                </button>
-                {showSymbols && renderMathSymbols(insertSymbol)}
-              <ReactQuill
-                value={editedQuestion}
-                onChange={handleTextareaChange}
-                theme="snow"
-                modules={{
-                  toolbar: [
-                    [{ 'font': [] }, { 'size': [] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ 'color': [] }, { 'background': [] }],
-            [{ 'script': 'sub' }, { 'script': 'super' }],
-            [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
-            [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-            [ { 'align': [] }],
-            ['link','formula'],
-                  ],
-                }}
-              />
-            </>
-          )}
-          <div className="mt-4 flex justify-end">
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
-              onClick={handleSaveChanges}
-            >
-              Save
-            </button>
-            <button
-              className="bg-gray-500 text-white px-4 py-2 rounded"
-              onClick={closeModal}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+{isEditModalOpen && (
+  <div
+    id="modalOverlay"
+    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    onClick={handleModalClick}
+  >
+    <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 sm:w-2/3 md:w-1/2 lg:w-1/3 xl:w-1/4 text-gray-900">
+      <h3 className="text-xl mb-4">
+        {editedOption.id ? "Edit Option" : "Edit Question"}
+      </h3>
+      {editedOption.id ? (
+        <>
+          <label className="block mb-2">Option Name:</label>
+          <button
+            type="button"
+            className="bg-gray-300 text-gray-800 p-2 rounded"
+            onClick={() => setShowOptionSymbols(!showOptionSymbols)}
+          >
+            &#x221A;
+          </button>
+          {showOptionSymbols && renderMathSymbols(insertOptionSymbol)}
+          <ReactQuill
+            value={editedOption.name}
+            onChange={handleOptionNameChange}
+            theme="snow"
+            modules={{
+              toolbar: [
+                [{ 'font': [] }, { 'size': [] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'script': 'sub' }, { 'script': 'super' }],
+                [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+                [{ 'align': [] }],
+                ['link', 'formula'],
+              ],
+            }}
+          />
+          <label className="block mb-2 mt-4">Tag:</label>
+          <select
+            className="border rounded-lg p-2 w-full"
+            value={editedOption.tag}
+            onChange={handleOptionTagChange}
+          >
+            <option value="">Select Tag</option>
+            <option value="Correct">Correct</option>
+            <option value="InCorrect">InCorrect</option>
+          </select>
+        </>
+      ) : (
+        <>
+          <label className="block mb-2">Question:</label>
+          <button
+            type="button"
+            className="bg-gray-300 text-gray-800 p-2 rounded"
+            onClick={() => setShowSymbols(!showSymbols)}
+          >
+            &#x221A;
+          </button>
+          {showSymbols && renderMathSymbols(insertSymbol)}
+          <ReactQuill
+            value={editedQuestion}
+            onChange={handleTextareaChange}
+            theme="snow"
+            modules={{
+              toolbar: [
+                [{ 'font': [] }, { 'size': [] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'script': 'sub' }, { 'script': 'super' }],
+                [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+                [{ 'align': [] }],
+                ['link', 'formula'],
+              ],
+            }}
+          />
+        </>
+      )}
+      <div className="mt-4 flex justify-end">
+        <button
+          className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
+          onClick={handleSaveChanges}
+        >
+          Save
+        </button>
+        <button
+          className="bg-gray-500 text-white px-4 py-2 rounded"
+          onClick={closeModal}
+        >
+          Cancel
+        </button>
       </div>
-    )}
+    </div>
+  </div>
+)}
+
   </div>
 );
 };
