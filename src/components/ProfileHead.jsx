@@ -49,6 +49,8 @@ const ProfileHead = ({ setSelectedQuestion }) => {
   const [totalQuestions, setTotalQuestions] = useState(0);
   // const [MyTotalQuestions, setMyTotalQuestions] = useState(0);
   const [questionsLength, setQuestionsLength] = useState(0);
+  const [fixedTotalQuestions, setFixedTotalQuestions] = useState(0);
+  const [fixedMyTotalQuestions, setFixedTotalMyQuestions] = useState(0);
   const questionsPerPage = 50;
 
   const dispatch = useDispatch();
@@ -155,7 +157,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
         params: { standard, subject, chapter, topic, limit, page },
         withCredentials: true,
       });
-
+      
       const questions = response.data.questions;
       setMyQuestions(questions);
       setTodayMyQuestions(response.data?.todaysQuestionsCount);
@@ -178,6 +180,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
         });
         if (response.data.success) {
           setUsers(response.data.users);
+          
         } else {
           toast.error("Failed to fetch users.");
         }
@@ -187,13 +190,18 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     }
   };
 
-  const fetchTotalQuestions = async () => {
+  const fetchTotalQuestions = async (standard, subject, chapter, topic) => {
     try {
       const response = await axios.get(`${server}/api/get/totalquestion`, {
+        params: { standard, subject, chapter, topic },
         withCredentials: true,
       });
 
       if (response.data.success) {
+        const fixedMyTotalQuestions = response.data.totalMyQuestions || 0;
+      setFixedTotalMyQuestions(fixedMyTotalQuestions);
+        const fixedTotalQuestions = response.data.fixedTotalQuestions || 0;
+        setFixedTotalQuestions(fixedTotalQuestions);
         setTotalQuestions(response.data.totalQuestions);
         setQuestionsLength(response.data.questionsLength);
         setTotalPages(
@@ -330,7 +338,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     );
   };
   useEffect(() => {
-    fetchTotalQuestions();
+    fetchTotalQuestions(selectedStandard, selectedSubject, selectedChapter, selectedTopic);
   });
 
   const handleQuestionClick = (question) => {
@@ -597,6 +605,9 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                       <h3 className="text-lg font-medium text-gray-900 mb-4">
                         Total Questions: {totalQuestions}
                       </h3>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                       Over All Total Questions: {fixedTotalQuestions}
+                      </h3>
                       {filteredQuestions.length === 0 ? (
                         <div className="text-center text-gray-500">
                           No questions found.
@@ -657,62 +668,63 @@ const ProfileHead = ({ setSelectedQuestion }) => {
               </div>
             ) : null}
 
-            <Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
-              <div className="max-h-64 overflow-y-auto">
-                {loading ? (
-                  <Loading />
-                ) : (
-                  <>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
-                      Total Questions: {questionsLength}
-                    </h3>
-                    {filteredMyQuestions.length === 0 ? (
-                      <div className="text-center text-gray-500">
-                        No questions found.
-                      </div>
-                    ) : (
-                      filteredMyQuestions.map((question, index) => (
-                        <div
-                          key={question._id}
-                          onClick={() => handleQuestionClick(question)}
-                          className="cursor-pointe text-gray-900 r p-2 cursor-pointer"
-                        >
-                          <b>
-                            Q.
-                            {(myCurrentPage - 1) * questionsPerPage + index + 1}
-                          </b>
-                          <span
-                            dangerouslySetInnerHTML={{
-                              __html: question.question,
-                            }}
-                          />
-                        </div>
-                      ))
-                    )}
-                  </>
-                )}
-              </div>
-              <div className="flex justify-between mt-4">
-                <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded "
-                  onClick={handlePrevPage}
-                  disabled={myCurrentPage === 1}
-                >
-                  Prev
-                </button>
-                <p>
-                  <span className=" text-gray-900">{myCurrentPage} / </span>{" "}
-                  <span className="text-gray-900">{myTotalPages}</span>
-                </p>
-                <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded profile-head__pagination-button"
-                  onClick={handleNextPage}
-                  disabled={myCurrentPage === myTotalPages}
-                >
-                  Next
-                </button>
-              </div>
-            </Tab.Panel>
+          <Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
+  <div className="max-h-64 overflow-y-auto">
+    {loading ? (
+      <Loading />
+    ) : (
+      <>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          Total Questions: {questionsLength}
+        </h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          Over All Total Questions: {fixedMyTotalQuestions}
+        </h3>
+        {questionsLength === 0 ? (
+          <div className="text-center text-gray-500">
+            No questions found.
+          </div>
+        ) : (
+          filteredMyQuestions.map((question, index) => (
+            <div
+              key={question._id}
+              onClick={() => handleQuestionClick(question)}
+              className="cursor-pointer text-gray-900 p-2"
+            >
+              <b>
+                Q. {(myCurrentPage - 1) * questionsPerPage + index + 1}
+              </b>
+              <span
+                dangerouslySetInnerHTML={{ __html: question.question }}
+              />
+            </div>
+          ))
+        )}
+      </>
+    )}
+  </div>
+  <div className="flex justify-between mt-4">
+    <button
+      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+      onClick={handlePrevPage}
+      disabled={myCurrentPage === 1}
+    >
+      Prev
+    </button>
+    <p>
+      <span className="text-gray-900">{myCurrentPage} / </span>
+      <span className="text-gray-900">{myTotalPages}</span>
+    </p>
+    <button
+      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+      onClick={handleNextPage}
+      disabled={myCurrentPage === myTotalPages}
+    >
+      Next
+    </button>
+  </div>
+</Tab.Panel>
+
           </Tab.Panels>
         </Tab.Group>
       </div>
