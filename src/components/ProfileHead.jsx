@@ -399,17 +399,37 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
 
   return (
     <>
+
+
+
+      <div className="w-full max-w-md px-2 py-4 sm:px-2">
+        
+      <div className="flex space-x-4 mb-4">
+        
+          <div className="w-1/2">
+          {activeTabIndex === 0 ? (
+        <h3 className=" border-blue-600 border-2 p-2 bg-blue-900 rounded-lg">
+          Over All Total Questions: {fixedTotalQuestions}
+        </h3>
+      ) : (
+        <h3 className=" border-blue-600 border-2 p-2 bg-blue-900 rounded-lg">
+          Over All Total Questions of User: {fixedMyTotalQuestions}
+        </h3>
+      )}
+</div>
+<div className="w-1/2">
+
       {questions && (
         <button className=" border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">
           Todays Topper is{" "}
-          <strong className=" text-red-600 bg-red-200 p-2 rounded-md">
+          <strong className=" text-red-600 bg-red-200 ">
             {topperUser?.name?.name?.toUpperCase()}
           </strong>{" "}
           with <strong>{topperUser?.QuestionsCount} questions</strong>
         </button>
       )}
-
-      <div className="w-full max-w-md px-2 py-4 sm:px-2">
+          </div>
+          </div>
       <div className="flex space-x-4 mb-4">
           <div className="w-1/2">
             {isAdmin && activeTabIndex === 0 && (
@@ -605,9 +625,8 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
                       <h3 className="text-lg font-medium text-gray-900 mb-4">
                         Total Questions: {totalQuestions}
                       </h3>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">
-                        Over All Total Questions: {fixedTotalQuestions}
-                      </h3>
+                    
+                    
                       {totalQuestions === 0 ? (
                         <div className="text-center text-gray-500">
                           No questions found.
@@ -654,7 +673,9 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
                   <button
                     className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
                     onClick={handleNextPage}
-                    disabled={currentPage === totalPages}
+                    disabled={
+                      currentPage === totalPages || totalPages === 0
+                    }
                   >
                     Next
                   </button>
@@ -683,9 +704,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
                       Total Questions: {questionsLength}
                     </h3>
 
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
-                      Over All Total Questions: {fixedMyTotalQuestions}
-                    </h3>
+                   
                     {questionsLength === 0 ? (
                       <div className="text-center text-gray-500">
                         No questions found.
