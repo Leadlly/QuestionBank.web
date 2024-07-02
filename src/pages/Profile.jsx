@@ -1,4 +1,4 @@
-import  { useState, useEffect } from "react";
+import  { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -23,7 +23,7 @@ const Profile = () => {
   const { success: deleteSuccess, error: deleteError } = useSelector((state) => state.delete);
   const { success: editSuccess, error: editError } = useSelector((state) => state.editQuestion);
   const dispatch = useDispatch();
-
+  const quillRef = useRef(null);
   const mathSymbols = [
     { symbol: '⁰', name: 'Numerator' },  
     { symbol: '₁', name: 'Denominator' },
@@ -342,7 +342,10 @@ const Profile = () => {
           <p>Class: {selectedQuestion.standard}</p>
           <p>Subject: {selectedQuestion.subject}</p>
           <p>Chapter: {selectedQuestion.chapter.join(", ")}</p>
-          <p>Topics: {selectedQuestion.topics.join(", ")}</p>
+          <p>
+  Topics: {selectedQuestion && selectedQuestion.topics ? selectedQuestion.topics.join(", ") : "No topics available"}
+</p>
+
           <p>Level: {selectedQuestion.level}</p>
           <p>
             Subtopics:{" "}
@@ -387,6 +390,7 @@ const Profile = () => {
           </button>
           {showOptionSymbols && renderMathSymbols(insertOptionSymbol)}
           <ReactQuill
+          ref={quillRef}
             value={editedOption.name}
             onChange={handleOptionNameChange}
             theme="snow"
@@ -426,6 +430,7 @@ const Profile = () => {
           </button>
           {showSymbols && renderMathSymbols(insertSymbol)}
           <ReactQuill
+          ref={quillRef}
             value={editedQuestion}
             onChange={handleTextareaChange}
             theme="snow"

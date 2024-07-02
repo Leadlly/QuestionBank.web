@@ -14,7 +14,7 @@ import { getChapters } from "../actions/chapterAction";
 import { getTopics } from "../actions/topicAction";
 import Loading from "../pages/Loading";
 
-const ProfileHead = ({ setSelectedQuestion }) => {
+const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const [questions, setQuestions] = useState([]);
   const [userTodayQuestions, setUserTodayQuestions] = useState("");
   const [userRank, setUserRank] = useState("");
@@ -49,6 +49,8 @@ const ProfileHead = ({ setSelectedQuestion }) => {
   const [totalQuestions, setTotalQuestions] = useState(0);
   // const [MyTotalQuestions, setMyTotalQuestions] = useState(0);
   const [questionsLength, setQuestionsLength] = useState(0);
+  const [fixedTotalQuestions, setFixedTotalQuestions] = useState(0);
+  const [fixedMyTotalQuestions, setFixedTotalMyQuestions] = useState(0);
   const questionsPerPage = 50;
 
   const dispatch = useDispatch();
@@ -132,10 +134,13 @@ const ProfileHead = ({ setSelectedQuestion }) => {
         const totalQuestions = response.data.totalQuestions || 0;
         setTotalQuestions(totalQuestions);
         setTotalPages(Math.ceil(totalQuestions / limit));
+       
+      } else {
+        setQuestions([]);
       }
     } catch (error) {
       console.error(error);
-      toast.error("Failed to fetch questions");
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -187,13 +192,24 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     }
   };
 
-  const fetchTotalQuestions = async () => {
+  const fetchTotalQuestions = async (
+    standard,
+    subject,
+    chapter,
+    topic,
+    createdBy
+  ) => {
     try {
       const response = await axios.get(`${server}/api/get/totalquestion`, {
+        params: { standard, subject, chapter, topic, createdBy },
         withCredentials: true,
       });
 
       if (response.data.success) {
+        const fixedMyTotalQuestions = response.data.totalMyQuestions || 0;
+        setFixedTotalMyQuestions(fixedMyTotalQuestions);
+        const fixedTotalQuestions = response.data.fixedTotalQuestions || 0;
+        setFixedTotalQuestions(fixedTotalQuestions);
         setTotalQuestions(response.data.totalQuestions);
         setQuestionsLength(response.data.questionsLength);
         setTotalPages(
@@ -210,8 +226,8 @@ const ProfileHead = ({ setSelectedQuestion }) => {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, [isAdmin]);
+    fetchUsers(selectedStandard, selectedSubject, selectedChapter, selectedTopic);
+  }, [isAdmin, selectedStandard, selectedSubject, selectedChapter, selectedTopic]);
 
   const handleResetFilters = () => {
     setSelectedSubject("");
@@ -237,7 +253,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     setActiveTabIndex(index);
     setCurrentPage(1);
     setMyCurrentPage(1);
-
+    setSelectedStandard("");
     setSelectedSubject("");
     setSelectedChapter("");
     setSelectedTopic("");
@@ -255,28 +271,6 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     setUserRank("");
     setUserTodayQuestions("");
     setTodayMyQuestions("");
-
-    if (selectedStandard) {
-      if (index === 0) {
-        fetchQuestions(
-          selectedStandard,
-          selectedSubject,
-          selectedChapter,
-          selectedTopic,
-          questionsPerPage,
-          1
-        );
-      } else if (index === 1) {
-        fetchUserQuestions(
-          selectedStandard,
-          selectedSubject,
-          selectedChapter,
-          selectedTopic,
-          questionsPerPage,
-          1
-        );
-      }
-    }
   };
 
   useEffect(() => {
@@ -286,6 +280,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
   }, [isAdmin]);
 
   useEffect(() => {
+    setSelectedStandard("");
     setSelectedSubject("");
     setSelectedChapter("");
     setSelectedTopic("");
@@ -298,6 +293,9 @@ const ProfileHead = ({ setSelectedQuestion }) => {
     setMyTopics([]);
     setQuestions([]);
     setMyQuestions([]);
+    setQuestionsLength("");
+    setMyTotalPages("");
+    setTotalPages("");
   }, [user]);
 
   const filteredQuestions = questions.filter(
@@ -321,73 +319,81 @@ const ProfileHead = ({ setSelectedQuestion }) => {
       selectedTopic,
       value
     );
-    fetchUserQuestions(
+  };
+  useEffect(() => {
+    fetchTotalQuestions(
       selectedStandard,
       selectedSubject,
       selectedChapter,
       selectedTopic,
-      value
+      selectedUser
     );
-  };
-  useEffect(() => {
-    fetchTotalQuestions();
   });
 
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
+    toBottom();
   };
 
   const handleNextPage = () => {
     if (activeTabIndex === 0) {
-      const newPage = Math.min(currentPage + 1, totalPages);
-      setCurrentPage(newPage);
-      fetchQuestions(
-        selectedStandard,
-        selectedSubject,
-        selectedChapter,
-        selectedTopic,
-        selectedUser,
-        questionsPerPage,
-        newPage
-      );
+      if (currentPage < totalPages) {
+        const newPage = Math.min(currentPage + 1, totalPages);
+        setCurrentPage(newPage);
+        fetchQuestions(
+          selectedStandard,
+          selectedSubject,
+          selectedChapter,
+          selectedTopic,
+          selectedUser,
+          questionsPerPage,
+          newPage
+        );
+      }
     } else {
-      const newPage = Math.min(myCurrentPage + 1, myTotalPages);
-      setMyCurrentPage(newPage);
-      fetchUserQuestions(
-        selectedStandard,
-        selectedSubject,
-        selectedChapter,
-        selectedTopic,
-        questionsPerPage,
-        newPage
-      );
+      if (myCurrentPage < myTotalPages) {
+        const newPage = Math.min(myCurrentPage + 1, myTotalPages);
+        setMyCurrentPage(newPage);
+        fetchUserQuestions(
+          selectedStandard,
+          selectedSubject,
+          selectedChapter,
+          selectedTopic,
+          questionsPerPage,
+          newPage
+        );
+      }
     }
   };
 
   const handlePrevPage = () => {
     if (activeTabIndex === 0) {
-      const newPage = Math.max(currentPage - 1, 1);
-      setCurrentPage(newPage);
-      fetchQuestions(
-        selectedStandard,
-        selectedSubject,
-        selectedChapter,
-        selectedTopic,
-        selectedUser,
-        questionsPerPage,
-        newPage
-      );
+      if (currentPage > 1) {
+        const newPage = Math.max(currentPage - 1, 1);
+        setCurrentPage(newPage);
+        fetchQuestions(
+          selectedStandard,
+          selectedSubject,
+          selectedChapter,
+          selectedTopic,
+          selectedUser,
+          questionsPerPage,
+          newPage
+        );
+      }
     } else {
-      const newPage = Math.max(myCurrentPage - 1, 1);
-      setMyCurrentPage(newPage);
-      fetchUserQuestions(
-        selectedStandard,
-        selectedSubject,
-        selectedChapter,
-        selectedTopic,
-        questionsPerPage,
-        newPage
-      );
+      if (myCurrentPage > 1) {
+        const newPage = Math.max(myCurrentPage - 1, 1);
+        setMyCurrentPage(newPage);
+        fetchUserQuestions(
+          selectedStandard,
+          selectedSubject,
+          selectedChapter,
+          selectedTopic,
+          questionsPerPage,
+          newPage
+        );
+      }
     }
   };
 
@@ -404,7 +410,42 @@ const ProfileHead = ({ setSelectedQuestion }) => {
       )}
 
       <div className="w-full max-w-md px-2 py-4 sm:px-2">
+      <div className="flex space-x-4 mb-4">
+          <div className="w-1/2">
+            {isAdmin && activeTabIndex === 0 && (
+              <div className="mb-4">
+                <label className="text-white-500 text-sm dark:text-white-400">
+                  User
+                </label>
+                <Select
+                  style={{ width: 200 }}
+                  showSearch
+                  value={selectedUser}
+                  onChange={handleUserChange}
+                  filterOption={(input, option) =>
+                    (option.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  options={users.map((user) => ({
+                    value: user._id,
+                    label: user.name,
+                  }))}
+                />
+              </div>
+            )}
+          </div>
+          <div className="w-1/2 m-5">
+            <button
+              className=" border-green-600 border-2 p-2 bg-green-900 rounded-lg"
+              onClick={handleResetFilters}
+            >
+              Reset Filters
+            </button>
+          </div>
+        </div>
         <div className="flex space-x-4 mb-4">
+          
           <div className="w-1/2">
             <div className="mb-4">
               <label className="text-white-500 text-sm dark:text-white-400">
@@ -506,40 +547,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
             </div>
           </div>
         </div>
-        <div className="flex space-x-4 mb-4">
-          <div className="w-1/2">
-            {isAdmin && activeTabIndex === 0 && (
-              <div className="mb-4">
-                <label className="text-white-500 text-sm dark:text-white-400">
-                  User
-                </label>
-                <Select
-                  style={{ width: 200 }}
-                  showSearch
-                  value={selectedUser}
-                  onChange={handleUserChange}
-                  filterOption={(input, option) =>
-                    (option.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  options={users.map((user) => ({
-                    value: user._id,
-                    label: user.name,
-                  }))}
-                />
-              </div>
-            )}
-          </div>
-          <div className="w-1/2 m-5">
-            <button
-              className=" border-green-600 border-2 p-2 bg-green-900 rounded-lg"
-              onClick={handleResetFilters}
-            >
-              Reset Filters
-            </button>
-          </div>
-        </div>
+       
         <Tab.Group selectedIndex={activeTabIndex} onChange={handleTabChange}>
           <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
             {isAdmin && (
@@ -597,7 +605,10 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                       <h3 className="text-lg font-medium text-gray-900 mb-4">
                         Total Questions: {totalQuestions}
                       </h3>
-                      {filteredQuestions.length === 0 ? (
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Over All Total Questions: {fixedTotalQuestions}
+                      </h3>
+                      {totalQuestions === 0 ? (
                         <div className="text-center text-gray-500">
                           No questions found.
                         </div>
@@ -627,14 +638,19 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                   <button
                     className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
                     onClick={handlePrevPage}
-                    disabled={currentPage === 1}
+                    disabled={currentPage === 0}
                   >
                     Prev
                   </button>
                   <p>
-                    <span className=" text-gray-900">{currentPage} / </span>{" "}
-                    <span className="text-gray-900">{totalPages}</span>
+                    <span className="text-gray-900">
+                      {totalQuestions === 0 ? "0 / " : `${currentPage} / `}
+                    </span>
+                    <span className="text-gray-900">
+                      {totalQuestions === 0 ? "0" : totalPages}
+                    </span>
                   </p>
+
                   <button
                     className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
                     onClick={handleNextPage}
@@ -666,7 +682,11 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                     <h3 className="text-lg font-medium text-gray-900 mb-4">
                       Total Questions: {questionsLength}
                     </h3>
-                    {filteredMyQuestions.length === 0 ? (
+
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                      Over All Total Questions: {fixedMyTotalQuestions}
+                    </h3>
+                    {questionsLength === 0 ? (
                       <div className="text-center text-gray-500">
                         No questions found.
                       </div>
@@ -675,10 +695,10 @@ const ProfileHead = ({ setSelectedQuestion }) => {
                         <div
                           key={question._id}
                           onClick={() => handleQuestionClick(question)}
-                          className="cursor-pointe text-gray-900 r p-2 cursor-pointer"
+                          className="cursor-pointer text-gray-900 p-2"
                         >
                           <b>
-                            Q.
+                            Q.{" "}
                             {(myCurrentPage - 1) * questionsPerPage + index + 1}
                           </b>
                           <span
@@ -694,20 +714,27 @@ const ProfileHead = ({ setSelectedQuestion }) => {
               </div>
               <div className="flex justify-between mt-4">
                 <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded "
+                  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
                   onClick={handlePrevPage}
                   disabled={myCurrentPage === 1}
                 >
                   Prev
                 </button>
                 <p>
-                  <span className=" text-gray-900">{myCurrentPage} / </span>{" "}
-                  <span className="text-gray-900">{myTotalPages}</span>
+                  <span className="text-gray-900">
+                    {questionsLength === 0 ? "0 / " : `${myCurrentPage} / `}
+                  </span>
+                  <span className="text-gray-900">
+                    {questionsLength === 0 ? "0" : myTotalPages}
+                  </span>
                 </p>
+
                 <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded profile-head__pagination-button"
+                  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
                   onClick={handleNextPage}
-                  disabled={myCurrentPage === myTotalPages}
+                  disabled={
+                    myCurrentPage === myTotalPages || myTotalPages === 0
+                  }
                 >
                   Next
                 </button>
@@ -722,6 +749,7 @@ const ProfileHead = ({ setSelectedQuestion }) => {
 
 ProfileHead.propTypes = {
   setSelectedQuestion: PropTypes.func.isRequired,
+  toBottom: PropTypes.func.isRequired,
 };
 
 export default ProfileHead;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Select } from "antd";
 import toast from "react-hot-toast";
@@ -18,7 +18,7 @@ import "react-quill/dist/quill.snow.css";
 
 const CreateQuestion = () => {
   const dispatch = useDispatch();
-
+  const quillRef = useRef(null);
   const [standard, setStandard] = useState(null);
   const [subject, setSubject] = useState(null);
   const [chapter, setChapter] = useState(null);
@@ -570,6 +570,7 @@ const CreateQuestion = () => {
                        renderMathSymbols()}
               
               <ReactQuill
+              ref={quillRef}
                 value={question}
                  className=" bg-slate-50 text-black"
                 onChange={setQuestion}
@@ -646,6 +647,7 @@ const CreateQuestion = () => {
         </button>
         {showSymbols && renderSymbols(index)}
             <ReactQuill
+            ref={quillRef}
             theme="snow"
             className=" bg-slate-200 text-black"
             value={option}
