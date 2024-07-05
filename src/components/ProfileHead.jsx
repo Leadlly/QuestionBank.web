@@ -268,7 +268,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     }
   };
   
-  
+  // console.log('totalquestion', fetchTotalQuestions)
 
   useEffect(() => {
     fetchUsers(
@@ -279,12 +279,12 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
       searchKeyword
     );
   }, [
-    isAdmin,
-    selectedStandard,
-    selectedSubject,
-    selectedChapter,
-    selectedTopic,
-    searchKeyword
+     isAdmin,
+     selectedStandard,
+     selectedSubject,
+     selectedChapter,
+     selectedTopic,
+     searchKeyword
   ]);
 
   const handleResetFilters = () => {
@@ -395,7 +395,13 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
       searchKeyword,
       searchMyQuery,
     );
-  });
+  }, [ selectedStandard,
+    selectedSubject,
+    selectedChapter,
+    selectedTopic,
+    selectedUser,
+    searchKeyword,
+    searchMyQuery,]);
 
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
