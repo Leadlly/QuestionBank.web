@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Tab } from "@headlessui/react";
 import axios from "axios";
@@ -13,6 +13,20 @@ import { getSubjects } from "../actions/subjectAction";
 import { getChapters } from "../actions/chapterAction";
 import { getTopics } from "../actions/topicAction";
 import Loading from "../pages/Loading";
+
+
+
+function debounce(func, delay) {
+  let timeoutId;
+  return function(...args) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    timeoutId = setTimeout(() => {
+      func(...args);
+    }, delay);
+  };
+}
 
 const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const [questions, setQuestions] = useState([]);
@@ -54,7 +68,11 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchMyQuery, setSearchMyQuery] = useState("");
   const questionsPerPage = 50;
-
+  const [inputValue, setInputValue] = useState('');
+    // eslint-disable-next-line no-unused-vars
+  const [myInputValue, setMyInputValue] = useState('');
+ const inputRef = useRef(null);
+ const myInputRef = useRef(null);
   const dispatch = useDispatch();
 
   const { subjectList } = useSelector((state) => state.getSubject);
@@ -85,7 +103,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
         selectedChapter,
         selectedTopic,
         selectedUser,
-        searchKeyword
+        searchKeyword,
       );
     } else if (activeTabIndex === 1) {
       fetchUserQuestions(
@@ -104,7 +122,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     activeTabIndex,
     selectedUser,
     searchKeyword,
-    searchMyQuery,
+    searchMyQuery
   ]);
 
   const fetchQuestions = async (
@@ -152,14 +170,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     }
   };
 
-  const fetchUserQuestions = async (
-    standard,
-    subject,
-    chapter,
-    topic,
-    limit,
-    page
-  ) => {
+  const fetchUserQuestions = async (standard, subject, chapter, topic, limit, page) => {
     setLoading(true);
     try {
       const response = await axios.get(`${server}/api/get/myquestion`, {
@@ -170,27 +181,29 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
           topic: '',
           limit: questionsPerPage,
           page,
-          search: searchMyQuery,
+          search: searchMyQuery, 
         },
         withCredentials: true,
       });
+
       if (response.data.success) {
-      const questions = response.data.questions;
-      setMyQuestions(questions);
-      setTodayMyQuestions(response.data?.todaysQuestionsCount);
-      setMyRank(response.data?.userRank);
-      const totalMyQuestions = response.data.questionsLength || 0;
-      setQuestionsLength(totalMyQuestions);
-      setMyTotalPages(Math.ceil(totalMyQuestions / limit));
-    } else {
-      setMyQuestions([]);
-    }
+        const { questions, todaysQuestionsCount, userRank } = response.data;
+        setMyQuestions(questions.reverse());
+        setTodayMyQuestions(todaysQuestionsCount);
+        setMyRank(userRank);
+        const questionsLength = response.data.questionsLength || 0
+        setQuestionsLength(questionsLength);
+        setMyTotalPages(Math.ceil(questionsLength / limit));
+      } else {
+        setMyQuestions([]);
+      }
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
   };
+
 
   const fetchUsers = async () => {
     try {
@@ -209,13 +222,16 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     }
   };
 
+  
+
   const fetchTotalQuestions = async (
     standard,
     subject,
     chapter,
     topic,
     createdBy,
-    search
+    search,
+    mySearch
   ) => {
     try {
       const response = await axios.get(`${server}/api/get/totalquestion`, {
@@ -226,10 +242,11 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
           topic,
           createdBy,
           search,
+          mySearch,
         },
         withCredentials: true,
       });
-
+  
       if (response.data.success) {
         const fixedMyTotalQuestions = response.data.totalMyQuestions || 0;
         setFixedTotalMyQuestions(fixedMyTotalQuestions);
@@ -240,6 +257,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
         setTotalPages(
           Math.ceil(response.data.totalQuestions / questionsPerPage)
         );
+        
         setMyTotalPages(
           Math.ceil(response.data.questionsLength / questionsPerPage)
         );
@@ -249,6 +267,8 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
       toast.error("Failed to fetch total questions count");
     }
   };
+  
+  
 
   useEffect(() => {
     fetchUsers(
@@ -256,7 +276,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
       selectedSubject,
       selectedChapter,
       selectedTopic,
-      searchMyQuery
+      searchKeyword
     );
   }, [
     isAdmin,
@@ -264,7 +284,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     selectedSubject,
     selectedChapter,
     selectedTopic,
-    searchMyQuery
+    searchKeyword
   ]);
 
   const handleResetFilters = () => {
@@ -286,6 +306,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     setTodayMyQuestions("");
     setSearchKeyword("");
     setSearchMyQuery("");
+    setInputValue("");
   };
 
   const handleTabChange = (index) => {
@@ -335,9 +356,10 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     setMyTopics([]);
     setQuestions([]);
     setMyQuestions([]);
-    setQuestionsLength("");
     setMyTotalPages("");
     setTotalPages("");
+    setSearchMyQuery('')
+    setSearchKeyword('')
   }, [user]);
 
   const filteredQuestions = questions.filter(
@@ -359,7 +381,8 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
       selectedSubject,
       selectedChapter,
       selectedTopic,
-      value
+      value,
+      searchKeyword
     );
   };
   useEffect(() => {
@@ -369,7 +392,8 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
       selectedChapter,
       selectedTopic,
       selectedUser,
-      searchKeyword
+      searchKeyword,
+      searchMyQuery,
     );
   });
 
@@ -439,24 +463,68 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
       }
     }
   };
-  const handleSearchChange = (e) => {
-  
-      setSearchKeyword(e.target.value);
-   
-  };
-  const handleMySearcChange = (e) => {
-    setSearchMyQuery(e.target.value);
-  }
+ 
+  const handleSearch = useCallback(
+    debounce((keyword) => {
+      setCurrentPage(1); 
+      setSearchKeyword(keyword);
+      if (inputRef.current) {
+        inputRef.current.focus(); 
+      }
+      fetchQuestions(keyword); 
+    }, 300), 
+    []
+  );
 
+  const handleSearchChange = (e) => {
+     const value = e.target.value;
+    setInputValue(value);
+
+    if (value === '') {
+      resetSearchResults();
+    } else if (value.endsWith(' ') || value.endsWith('\n')) {
+      const trimmedValue = value.trim(); 
+      handleSearch(trimmedValue);
+    }
+  };
   const handleSearchClick = () => {
-    setCurrentPage(1);
-   
-      fetchQuestions(searchKeyword);
-    
+    handleSearch(inputValue.trim());
+  };
+   const resetSearchResults = () => {
+    setSearchKeyword('');
+    setInputValue('');
+    };
+
+
+   const handleMySearch = useCallback(
+    debounce((keyword) => {
+      setMyCurrentPage(1);
+      setSearchMyQuery(keyword);
+      if (myInputRef.current) {
+        myInputRef.current.focus(); 
+      }
+      fetchUserQuestions(keyword); 
+    }, 300), 
+    []
+  );
+  const handleMySearcChange = (e) => {
+     const value = e.target.value;
+    setMyInputValue(value);
+// setSearchMyQuery(e.target.value)
+    if (value === '') {
+      
+      resetMySearchResults();
+    } else if (value.endsWith(' ') || value.endsWith('\n')) {
+      const trimmedValue = value.trim(); 
+      handleMySearch(trimmedValue);
+    }
+  }
+  const resetMySearchResults = () => {
+    setSearchMyQuery('');
+    setMyInputValue(''); 
   };
   const handleMySearchClick = () => {
-    setMyCurrentPage(1);
-    fetchUserQuestions(searchMyQuery);
+    fetchUserQuestions(handleMySearch)
   }
 
   return (
@@ -668,77 +736,83 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
                 Todays Rank: {userRank}
               </button>
             )}
-            {activeTabIndex === 0 ? (
-        <div className="flex items-center max-w-md mx-auto bg-white rounded-lg overflow-hidden mb-2 shadow-md">
-          <input
-            type="text"
-            className="w-full py-2 px-4 bg-gray-100 text-gray-900 focus:outline-none"
-            placeholder="Search questions..."
-            onChange={handleSearchChange}
-            value={searchKeyword}
+           <div className="max-w-md mx-auto mb-2">
+  {activeTabIndex === 0 && (
+    <div className="flex items-center bg-white rounded-lg overflow-hidden shadow-md">
+      <input
+        ref={inputRef}
+        type="text"
+        className="w-full py-2 px-4 bg-gray-100 text-gray-900 focus:outline-none"
+        placeholder="Search questions..."
+        onChange={handleSearchChange}
+        value={inputValue}
+      />
+      <button
+        className="bg-green-500 hover:bg-green-600 text-white py-2 px-4"
+        onClick={handleSearchClick}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 11a4 4 0 11-8 0 4 4 0z"
           />
-          <button
-            className="bg-green-500 hover:bg-green-600 text-white py-2 px-4"
-            onClick={handleSearchClick}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 11a4 4 0 11-8 0 4 4 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17.5 17.5l4.5 4.5"
-              />
-            </svg>
-          </button>
-        </div>
-      ) : (
-        <div className="flex items-center max-w-md mx-auto bg-white rounded-lg overflow-hidden mb-2 shadow-md">
-          <input
-            type="text"
-            className="w-full py-2 px-4 bg-gray-100 text-gray-900 focus:outline-none"
-            placeholder="Search my questions..."
-            onChange={handleMySearcChange}
-            value={searchMyQuery}
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M17.5 17.5l4.5 4.5"
           />
-          <button
-            className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4"
-            onClick={handleMySearchClick}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 11a4 4 0 11-8 0 4 4 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17.5 17.5l4.5 4.5"
-              />
-            </svg>
-          </button>
-        </div>
-      )}
+        </svg>
+      </button>
+    </div>
+  )}
+
+  {activeTabIndex === 1 && (
+    <div className="flex items-center bg-white rounded-lg overflow-hidden shadow-md">
+      <input
+        type="text"
+        className="w-full py-2 px-4 bg-gray-100 text-gray-900 focus:outline-none"
+        placeholder="Search my questions..."
+        onChange={handleMySearcChange}
+        value={myInputValue}
+      />
+      <button
+        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4"
+        onClick={handleMySearchClick}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 11a4 4 0 11-8 0 4 4 0z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M17.5 17.5l4.5 4.5"
+          />
+        </svg>
+      </button>
+    </div>
+  )}
+</div>
+
             {isAdmin && (
               <Tab.Panel
                 key="all-questions"
