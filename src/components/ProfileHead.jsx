@@ -138,11 +138,11 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     try {
       const response = await axios.get(`${server}/api/get/question`, {
         params: {
-          standard: "",
-          subject: "",
-          chapter: "",
-          topic: "",
-          createdBy: "",
+          standard: selectedStandard,
+          subject,
+          chapter,
+          topic,
+          createdBy,
           limit: questionsPerPage,
           page,
           search: searchKeyword,
@@ -175,10 +175,10 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     try {
       const response = await axios.get(`${server}/api/get/myquestion`, {
         params: {
-          standard: '',
-          subject: '',
-          chapter: '',
-          topic: '',
+          standard,
+          subject,
+          chapter,
+          topicList,
           limit: questionsPerPage,
           page,
           search: searchMyQuery, 
@@ -268,7 +268,6 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     }
   };
   
-  // console.log('totalquestion', fetchTotalQuestions)
 
   useEffect(() => {
     fetchUsers(
@@ -279,18 +278,19 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
       searchKeyword
     );
   }, [
-     isAdmin,
-     selectedStandard,
-     selectedSubject,
-     selectedChapter,
-     selectedTopic,
-     searchKeyword
+    isAdmin,
+    selectedStandard,
+    selectedSubject,
+    selectedChapter,
+    selectedTopic,
+    searchKeyword
   ]);
 
   const handleResetFilters = () => {
     setSelectedSubject("");
     setSelectedChapter("");
     setSelectedTopic("");
+    setSelectedStandard("")
 
     setSubjects([]);
     setChapters([]);
@@ -307,35 +307,38 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     setSearchKeyword("");
     setSearchMyQuery("");
     setInputValue("");
-  };
-
-  const handleTabChange = (index) => {
-    setSelectedQuestion(null);
-    setActiveTabIndex(index);
+    setMyInputValue("")
     setCurrentPage(1);
-    setMyCurrentPage(1);
-    setSelectedStandard("");
-    setSelectedSubject("");
-    setSelectedChapter("");
-    setSelectedTopic("");
-
-    setSubjects([]);
-    setChapters([]);
-    setTopics([]);
-    setMySubjects([]);
-    setMyChapters([]);
-    setMyTopics([]);
-    setQuestions([]);
-    setSelectedUser(null);
-    setMyQuestions([]);
-    setMyRank("");
-    setUserRank("");
-    setUserTodayQuestions("");
-    setTodayMyQuestions("");
-    setSearchMyQuery("");
-    setSearchKeyword("");
+    setMyCurrentPage(1)
   };
 
+const handleTabChange = (index) => {
+  setSelectedStandard("")
+  setSelectedQuestion(null);
+  setActiveTabIndex(index);
+  setCurrentPage(1);
+  setMyCurrentPage(1);
+  setSelectedSubject("");
+  setSelectedChapter("");
+  setSelectedTopic("");
+  setSubjects([]);
+  setChapters([]);
+  setTopics([]);
+  setMySubjects([]);
+  setMyChapters([]);
+  setMyTopics([]);
+  setQuestions([]);
+  setSelectedUser(null);
+  setMyQuestions([]);
+  setMyRank("");
+  setUserRank("");
+  setUserTodayQuestions("");
+  setTodayMyQuestions("");
+  setSearchMyQuery("");
+  setSearchKeyword("");
+  setInputValue("");
+  setMyInputValue("")
+};
   useEffect(() => {
     if (!isAdmin) {
       setActiveTabIndex(1);
@@ -343,7 +346,6 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   }, [isAdmin]);
 
   useEffect(() => {
-    setSelectedStandard("");
     setSelectedSubject("");
     setSelectedChapter("");
     setSelectedTopic("");
@@ -360,6 +362,8 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     setTotalPages("");
     setSearchMyQuery('')
     setSearchKeyword('')
+    setCurrentPage(1);
+    setMyCurrentPage(1)
   }, [user]);
 
   const filteredQuestions = questions.filter(
@@ -368,40 +372,24 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
       (!selectedUser || question.createdBy === selectedUser)
   );
 
-  const filteredMyQuestions = selectedSubject
-    ? myQuestions.filter((question) => question.subject === selectedSubject)
-    : myQuestions;
+  const filteredMyQuestions = myQuestions.filter((question) => {
+    if (!selectedSubject) return true;
+    return question.subject === selectedSubject;
+  });
 
   const handleUserChange = (value) => {
     setSelectedUser(value);
     setUserRank("");
     setUserTodayQuestions("");
-    fetchQuestions(
-      selectedStandard,
-      selectedSubject,
-      selectedChapter,
-      selectedTopic,
-      value,
-      searchKeyword
-    );
+   
   };
-  useEffect(() => {
-    fetchTotalQuestions(
-      selectedStandard,
-      selectedSubject,
-      selectedChapter,
-      selectedTopic,
-      selectedUser,
-      searchKeyword,
-      searchMyQuery,
-    );
-  }, [ selectedStandard,
-    selectedSubject,
-    selectedChapter,
-    selectedTopic,
-    selectedUser,
-    searchKeyword,
-    searchMyQuery,]);
+
+   useEffect(() => {
+    fetchTotalQuestions(selectedStandard, selectedSubject, selectedChapter, selectedTopic, selectedUser, searchKeyword, searchMyQuery);
+  });
+
+
+  
 
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
@@ -483,6 +471,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   );
 
   const handleSearchChange = (e) => {
+    setCurrentPage(1);
      const value = e.target.value;
     setInputValue(value);
 
@@ -514,6 +503,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     []
   );
   const handleMySearcChange = (e) => {
+    setMyCurrentPage(1);
      const value = e.target.value;
     setMyInputValue(value);
 // setSearchMyQuery(e.target.value)
@@ -610,6 +600,8 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
                   setSelectedChapter("");
                   setSelectedTopic("");
                   setSelectedQuestion(null);
+                  setCurrentPage(1)
+                  setMyCurrentPage(1)
                 }}
                 options={standards.map((standard) => ({
                   value: standard.value,
@@ -632,6 +624,8 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
                   setSelectedChapter("");
                   setSelectedTopic("");
                   setSelectedQuestion(null);
+                  setCurrentPage(1)
+                  setMyCurrentPage(1)
                 }}
                 filterOption={(input, option) =>
                   (option.label ?? "")
@@ -660,6 +654,8 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
                   setSelectedChapter(value);
                   setSelectedTopic("");
                   setSelectedQuestion(null);
+                  setCurrentPage(1)
+                  setMyCurrentPage(1)
                 }}
                 filterOption={(input, option) =>
                   (option.label ?? "")
@@ -679,6 +675,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
                 Topic
               </label>
               <Select
+              
                 style={{ width: 200 }}
                 showSearch
                 value={selectedTopic}
@@ -687,7 +684,10 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
                     .toLowerCase()
                     .includes(input.toLowerCase())
                 }
-                onChange={(value) => setSelectedTopic(value)}
+                onChange={(value) => {setSelectedTopic(value);
+                  setCurrentPage(1);
+                  setMyCurrentPage(1);}
+                }
                 options={topicList?.map((el) => ({
                   value: el.name,
                   label: el.name,
@@ -696,7 +696,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
             </div>
           </div>
         </div>
-
+        {subjectList && chapterList && topicList ? (
         <Tab.Group selectedIndex={activeTabIndex} onChange={handleTabChange}>
           <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
             {isAdmin && (
@@ -768,13 +768,13 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M15 11a4 4 0 11-8 0 4 4 0z"
+            d="M10 10 H 90 V 90 H 10 L 10 10"
           />
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M17.5 17.5l4.5 4.5"
+           d="M10 10 H 90 V 90 H 10 L 10 10"
           />
         </svg>
       </button>
@@ -805,13 +805,13 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M15 11a4 4 0 11-8 0 4 4 0z"
+           d="M10 10 H 90 V 90 H 10 L 10 10"
           />
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M17.5 17.5l4.5 4.5"
+           d="M10 10 H 90 V 90 H 10 L 10 10"
           />
         </svg>
       </button>
@@ -964,6 +964,9 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
             </Tab.Panel>
           </Tab.Panels>
         </Tab.Group>
+         ) : (
+          <div>Loading...</div>
+        )}
       </div>
     </>
   );
