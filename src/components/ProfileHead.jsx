@@ -717,6 +717,7 @@ const handleTabChange = (index) => {
 >
   <option value="">Select Level</option>
   <option value="jeemains">JEE Mains</option>
+  <option value="jeeadvance">JEE Advance</option>
   <option value="neet">NEET</option>
   <option value="boards">Boards</option>
 </select>
@@ -958,7 +959,7 @@ const handleTabChange = (index) => {
                 Todays Rank: {userRank}
               </button>
             )}
-           <div className="max-w-md mx-auto mb-2">
+  {/* <div className="max-w-md mx-auto mb-2">
   {activeTabIndex === 0 && (
     <div className="flex items-center bg-white rounded-lg overflow-hidden shadow-md">
       <input
@@ -1033,7 +1034,7 @@ const handleTabChange = (index) => {
       </button>
     </div>
   )}
-</div>
+</div> */}
 
             {isAdmin && (
               <Tab.Panel
