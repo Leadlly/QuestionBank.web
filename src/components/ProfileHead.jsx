@@ -13,6 +13,7 @@ import { getSubjects } from "../actions/subjectAction";
 import { getChapters } from "../actions/chapterAction";
 import { getTopics } from "../actions/topicAction";
 import Loading from "../pages/Loading";
+import ViewChapTop from "./ViewChapTop";
 
 
 
@@ -28,19 +29,7 @@ function debounce(func, delay) {
   };
 }
 
-function getBackgroundColor(examTag) {
-  console.log('getBackgroundColor called with:', examTag);
-  switch (examTag) {
-    case 'jeemains':
-      return 'bg-yellow-100';
-    case 'neet':
-      return 'bg-green-100';
-    case 'boards':
-      return 'bg-blue-100';
-    default:
-      return '';
-  }
-}
+
 
 const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const [questions, setQuestions] = useState([]);
@@ -88,16 +77,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
  const inputRef = useRef(null);
  const myInputRef = useRef(null);
   const dispatch = useDispatch();
-  const [allChapters, setAllChapters] = useState([]);
-  const [loadingChapters, setLoadingChapters] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
-  const [showChapterDetails, setShowChapterDetails] = useState(false);
-const [chapterDetails, setChapterDetails] = useState({
-  standard: '',
-  subject: '',
-  examTags: [],
-});
-// const [level, setLevel] = useState('');
+
 
 
   const { subjectList } = useSelector((state) => state.getSubject);
@@ -548,200 +528,12 @@ const handleTabChange = (index) => {
     fetchUserQuestions(handleMySearch)
   }
 
-  const handleViewChapterClick = async () => {
-    setShowPopup(true);
-    setLoadingChapters(true);
-    try {
-      const response = await axios.get(`${server}/api/get/chapter`, {
-        withCredentials: true,
-      });
-      if (response.data.success) {
-        setAllChapters(response.data.chapters);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingChapters(false);
-    }
-  };
 
-  const handleChapterClick = async (chapterId) => {
-    try {
-      const response = await axios.get(`${server}/api/get/chapter/${chapterId}`);
-      setShowChapterDetails(true);
-      setChapterDetails(response.data.chapter);
-  
-    } catch (error) {
-      console.error('Error retrieving chapter details:', error);
-    }
-  };
-  
-  const handleSaveChanges = async (event) => {
-    event.preventDefault(); 
-    try {
-      const response = await axios.post(`${server}/api/chapter/${chapterDetails._id}/examtag`, {
-        examTags: chapterDetails.examTags,
-      });
-  
-      if (response.status === 200) {
-        setShowChapterDetails(false);
-      }
-    } catch (error) {
-      console.error('Error updating chapter exam tags:', error);
-    }
-  };
-  
-  const handleCloseChapterDetails = () => {
-    setShowChapterDetails(false);
-  };
-
-  const handleClosePopup = () => {
-    setShowPopup(false);
-  };
 
   
   return (
     <>
- <div className="w-full max-w-md px-2 py-4 sm:px-2">
-      <div className="flex space-x-4 mb-4">
-        <button
-          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-          onClick={handleViewChapterClick}
-        >
-          View Chapter
-        </button>
-        <button
-          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-          onClick={() => console.log("View Topic")}
-        >
-          View Topic
-        </button>
-      </div>
-
-
-      {showPopup && (
-  <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
-    <div className="bg-white rounded p-4 w-1/2 h-3/4 overflow-y-auto">
-      {loadingChapters ? (
-        <Loading />
-      ) : (
-        <ul className="flex flex-wrap text-gray-900 cursor-pointer justify-center">
-         {allChapters.map((chapter) => {
-  console.log('Chapter:', chapter);
-  chapter.examTags = chapter.examTags || ['default']; // update examTags with a default value if it's missing
-  let examTag = chapter.examTags[0]; // access the first examTag
-  console.log('Exam Tag:', examTag);
-  const backgroundColor = getBackgroundColor(examTag);
-  console.log('Background color:', backgroundColor);
-  return (
-    <li
-      key={chapter._id}
-      className={`bg-white rounded shadow-md p-4 w-48 mb-4 hover:bg-gray-100 transition duration-300 ease-in-out ${backgroundColor}`}
-      onClick={() => handleChapterClick(chapter._id)}
-    >
-      <h5 className="text-lg font-bold">{chapter.name}</h5>
-      <span className="text-sm text-gray-600 ml-2">
-        {chapter.subjectName ? `Subject: ${chapter.subjectName}` : ''}
-      </span>
-    </li>
-  );
-})}
-        </ul>
-      )}
-      <button
-        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-        onClick={handleClosePopup}
-      >
-        Close
-      </button>
-    </div>
-  </div>
-)}
-     {showChapterDetails && (
-  <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
-    <div className="bg-white rounded p-4 w-1/2 h-3/4 overflow-y-auto">
-      <h4 className="text-lg font-bold mb-4">Chapter Details</h4>
-      <form>
-        <div className="flex flex-wrap -mx-3 mb-6">
-          <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-            <label
-              className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-              htmlFor="standard"
-            >
-              Standard
-            </label>
-            <input
-              className="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white"
-              id="standard"
-              type="text"
-              value={chapterDetails.standard}
-              readOnly
-            />
-          </div>
-          <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-            <label
-              className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-              htmlFor="subject"
-            >
-              Subject
-            </label>
-            <input
-              className="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white"
-              id="subject"
-              type="text"
-              value={chapterDetails.subject}
-              readOnly
-            />
-          </div>
-        </div>
-        <div className="flex flex-wrap -mx-3 mb-6">
-          <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-            <label
-              className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-              htmlFor="level"
-            >
-              Level
-            </label>
-            <select
-  className="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white"
-  id="level"
-  value={chapterDetails.level}
-  onChange={(e) => {
-    const level = e.target.value;
-    setChapterDetails((prevChapter) => {
-      // Check if examTags is an array before updating it
-      const newExamTags = Array.isArray(prevChapter.examTags) ? [...prevChapter.examTags, level] : [level];
-      return {...prevChapter, level, examTags: newExamTags};
-    });
-  }}
->
-  <option value="">Select Level</option>
-  <option value="jeemains">JEE Mains</option>
-  <option value="jeeadvance">JEE Advance</option>
-  <option value="neet">NEET</option>
-  <option value="boards">Boards</option>
-</select>
-<button
-  type="button" // Add this attribute
-  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-  onClick={handleSaveChanges}
->
-  Save Changes
-</button>
-          </div>
-        </div>
-      </form>
-      <button
-        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-        onClick={handleCloseChapterDetails}
-      >
-        Close
-      </button>
-     
-    </div>
-  </div>
-)}
-    </div>
+<ViewChapTop/>
       <div className="w-full max-w-md px-2 py-4 sm:px-2">
         <div className="flex space-x-4 mb-4">
           <div className="w-1/2">
@@ -959,7 +751,7 @@ const handleTabChange = (index) => {
                 Todays Rank: {userRank}
               </button>
             )}
-  {/* <div className="max-w-md mx-auto mb-2">
+  <div className="max-w-md mx-auto mb-2">
   {activeTabIndex === 0 && (
     <div className="flex items-center bg-white rounded-lg overflow-hidden shadow-md">
       <input
@@ -1034,7 +826,7 @@ const handleTabChange = (index) => {
       </button>
     </div>
   )}
-</div> */}
+</div>
 
             {isAdmin && (
               <Tab.Panel
