@@ -3,13 +3,18 @@ import { useState, useEffect } from "react";
 import { server } from "../main";
 import Loading from "../pages/Loading";
 import { Select, Button } from "antd";
+import { getSubjects } from "../actions/subjectAction";
+import { getChapters } from "../actions/chapterAction";
+// import { getTopics } from "../actions/topicAction";
+import { standards } from "../components/Options";
+import { useDispatch, useSelector } from "react-redux";
 
 function getBadgeColor(examTag) {
   switch (examTag) {
     case "neet":
-      return "green-500";
-    case "jee":
-      return "gray-500";
+      return "green-700";
+    case "jeemains":
+      return "yellow-900";
     case "boards":
       return "black";
     default:
@@ -18,7 +23,8 @@ function getBadgeColor(examTag) {
 }
 
 const ViewChapTop = () => {
-  const [allChapters, setAllChapters] = useState([]);
+  // const [allChapters, setAllChapters] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [showChapterDetails, setShowChapterDetails] = useState(false);
@@ -29,7 +35,7 @@ const ViewChapTop = () => {
     exam: [],
   });
   const [showTopicDetails, setShowTopicDetails] = useState(false);
-  const [TopicDetails, setTopicDetails] = useState({
+  const [topicDetails, setTopicDetails] = useState({
     _id: "",
     standard: "",
     subjectName: "",
@@ -39,6 +45,25 @@ const ViewChapTop = () => {
   const [allTopics, setAllTopics] = useState([]);
   const [loadingTopics, setLoadingTopics] = useState(false);
   const [showTopicPopup, setShowTopicPopup] = useState(false);
+
+  const [selectedStandard, setSelectedStandard] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedChapter, setSelectedChapter] = useState("");
+
+  const { subjectList } = useSelector((state) => state.getSubject);
+  const { chapterList } = useSelector((state) => state.getChapter);
+  // const { topicList } = useSelector((state) => state.getTopic);
+
+  const dispatch = useDispatch()
+  useEffect(() => {
+    if (selectedStandard) {
+      dispatch(getSubjects(selectedStandard));
+    }
+    if (selectedSubject && selectedStandard) {
+      dispatch(getChapters(selectedSubject, selectedStandard));
+    }
+  
+  }, [dispatch, selectedStandard, selectedSubject, selectedChapter]);
 
   const fetchTopics = async () => {
     setLoadingTopics(true);
@@ -55,31 +80,23 @@ const ViewChapTop = () => {
       setLoadingTopics(false);
     }
   };
+  const handleViewChapterClick = () => {
+    setShowPopup(true);
+  };
   const handleViewTopicClick = () => {
     fetchTopics();
     setShowTopicPopup(true);
   };
+
   const handleCloseTopicPopup = () => {
     setShowTopicPopup(false);
   };
-  const fetchChapters = async () => {
-    setLoadingChapters(true);
-    try {
-      const response = await axios.get(`${server}/api/get/chapter`, {
-        withCredentials: true,
-      });
-      if (response.data.success) {
-        setAllChapters(response.data.chapters);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingChapters(false);
-    }
-  };
+
+
+ 
 
   useEffect(() => {
-    fetchChapters();
+    // fetchChapters();
     fetchTopics();
   }, []);
 
@@ -87,29 +104,30 @@ const ViewChapTop = () => {
     try {
       const response = await axios.get(`${server}/api/get/topic/${topicId}`);
       setShowTopicDetails(true);
-      setTopicDetails((prevTopic) => ({
-        ...prevTopic,
+      setTopicDetails({
         _id: response.data.topic._id,
         standard: response.data.topic.standard,
         subjectName: response.data.topic.subjectName,
         chapterName: response.data.topic.chapterName,
         exam: response.data.topic.exam || [],
-      }));
+      });
     } catch (error) {
       console.error("Error retrieving topic details:", error);
     }
   };
+
   const handleChapterClick = async (chapterId) => {
     try {
       const response = await axios.get(
         `${server}/api/get/chapter/${chapterId}`
       );
       setShowChapterDetails(true);
-      setChapterDetails((prevChapter) => ({
-        ...prevChapter,
-        ...response.data.chapter,
+      setChapterDetails({
+        _id: response.data.chapter._id,
+        standard: response.data.chapter.standard,
+        subject: response.data.chapter.subject,
         exam: response.data.chapter.exam || [],
-      }));
+      });
     } catch (error) {
       console.error("Error retrieving chapter details:", error);
     }
@@ -118,20 +136,19 @@ const ViewChapTop = () => {
   const handleSaveChanges = async (event) => {
     event.preventDefault();
     try {
-      const uniqueExamTags = [...new Set(chapterDetails.exam)];
-      const response = await axios.post(
+      const response = await axios.put(
         `${server}/api/chapter/${chapterDetails._id}/examtag`,
         {
-          examTags: uniqueExamTags,
+          examTags: chapterDetails.exam,
         }
       );
 
       if (response.status === 200) {
         setShowChapterDetails(false);
-        setAllChapters((prevChapters) =>
+        chapterList((prevChapters) =>
           prevChapters.map((chapter) =>
             chapter._id === chapterDetails._id
-              ? { ...chapter, exam: [...new Set(chapterDetails.exam)] }
+              ? { ...chapter, exam: chapterDetails.exam }
               : chapter
           )
         );
@@ -140,14 +157,14 @@ const ViewChapTop = () => {
       console.error("Error updating chapter exam tags:", error);
     }
   };
+
   const handleSaveTopicChanges = async (event) => {
     event.preventDefault();
     try {
-      const uniqueExamTags = [...new Set(TopicDetails.exam)];
-      const response = await axios.post(
-        `${server}/api/topic/${TopicDetails._id}/examtag`,
+      const response = await axios.put(
+        `${server}/api/topic/${topicDetails._id}/examtag`,
         {
-          examTags: uniqueExamTags,
+          examTags: topicDetails.exam,
         }
       );
 
@@ -155,20 +172,21 @@ const ViewChapTop = () => {
         setShowTopicDetails(false);
         setAllTopics((prevTopic) =>
           prevTopic.map((topic) =>
-            topic._id === TopicDetails._id
-              ? { ...topic, exam: [...new Set(TopicDetails.exam)] }
+            topic._id === topicDetails._id
+              ? { ...topic, exam: topicDetails.exam }
               : topic
           )
         );
       }
     } catch (error) {
-      console.error("Error updating chapter exam tags:", error);
+      console.error("Error updating topic exam tags:", error);
     }
   };
 
   const handleCloseChapterDetails = () => {
     setShowChapterDetails(false);
   };
+
   const handleCloseTopicDetails = () => {
     setShowTopicDetails(false);
   };
@@ -177,16 +195,15 @@ const ViewChapTop = () => {
     setShowPopup(false);
   };
 
+  
+
   return (
     <>
       <div className="w-full max-w-md px-2 py-4 sm:px-2">
         <div className="flex space-x-4 mb-4">
           <Button
             type="primary"
-            onClick={() => {
-              setShowPopup(true);
-              fetchChapters();
-            }}
+            onClick={handleViewChapterClick}
           >
             View Chapter
           </Button>
@@ -195,48 +212,109 @@ const ViewChapTop = () => {
           </Button>
         </div>
 
+      
         {showPopup && (
-          <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white rounded p-4 w-1/2 h-3/4 overflow-y-auto">
-              <Button
-                type="primary"
-                onClick={handleClosePopup}
-                className="fixed top-4 right-8"
-              >
-                Close
-              </Button>
-              {loadingChapters ? (
-                <Loading />
-              ) : (
-                <ul className="flex flex-wrap text-gray-900 cursor-pointer justify-center">
-                  {allChapters.map((chapter) => (
-                    <li
-                      key={chapter._id}
-                      className="bg-white rounded shadow-md p-4 w-48 mb-4 hover:bg-gray-100 transition duration-300 ease-in-out"
-                      onClick={() => handleChapterClick(chapter._id)}
-                    >
-                      <h5 className="text-lg font-bold">{chapter.name}</h5>
-                      {chapter.exam && (
-                        <div className="flex flex-wrap">
-                          {chapter.exam.map((examTag, index) => (
-                            <span
-                              key={index}
-                              className={`bg-${getBadgeColor(
-                                examTag
-                              )} text-sm m-2 text-white px-2 py-1 rounded-full ml-2`}
-                            >
-                              {examTag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
+  <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
+    <div className="bg-white rounded p-4 w-1/2 h-3/4 overflow-y-auto">
+      <Button
+        type="primary"
+        onClick={handleClosePopup}
+        className="fixed top-4 right-8"
+      >
+        Close
+      </Button>
+
+      <form>
+        <div className="flex space-x-4 mb-4">
+          <div className="w-1/2">
+            <div className="mb-4">
+              <label className="text-white-500 text-sm dark:text-white-400">
+                Standard
+              </label>
+              <Select
+                style={{ width: 200 }}
+                showSearch
+                value={selectedStandard}
+                onChange={(value) => {
+                  setSelectedStandard(value);
+                  setSelectedSubject("");
+                  setSelectedChapter("");
+                }}
+                options={standards.map((standard) => ({
+                  value: standard.value,
+                  label: standard.label,
+                }))}
+              />
             </div>
           </div>
-        )}
+          <div className="w-1/2">
+            <div className="mb-4">
+              <label className="text-white-500 text-sm dark:text-white-400">
+                Subject
+              </label>
+              <Select
+                style={{ width: 200 }}
+                showSearch
+                value={selectedSubject}
+                onChange={(value) => {
+                  setSelectedSubject(value);
+                  setSelectedChapter("");
+                }}
+                filterOption={(input, option) =>
+                  (option.label?? "")
+                   .toLowerCase()
+                   .includes(input.toLowerCase())
+                }
+                options={subjectList?.map((name) => ({
+                  value: name,
+                  label: name,
+                }))}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end">
+          {selectedStandard && selectedSubject? (
+            <Button type="primary" disabled>
+              Fetching Chapters...
+            </Button>
+          ) : (
+            <Button type="primary" disabled>
+              Please select Standard and Subject
+            </Button>
+          )}
+        </div>
+      </form>
+      {loadingChapters? (
+        <Loading />
+      ) : (
+        <ul className="flex flex-wrap text-gray-900 cursor-pointer justify-center">
+          {chapterList.map((chapter) => (
+            <li
+              key={chapter._id}
+              className="bg-white rounded shadow-md p-4 w-48 mb-4 hover:bg-gray-100 transition duration-300 ease-in-out"
+              onClick={() => handleChapterClick(chapter._id)}
+            >
+              <h5 className="text-lg font-bold">{chapter.name}</h5>
+              {chapter.exam && (
+                <div className="flex flex-wrap">
+                  {chapter.exam.map((examTag, index) => (
+                    <span
+                      key={index}
+                      className={`bg-${getBadgeColor(examTag)} text-sm m-2 text-white px-2 py-1 rounded-full ml-2`}
+                    >
+                      {examTag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </div>
+)}
 
         {showChapterDetails && (
           <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
@@ -275,42 +353,41 @@ const ViewChapTop = () => {
                     />
                   </div>
                 </div>
-                <div className="flex flex-wrap -mx-3 mb-6">
-                  <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-                    <label
-                      className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                      htmlFor="exam"
-                    >
-                      Exam
-                    </label>
-                    <Select
-                      mode="multiple"
-                      style={{ width: "100%" }}
-                      placeholder="Select Exam"
-                      value={chapterDetails.exam}
-                      filterOption={(input, option) =>
-                        option.label.includes(input.toLowerCase())
-                      }
-                      onChange={(value) => {
-                        const uniqueExamTags = [...new Set(value)]; // Remove duplicates here as well
-                        setChapterDetails((prevChapter) => ({
-                          ...prevChapter,
-                          exam: uniqueExamTags,
-                        }));
-                      }}
-                      options={[
-                        { value: "jeemains", label: "JEE Mains" },
-                        { value: "neet", label: "NEET" },
-                        { value: "boards", label: "Boards" },
-                      ]}
-                    />
-                  </div>
+                <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
+                  <label
+                    className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
+                    htmlFor="examTags"
+                  >
+                    Exam Tags
+                  </label>
+                  <Select
+                    mode="multiple"
+                    style={{ width: "100%" }}
+                    placeholder="Select exam tags"
+                    value={chapterDetails.exam}
+                    onChange={(value) =>
+                      setChapterDetails((prevChapter) => ({
+                        ...prevChapter,
+                        exam: value,
+                      }))
+                    }
+                  >
+                    <Select.Option key="neet">Neet</Select.Option>
+                    <Select.Option key="jeemains">JeeMains</Select.Option>
+                    <Select.Option key="boards">Boards</Select.Option>
+                  </Select>
                 </div>
-                <div className="flex justify-between">
+                <div className="mt-4 flex justify-end">
                   <Button type="primary" htmlType="submit">
-                    Save Changes
+                    Save
                   </Button>
-                  <Button onClick={handleCloseChapterDetails}>Close</Button>
+                  <Button
+                    type="default"
+                    onClick={handleCloseChapterDetails}
+                    className="ml-2"
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </form>
             </div>
@@ -359,6 +436,7 @@ const ViewChapTop = () => {
             </div>
           </div>
         )}
+
         {showTopicDetails && (
           <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white rounded p-4 w-1/2 h-3/4 overflow-y-auto">
@@ -376,7 +454,7 @@ const ViewChapTop = () => {
                       className="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white"
                       id="standard"
                       type="text"
-                      value={TopicDetails.standard}
+                      value={topicDetails.standard}
                       readOnly
                     />
                   </div>
@@ -391,62 +469,61 @@ const ViewChapTop = () => {
                       className="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white"
                       id="subject"
                       type="text"
-                      value={TopicDetails.subjectName}
-                      readOnly
-                    />
-                  </div>
-                  <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-                    <label
-                      className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                      htmlFor="chapter"
-                    >
-                      Chapter
-                    </label>
-                    <input
-                      className="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white"
-                      id="chapter"
-                      type="text"
-                      value={TopicDetails.chapterName}
+                      value={topicDetails.subjectName}
                       readOnly
                     />
                   </div>
                 </div>
-                <div className="flex flex-wrap -mx-3 mb-6">
-                  <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-                    <label
-                      className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                      htmlFor="exam"
-                    >
-                      Exam
-                    </label>
-                    <Select
-                      mode="multiple"
-                      style={{ width: "100%" }}
-                      placeholder="Select Exam"
-                      value={TopicDetails.exam}
-                      filterOption={(input, option) =>
-                        option.label.includes(input.toLowerCase())
-                      }
-                      onChange={(value) => {
-                        const uniqueExamTags = [...new Set(value)];
-                        setTopicDetails((prevTopic) => ({
-                          ...prevTopic,
-                          exam: uniqueExamTags,
-                        }));
-                      }}
-                      options={[
-                        { value: "jeemains", label: "JEE Mains" },
-                        { value: "neet", label: "NEET" },
-                        { value: "boards", label: "Boards" },
-                      ]}
-                    />
-                  </div>
+                <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
+                  <label
+                    className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
+                    htmlFor="chapter"
+                  >
+                    Chapter
+                  </label>
+                  <input
+                    className="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white"
+                    id="chapter"
+                    type="text"
+                    value={topicDetails.chapterName}
+                    readOnly
+                  />
                 </div>
-                <div className="flex justify-between">
+                <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
+                  <label
+                    className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
+                    htmlFor="examTags"
+                  >
+                    Exam Tags
+                  </label>
+                  <Select
+                    mode="multiple"
+                    style={{ width: "100%" }}
+                    placeholder="Select exam tags"
+                    value={topicDetails.exam}
+                    onChange={(value) =>
+                      setTopicDetails((prevTopic) => ({
+                        ...prevTopic,
+                        exam: value,
+                      }))
+                    }
+                  >
+                    <Select.Option key="neet">Neet</Select.Option>
+                    <Select.Option key="jeemains">JeeMains</Select.Option>
+                    <Select.Option key="boards">Boards</Select.Option>
+                  </Select>
+                </div>
+                <div className="mt-4 flex justify-end">
                   <Button type="primary" htmlType="submit">
-                    Save Changes
+                    Save
                   </Button>
-                  <Button onClick={handleCloseTopicDetails}>Close</Button>
+                  <Button
+                    type="default"
+                    onClick={handleCloseTopicDetails}
+                    className="ml-2"
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </form>
             </div>
