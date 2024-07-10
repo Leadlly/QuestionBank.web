@@ -7,6 +7,7 @@ import { Select, Button } from "antd";
 import { getSubjects } from "../actions/subjectAction";
 import { useDispatch, useSelector } from "react-redux";
 import { getChapters } from "../actions/chapterAction";
+import { getTopics } from "../actions/topicAction";
 
 function getBadgeColor(examTag) {
   switch (examTag) {
@@ -50,7 +51,6 @@ const ViewChapTop = () => {
   const [selectedChapter, setSelectedChapter] = useState("");
 
   const { subjectList } = useSelector((state) => state.getSubject);
-  const { chapterList } = useSelector((state) => state.getChapter);
 
   const dispatch = useDispatch();
   useEffect(() => {
@@ -60,7 +60,10 @@ const ViewChapTop = () => {
     if (selectedStandard && selectedSubject) {
       dispatch(getChapters(selectedStandard, selectedSubject));
     }
-  }, [dispatch, selectedStandard, selectedSubject]);
+    if (selectedSubject && selectedStandard && selectedChapter) {
+      dispatch(getTopics(selectedSubject, selectedStandard, selectedChapter));
+    }
+  }, [dispatch, selectedStandard, selectedSubject, selectedChapter]);
 
   const fetchTopics = async () => {
     setLoadingTopics(true);
@@ -90,13 +93,8 @@ const ViewChapTop = () => {
     setShowPopup(true);
     fetchChapters();
   };
-  useEffect(() => {
-    fetchTopics();
-  }, [selectedStandard, selectedSubject, selectedChapter]);
 
   
-  console.log('chapterList:', chapterList);
-  console.log('selectedChapter:', selectedChapter);
 
   const fetchChapters = async () => {
     setShowPopup(true);
@@ -120,12 +118,25 @@ const ViewChapTop = () => {
   };
 
   const handleCloseTopicPopup = () => {
+    setSelectedStandard("");
+  setSelectedSubject("");
+  setSelectedChapter("");
     setShowTopicPopup(false);
   };
 
-    useEffect(() => {
-        fetchChapters(selectedStandard, selectedSubject);
-    }, [selectedStandard, selectedSubject]);
+  useEffect(() => {
+    if (selectedStandard && selectedSubject) {
+      setLoadingChapters(true);
+      fetchChapters()
+    }
+  }, [selectedStandard, selectedSubject]);
+  
+  useEffect(() => {
+    if (selectedStandard && selectedSubject && selectedChapter ) {
+      setLoadingTopics(true);
+      fetchTopics()
+    }
+  }, [selectedStandard, selectedSubject, selectedChapter]);
 
   const handleTopicClick = async (topicId) => {
     try {
@@ -219,6 +230,9 @@ const ViewChapTop = () => {
   };
 
   const handleClosePopup = () => {
+  setSelectedStandard("");
+  setSelectedSubject("");
+  setSelectedChapter("");
     setShowPopup(false);
   };
 
@@ -231,14 +245,22 @@ const ViewChapTop = () => {
   return (
     <>
       <div className="w-full max-w-md px-2 py-4 sm:px-2">
-        <div className="flex space-x-4 mb-4">
-          <Button type="primary" onClick={handleViewChapterClick}>
-            View Chapter
-          </Button>
-          <Button type="primary" onClick={handleViewTopicClick}>
-            View Topic
-          </Button>
-        </div>
+      <div className="flex space-x-4 mb-4">
+  <Button
+    type="primary"
+    onClick={handleViewChapterClick}
+    className="bg-gradient-to-r border-blue-900 from-yellow-500 to-orange-500 hover:from-yellow-700 hover:to-orange-700 text-white font-bold py-2 px-4 rounded shadow-md"
+  >
+    View Chapter
+  </Button>
+  <Button
+    type="primary"
+    onClick={handleViewTopicClick}
+    className="bg-gradient-to-r border-blue-600 from-blue-500 to-green-500 hover:from-blue-700 hover:to-green-700 border text-white font-bold py-2 px-4 rounded shadow-md"
+  >
+    View Topic
+  </Button>
+</div>
 
         {showPopup && (
           <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
@@ -250,9 +272,11 @@ const ViewChapTop = () => {
               >
                 Close
               </Button>
+               <div className="w-full max-w-md px-2 py-4 sm:px-2">
               <h2 className="text-center text-gray-900">View Chapters</h2>
              
-
+ <div className="flex space-x-4 mb-4">
+          <div className="w-1/2">
               <div className="mb-4">
                 <label className="text-gray-500 text-sm dark:text-white-400">
                   Standard
@@ -271,6 +295,10 @@ const ViewChapTop = () => {
                     label: standard.label,
                   }))}
                 />
+                </div>
+                </div>
+                 <div className="w-1/2">
+            <div className="mb-4">
                 <label className="text-gray-500 text-sm dark:text-white-400">
                   Subject
                 </label>
@@ -293,6 +321,8 @@ const ViewChapTop = () => {
                   }))}
                 />
               </div>
+              </div>
+              </div>
               <div className="w-1/2 m-5">
             <button
               className=" border-green-600 border-2 p-2 bg-green-900 rounded-lg"
@@ -300,6 +330,7 @@ const ViewChapTop = () => {
             >
               Reset Filters
             </button>
+          </div>
           </div>
               {loadingChapters ? (
                 <Loading />
@@ -423,9 +454,11 @@ const ViewChapTop = () => {
                 Close
               </Button>
               
-
+ <div className="w-full max-w-md px-2 py-4 sm:px-2">
           
-          <h2 className="text-center text-gray-900">View Topics</h2>
+          <h2 className="text-center text-gray-900 mb-4">View Topics</h2>
+           <div className="flex space-x-4 mb-4">
+          <div className="w-1/2">
               <div className="mb-4">
                 <label className="text-gray-500 text-sm dark:text-white-400">
                   Standard
@@ -444,6 +477,9 @@ const ViewChapTop = () => {
                     label: standard.label,
                   }))}
                 />
+                </div>
+                <div className="w-1/2">
+                <div className="mb-4">
                 <label className="text-gray-500 text-sm dark:text-white-400">
                   Subject
                 </label>
@@ -453,6 +489,7 @@ const ViewChapTop = () => {
                   value={selectedSubject}
                   onChange={(value) => {
                     setSelectedSubject(value);
+                    setSelectedChapter("");
                   }}
                   filterOption={(input, option) =>
                     (option.label ?? "")
@@ -464,7 +501,35 @@ const ViewChapTop = () => {
                     label: name,
                   }))}
                 />
-              </div>
+                </div>
+                </div>
+                </div>
+                </div>
+                 <div className="flex space-x-4 mb-4">
+          <div className="w-1/2">
+            <div className="mb-4">
+                 <label className="text-gray-500 text-sm dark:text-white-400">
+                Chapter
+              </label>
+              <Select
+                  style={{ width: 200 }}
+                  showSearch
+                  value={selectedChapter}
+                  onChange={(value) => setSelectedChapter(value)}
+                  filterOption={(input, option) =>
+                    (option.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  options={allChapters.map((chapter) => ({
+                    value: chapter.name,
+                    label: chapter.name,
+                  }))}
+                />
+                </div>
+                </div>
+                </div>
+              
               <div className="w-1/2 m-5">
             <button
               className=" border-green-600 border-2 p-2 bg-green-900 rounded-lg"
@@ -472,6 +537,7 @@ const ViewChapTop = () => {
             >
               Reset Filters
             </button>
+          </div>
           </div>
               {loadingTopics ? (
                 <Loading />
