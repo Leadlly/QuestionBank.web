@@ -2,12 +2,11 @@ import axios from "axios";
 import { useState, useEffect } from "react";
 import { server } from "../main";
 import Loading from "../pages/Loading";
+import { standards } from "../components/Options";
 import { Select, Button } from "antd";
 import { getSubjects } from "../actions/subjectAction";
-import { getChapters } from "../actions/chapterAction";
-// import { getTopics } from "../actions/topicAction";
-import { standards } from "../components/Options";
 import { useDispatch, useSelector } from "react-redux";
+import { getChapters } from "../actions/chapterAction";
 
 function getBadgeColor(examTag) {
   switch (examTag) {
@@ -23,7 +22,7 @@ function getBadgeColor(examTag) {
 }
 
 const ViewChapTop = () => {
-  // const [allChapters, setAllChapters] = useState([]);
+  const [allChapters, setAllChapters] = useState([]);
   // eslint-disable-next-line no-unused-vars
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
@@ -52,23 +51,26 @@ const ViewChapTop = () => {
 
   const { subjectList } = useSelector((state) => state.getSubject);
   const { chapterList } = useSelector((state) => state.getChapter);
-  // const { topicList } = useSelector((state) => state.getTopic);
 
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
   useEffect(() => {
     if (selectedStandard) {
       dispatch(getSubjects(selectedStandard));
     }
-    if (selectedSubject && selectedStandard) {
-      dispatch(getChapters(selectedSubject, selectedStandard));
+    if (selectedStandard && selectedSubject) {
+      dispatch(getChapters(selectedStandard, selectedSubject));
     }
-  
-  }, [dispatch, selectedStandard, selectedSubject, selectedChapter]);
+  }, [dispatch, selectedStandard, selectedSubject]);
 
   const fetchTopics = async () => {
     setLoadingTopics(true);
     try {
       const response = await axios.get(`${server}/api/get/topic`, {
+        params: {
+          standard: selectedStandard,
+          subjectName: selectedSubject,
+          chapterName: selectedChapter,
+        },
         withCredentials: true,
       });
       if (response.data.success) {
@@ -80,25 +82,50 @@ const ViewChapTop = () => {
       setLoadingTopics(false);
     }
   };
-  const handleViewChapterClick = () => {
-    setShowPopup(true);
-  };
   const handleViewTopicClick = () => {
     fetchTopics();
     setShowTopicPopup(true);
+  };
+  const handleViewChapterClick = () => {
+    setShowPopup(true);
+    fetchChapters();
+  };
+  useEffect(() => {
+    fetchTopics();
+  }, [selectedStandard, selectedSubject, selectedChapter]);
+
+  
+  console.log('chapterList:', chapterList);
+  console.log('selectedChapter:', selectedChapter);
+
+  const fetchChapters = async () => {
+    setShowPopup(true);
+    setLoadingChapters(true);
+    try {
+      const response = await axios.get(`${server}/api/get/chapter`, {
+        params: {
+          standard: selectedStandard,
+          subjectName: selectedSubject,
+        },
+        withCredentials: true,
+      });
+      if (response.data.success) {
+        setAllChapters(response.data.chapters);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingChapters(false);
+    }
   };
 
   const handleCloseTopicPopup = () => {
     setShowTopicPopup(false);
   };
 
-
- 
-
-  useEffect(() => {
-    // fetchChapters();
-    fetchTopics();
-  }, []);
+    useEffect(() => {
+        fetchChapters(selectedStandard, selectedSubject);
+    }, [selectedStandard, selectedSubject]);
 
   const handleTopicClick = async (topicId) => {
     try {
@@ -125,7 +152,7 @@ const ViewChapTop = () => {
       setChapterDetails({
         _id: response.data.chapter._id,
         standard: response.data.chapter.standard,
-        subject: response.data.chapter.subject,
+        subjectName: response.data.chapter.subject,
         exam: response.data.chapter.exam || [],
       });
     } catch (error) {
@@ -145,7 +172,7 @@ const ViewChapTop = () => {
 
       if (response.status === 200) {
         setShowChapterDetails(false);
-        chapterList((prevChapters) =>
+        setAllChapters((prevChapters) =>
           prevChapters.map((chapter) =>
             chapter._id === chapterDetails._id
               ? { ...chapter, exam: chapterDetails.exam }
@@ -195,16 +222,17 @@ const ViewChapTop = () => {
     setShowPopup(false);
   };
 
-  
+  const handleResetFilters = () => {
+    setSelectedSubject("");
+    setSelectedChapter("");
+    setSelectedStandard("")
+  }
 
   return (
     <>
       <div className="w-full max-w-md px-2 py-4 sm:px-2">
         <div className="flex space-x-4 mb-4">
-          <Button
-            type="primary"
-            onClick={handleViewChapterClick}
-          >
+          <Button type="primary" onClick={handleViewChapterClick}>
             View Chapter
           </Button>
           <Button type="primary" onClick={handleViewTopicClick}>
@@ -212,109 +240,99 @@ const ViewChapTop = () => {
           </Button>
         </div>
 
-      
         {showPopup && (
-  <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
-    <div className="bg-white rounded p-4 w-1/2 h-3/4 overflow-y-auto">
-      <Button
-        type="primary"
-        onClick={handleClosePopup}
-        className="fixed top-4 right-8"
-      >
-        Close
-      </Button>
+          <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white rounded p-4 w-1/2 h-3/4 overflow-y-auto">
+              <Button
+                type="primary"
+                onClick={handleClosePopup}
+                className="fixed top-4 right-8"
+              >
+                Close
+              </Button>
+              <h2 className="text-center text-gray-900">View Chapters</h2>
+             
 
-      <form>
-        <div className="flex space-x-4 mb-4">
-          <div className="w-1/2">
-            <div className="mb-4">
-              <label className="text-white-500 text-sm dark:text-white-400">
-                Standard
-              </label>
-              <Select
-                style={{ width: 200 }}
-                showSearch
-                value={selectedStandard}
-                onChange={(value) => {
-                  setSelectedStandard(value);
-                  setSelectedSubject("");
-                  setSelectedChapter("");
-                }}
-                options={standards.map((standard) => ({
-                  value: standard.value,
-                  label: standard.label,
-                }))}
-              />
-            </div>
-          </div>
-          <div className="w-1/2">
-            <div className="mb-4">
-              <label className="text-white-500 text-sm dark:text-white-400">
-                Subject
-              </label>
-              <Select
-                style={{ width: 200 }}
-                showSearch
-                value={selectedSubject}
-                onChange={(value) => {
-                  setSelectedSubject(value);
-                  setSelectedChapter("");
-                }}
-                filterOption={(input, option) =>
-                  (option.label?? "")
-                   .toLowerCase()
-                   .includes(input.toLowerCase())
-                }
-                options={subjectList?.map((name) => ({
-                  value: name,
-                  label: name,
-                }))}
-              />
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-end">
-          {selectedStandard && selectedSubject? (
-            <Button type="primary" disabled>
-              Fetching Chapters...
-            </Button>
-          ) : (
-            <Button type="primary" disabled>
-              Please select Standard and Subject
-            </Button>
-          )}
-        </div>
-      </form>
-      {loadingChapters? (
-        <Loading />
-      ) : (
-        <ul className="flex flex-wrap text-gray-900 cursor-pointer justify-center">
-          {chapterList.map((chapter) => (
-            <li
-              key={chapter._id}
-              className="bg-white rounded shadow-md p-4 w-48 mb-4 hover:bg-gray-100 transition duration-300 ease-in-out"
-              onClick={() => handleChapterClick(chapter._id)}
+              <div className="mb-4">
+                <label className="text-gray-500 text-sm dark:text-white-400">
+                  Standard
+                </label>
+                <Select
+                  style={{ width: 200 }}
+                  showSearch
+                  value={selectedStandard}
+                  onChange={(value) => {
+                    setSelectedStandard(value);
+                    setSelectedSubject("");
+                    setSelectedChapter("");
+                  }}
+                  options={standards.map((standard) => ({
+                    value: standard.value,
+                    label: standard.label,
+                  }))}
+                />
+                <label className="text-gray-500 text-sm dark:text-white-400">
+                  Subject
+                </label>
+                <Select
+                  style={{ width: 200 }}
+                  showSearch
+                  value={selectedSubject}
+                  onChange={(value) => {
+                    setSelectedSubject(value);
+                    setSelectedChapter("");
+                  }}
+                  filterOption={(input, option) =>
+                    (option.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  options={subjectList?.map((name) => ({
+                    value: name,
+                    label: name,
+                  }))}
+                />
+              </div>
+              <div className="w-1/2 m-5">
+            <button
+              className=" border-green-600 border-2 p-2 bg-green-900 rounded-lg"
+              onClick={handleResetFilters}
             >
-              <h5 className="text-lg font-bold">{chapter.name}</h5>
-              {chapter.exam && (
-                <div className="flex flex-wrap">
-                  {chapter.exam.map((examTag, index) => (
-                    <span
-                      key={index}
-                      className={`bg-${getBadgeColor(examTag)} text-sm m-2 text-white px-2 py-1 rounded-full ml-2`}
+              Reset Filters
+            </button>
+          </div>
+              {loadingChapters ? (
+                <Loading />
+              ) : (
+                <ul className="flex flex-wrap text-gray-900 cursor-pointer justify-center">
+                  {allChapters.map((chapter) => (
+                    <li
+                      key={chapter._id}
+                      className="bg-white rounded shadow-md p-4 w-48 mb-4 hover:bg-gray-100 transition duration-300 ease-in-out"
+                      onClick={() => handleChapterClick(chapter._id)}
                     >
-                      {examTag}
-                    </span>
+                      <h5 className="text-lg font-bold">{chapter.name}</h5>
+                      {chapter.exam && (
+                        <div className="flex flex-wrap">
+                          {chapter.exam.map((examTag, index) => (
+                            <span
+                              key={index}
+                              className={`bg-${getBadgeColor(
+                                examTag
+                              )} text-sm m-2 text-white px-2 py-1 rounded-full ml-2`}
+                            >
+                              {examTag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  </div>
-)}
+            </div>
+          </div>
+        )}
 
         {showChapterDetails && (
           <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
@@ -404,6 +422,57 @@ const ViewChapTop = () => {
               >
                 Close
               </Button>
+              
+
+          
+          <h2 className="text-center text-gray-900">View Topics</h2>
+              <div className="mb-4">
+                <label className="text-gray-500 text-sm dark:text-white-400">
+                  Standard
+                </label>
+                <Select
+                  style={{ width: 200 }}
+                  showSearch
+                  value={selectedStandard}
+                  onChange={(value) => {
+                    setSelectedStandard(value);
+                    setSelectedSubject("");
+                    setSelectedChapter("");
+                  }}
+                  options={standards.map((standard) => ({
+                    value: standard.value,
+                    label: standard.label,
+                  }))}
+                />
+                <label className="text-gray-500 text-sm dark:text-white-400">
+                  Subject
+                </label>
+                <Select
+                  style={{ width: 200 }}
+                  showSearch
+                  value={selectedSubject}
+                  onChange={(value) => {
+                    setSelectedSubject(value);
+                  }}
+                  filterOption={(input, option) =>
+                    (option.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  options={subjectList?.map((name) => ({
+                    value: name,
+                    label: name,
+                  }))}
+                />
+              </div>
+              <div className="w-1/2 m-5">
+            <button
+              className=" border-green-600 border-2 p-2 bg-green-900 rounded-lg"
+              onClick={handleResetFilters}
+            >
+              Reset Filters
+            </button>
+          </div>
               {loadingTopics ? (
                 <Loading />
               ) : (
