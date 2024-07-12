@@ -52,6 +52,8 @@ const ViewChapTop = () => {
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [editingTopic, setEditingTopic] = useState(null); 
   const [editedName, setEditedName] = useState('');
+  const { user } = useSelector((state) => state.user);
+  const isAdmin = user?.role === "admin";
 
   const handleEditTopic = (topic) => {
     setEditingTopic(topic);
@@ -298,6 +300,7 @@ const handleDeleteTopic = async (topicId) => {
 };
   return (
     <>
+    {isAdmin? (
       <div className="w-full max-w-md px-2 py-4 sm:px-2">
       <div className="flex space-x-4 mb-4">
   <Button
@@ -781,6 +784,9 @@ const handleDeleteTopic = async (topicId) => {
           </div>
         )}
       </div>
+      ): (
+        <div></div>
+      )}
     </>
   );
 };
