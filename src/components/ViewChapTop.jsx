@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 // import { getChapters } from "../actions/chapterAction";
 // import { getTopics } from "../actions/topicAction";
 import {  AiOutlineClose, AiOutlineDelete, AiOutlineEdit, AiOutlineInfoCircle } from 'react-icons/ai';
+import { getChapters } from "../actions/chapterAction";
 
 function getBadgeColor(examTag) {
   switch (examTag) {
@@ -69,7 +70,7 @@ const ViewChapTop = () => {
   };
 
   const { subjectList } = useSelector((state) => state.getSubject);
-  // const { chapterList } = useSelector((state) => state.getChapter);
+  const { chapterList } = useSelector((state) => state.getChapter);
 
   const dispatch = useDispatch();
   useEffect(() => {
@@ -77,6 +78,12 @@ const ViewChapTop = () => {
       dispatch(getSubjects(selectedStandard));
     }
   }, [dispatch, selectedStandard]);
+  
+  useEffect(() => {
+    if (selectedSubject && selectedStandard) {
+      dispatch(getChapters(selectedSubject, selectedStandard));
+    }
+  }, [dispatch, selectedSubject, selectedStandard]);
 
     
 
@@ -103,15 +110,13 @@ const ViewChapTop = () => {
   const handleSubjectChange = (value) => {
     setSelectedSubject(value);
     setSelectedChapter(""); 
-    console.log("Selected Subject in handleSubjectChange:", value);
-    fetchChapters(value);
   };
   
   const handleChapterChange = (value) => {
     setSelectedChapter(value)
   };
 
-  const fetchChapters = async (selectedSubject) => {
+  const fetchChapters = async () => {
     console.log("Selected Subject in fetchChapters:", selectedSubject);
     setLoadingChapters(true);
     try {
@@ -592,7 +597,7 @@ const handleDeleteTopic = async (topicId) => {
                     .toLowerCase()
                     .includes(input.toLowerCase())
                 }
-                options={allChapters.map((chapter) => ({
+                options={chapterList.map((chapter) => ({
                   value: chapter.name,
                   label: chapter.name,
                 }))}
@@ -611,7 +616,13 @@ const handleDeleteTopic = async (topicId) => {
 
         
         {loadingTopics ? (
-          <Loading />
+          <div className="text-center">
+            <Loading />
+          </div>
+        ) : allTopics.length === 0 ? (
+          <div className="text-center text-gray-500 mb-4">
+            No topics found.
+          </div>
         ) : (
           <ul className="flex flex-wrap text-gray-900 cursor-pointer justify-center">
             {allTopics.map((topic) => (
@@ -619,12 +630,12 @@ const handleDeleteTopic = async (topicId) => {
                 key={topic._id}
                 className="bg-white rounded shadow-md p-4 w-48 mb-4 hover:bg-gray-100 transition duration-300 ease-in-out"
               >
-                 <div className="flex justify-end mt-2 space-x-2">
+                <div className="flex justify-end mt-2 space-x-2">
                   <Button
                     // type="primary"
                     onClick={() => handleEditTopic(topic)}
                   >
-                     <AiOutlineEdit size={20} />
+                    <AiOutlineEdit size={20} />
                   </Button>
                   <Button
                     type="danger"
@@ -652,7 +663,6 @@ const handleDeleteTopic = async (topicId) => {
                     ))}
                   </div>
                 )}
-               
               </li>
             ))}
           </ul>
