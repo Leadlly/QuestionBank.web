@@ -6,8 +6,8 @@ import { standards } from "../components/Options";
 import { Select, Button } from "antd";
 import { getSubjects } from "../actions/subjectAction";
 import { useDispatch, useSelector } from "react-redux";
-import { getChapters } from "../actions/chapterAction";
-import { getTopics } from "../actions/topicAction";
+// import { getChapters } from "../actions/chapterAction";
+// import { getTopics } from "../actions/topicAction";
 import {  AiOutlineClose, AiOutlineDelete, AiOutlineEdit, AiOutlineInfoCircle } from 'react-icons/ai';
 
 function getBadgeColor(examTag) {
@@ -69,29 +69,82 @@ const ViewChapTop = () => {
   };
 
   const { subjectList } = useSelector((state) => state.getSubject);
+  // const { chapterList } = useSelector((state) => state.getChapter);
 
   const dispatch = useDispatch();
   useEffect(() => {
     if (selectedStandard) {
       dispatch(getSubjects(selectedStandard));
     }
-    if (selectedStandard && selectedSubject) {
-      dispatch(getChapters(selectedStandard, selectedSubject));
-    }
-    if (selectedSubject && selectedStandard && selectedChapter) {
-      dispatch(getTopics(selectedSubject, selectedStandard, selectedChapter));
-    }
-  }, [dispatch, selectedStandard, selectedSubject, selectedChapter]);
+  }, [dispatch, selectedStandard]);
 
+    
+
+
+
+
+  const handleViewTopicClick = () => {
+    fetchTopics();
+    setShowTopicPopup(true);
+  };
+  const handleViewChapterClick = () => {
+    setShowPopup(true);
+    fetchChapters();
+  };
+
+  
+  const handleStandardChange = (value) => {
+    console.log(value)
+    setSelectedStandard(value);
+    setSelectedSubject(""); 
+    
+  };
+  
+  const handleSubjectChange = (value) => {
+    setSelectedSubject(value);
+    setSelectedChapter(""); 
+    console.log("Selected Subject in handleSubjectChange:", value);
+    fetchChapters(value);
+  };
+  
+  const handleChapterChange = (value) => {
+    setSelectedChapter(value)
+  };
+
+  const fetchChapters = async (selectedSubject) => {
+    console.log("Selected Subject in fetchChapters:", selectedSubject);
+    setLoadingChapters(true);
+    try {
+      const response = await axios.get(`${server}/api/get/chapter`, {
+        params: {
+          standard: selectedStandard,
+          subjectName: selectedSubject,
+        },
+      }, {
+        withCredentials: true,
+      });
+      if (response.data.success) {
+        setAllChapters(response.data.chapters);
+        console.log("All Chapters:", allChapters);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingChapters(false);
+    }
+  };
+  
   const fetchTopics = async () => {
     setLoadingTopics(true);
     try {
       const response = await axios.get(`${server}/api/get/topic`, {
-        params: {
+        params:{
+
           standard: selectedStandard,
           subjectName: selectedSubject,
           chapterName: selectedChapter,
-        },
+        }
+      }, {
         withCredentials: true,
       });
       if (response.data.success) {
@@ -103,37 +156,6 @@ const ViewChapTop = () => {
       setLoadingTopics(false);
     }
   };
-  const handleViewTopicClick = () => {
-    fetchTopics();
-    setShowTopicPopup(true);
-  };
-  const handleViewChapterClick = () => {
-    setShowPopup(true);
-    fetchChapters();
-  };
-
-  
-
-  const fetchChapters = async () => {
-    setShowPopup(true);
-    setLoadingChapters(true);
-    try {
-      const response = await axios.get(`${server}/api/get/chapter`, {
-        params: {
-          standard: selectedStandard,
-          subjectName: selectedSubject,
-        },
-        withCredentials: true,
-      });
-      if (response.data.success) {
-        setAllChapters(response.data.chapters);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingChapters(false);
-    }
-  };
 
   const handleCloseTopicPopup = () => {
     setSelectedStandard("");
@@ -143,18 +165,18 @@ const ViewChapTop = () => {
   };
 
   useEffect(() => {
-    if (selectedStandard && selectedSubject) {
+    if (selectedStandard && selectedSubject && showPopup) {
       setLoadingChapters(true);
-      fetchChapters()
+      fetchChapters();
     }
-  }, [selectedStandard, selectedSubject]);
+  }, [selectedStandard, selectedSubject, showPopup]);
   
   useEffect(() => {
-    if (selectedStandard && selectedSubject && selectedChapter ) {
+    if (selectedStandard && selectedSubject && selectedChapter && showTopicPopup ) {
       setLoadingTopics(true);
       fetchTopics()
     }
-  }, [selectedStandard, selectedSubject, selectedChapter]);
+  }, [selectedStandard, selectedSubject, selectedChapter, showTopicPopup]);
 
   const handleTopicClick = async (topicId) => {
     try {
@@ -257,7 +279,6 @@ const ViewChapTop = () => {
   const handleResetFilters = () => {
     setSelectedSubject("");
     setSelectedChapter("");
-    setSelectedStandard("")
   }
 
   const handleSaveEditedTopic = async () => {
@@ -524,11 +545,7 @@ const handleDeleteTopic = async (topicId) => {
                 style={{ width: 200 }}
                 showSearch
                 value={selectedStandard}
-                onChange={(value) => {
-                  setSelectedStandard(value);
-                  setSelectedSubject("");
-                  setSelectedChapter("");
-                }}
+                onChange={handleStandardChange}
                 options={standards.map((standard) => ({
                   value: standard.value,
                   label: standard.label,
@@ -544,10 +561,7 @@ const handleDeleteTopic = async (topicId) => {
                   style={{ width: 200 }}
                   showSearch
                   value={selectedSubject}
-                  onChange={(value) => {
-                    setSelectedSubject(value);
-                    setSelectedChapter("");
-                  }}
+                  onChange={handleSubjectChange}
                   filterOption={(input, option) =>
                     (option.label ?? "")
                       .toLowerCase()
@@ -572,7 +586,7 @@ const handleDeleteTopic = async (topicId) => {
                 style={{ width: 200 }}
                 showSearch
                 value={selectedChapter}
-                onChange={(value) => setSelectedChapter(value)}
+                onChange={handleChapterChange}
                 filterOption={(input, option) =>
                   (option.label ?? "")
                     .toLowerCase()
