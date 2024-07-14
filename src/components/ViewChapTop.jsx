@@ -6,8 +6,10 @@ import { standards } from "../components/Options";
 import { Select, Button } from "antd";
 import { getSubjects } from "../actions/subjectAction";
 import { useDispatch, useSelector } from "react-redux";
+// import { getChapters } from "../actions/chapterAction";
+// import { getTopics } from "../actions/topicAction";
+import {  AiOutlineClose, AiOutlineDelete, AiOutlineEdit, AiOutlineInfoCircle } from 'react-icons/ai';
 import { getChapters } from "../actions/chapterAction";
-import { getTopics } from "../actions/topicAction";
 
 function getBadgeColor(examTag) {
   switch (examTag) {
@@ -24,7 +26,6 @@ function getBadgeColor(examTag) {
 
 const ViewChapTop = () => {
   const [allChapters, setAllChapters] = useState([]);
-  // eslint-disable-next-line no-unused-vars
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [showChapterDetails, setShowChapterDetails] = useState(false);
@@ -49,31 +50,106 @@ const ViewChapTop = () => {
   const [selectedStandard, setSelectedStandard] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedChapter, setSelectedChapter] = useState("");
+  const [showEditPopup, setShowEditPopup] = useState(false);
+  const [editingTopic, setEditingTopic] = useState(null); 
+  const [editedName, setEditedName] = useState('');
+  const { user } = useSelector((state) => state.user);
+  const isAdmin = user?.role === "admin";
+
+  const handleEditTopic = (topic) => {
+    setEditingTopic(topic);
+    setEditedName(topic.name);
+    
+    setShowEditPopup(true);
+  };
+  
+  const handleCloseEditPopup = () => {
+    setShowEditPopup(false);
+    setEditingTopic(null); 
+    setEditedName(''); 
+  };
 
   const { subjectList } = useSelector((state) => state.getSubject);
+  const { chapterList } = useSelector((state) => state.getChapter);
 
   const dispatch = useDispatch();
   useEffect(() => {
     if (selectedStandard) {
       dispatch(getSubjects(selectedStandard));
     }
-    if (selectedStandard && selectedSubject) {
-      dispatch(getChapters(selectedStandard, selectedSubject));
+  }, [dispatch, selectedStandard]);
+  
+  useEffect(() => {
+    if (selectedSubject && selectedStandard) {
+      dispatch(getChapters(selectedSubject, selectedStandard));
     }
-    if (selectedSubject && selectedStandard && selectedChapter) {
-      dispatch(getTopics(selectedSubject, selectedStandard, selectedChapter));
-    }
-  }, [dispatch, selectedStandard, selectedSubject, selectedChapter]);
+  }, [dispatch, selectedSubject, selectedStandard]);
 
+    
+
+
+
+
+  const handleViewTopicClick = () => {
+    fetchTopics();
+    setShowTopicPopup(true);
+  };
+  const handleViewChapterClick = () => {
+    setShowPopup(true);
+    fetchChapters();
+  };
+
+  
+  const handleStandardChange = (value) => {
+    console.log(value)
+    setSelectedStandard(value);
+    setSelectedSubject(""); 
+    
+  };
+  
+  const handleSubjectChange = (value) => {
+    setSelectedSubject(value);
+    setSelectedChapter(""); 
+  };
+  
+  const handleChapterChange = (value) => {
+    setSelectedChapter(value)
+  };
+
+  const fetchChapters = async () => {
+    console.log("Selected Subject in fetchChapters:", selectedSubject);
+    setLoadingChapters(true);
+    try {
+      const response = await axios.get(`${server}/api/get/chapter`, {
+        params: {
+          standard: selectedStandard,
+          subjectName: selectedSubject,
+        },
+      }, {
+        withCredentials: true,
+      });
+      if (response.data.success) {
+        setAllChapters(response.data.chapters);
+        console.log("All Chapters:", allChapters);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingChapters(false);
+    }
+  };
+  
   const fetchTopics = async () => {
     setLoadingTopics(true);
     try {
       const response = await axios.get(`${server}/api/get/topic`, {
-        params: {
+        params:{
+
           standard: selectedStandard,
           subjectName: selectedSubject,
           chapterName: selectedChapter,
-        },
+        }
+      }, {
         withCredentials: true,
       });
       if (response.data.success) {
@@ -85,37 +161,6 @@ const ViewChapTop = () => {
       setLoadingTopics(false);
     }
   };
-  const handleViewTopicClick = () => {
-    fetchTopics();
-    setShowTopicPopup(true);
-  };
-  const handleViewChapterClick = () => {
-    setShowPopup(true);
-    fetchChapters();
-  };
-
-  
-
-  const fetchChapters = async () => {
-    setShowPopup(true);
-    setLoadingChapters(true);
-    try {
-      const response = await axios.get(`${server}/api/get/chapter`, {
-        params: {
-          standard: selectedStandard,
-          subjectName: selectedSubject,
-        },
-        withCredentials: true,
-      });
-      if (response.data.success) {
-        setAllChapters(response.data.chapters);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingChapters(false);
-    }
-  };
 
   const handleCloseTopicPopup = () => {
     setSelectedStandard("");
@@ -125,18 +170,18 @@ const ViewChapTop = () => {
   };
 
   useEffect(() => {
-    if (selectedStandard && selectedSubject) {
+    if (selectedStandard && selectedSubject && showPopup) {
       setLoadingChapters(true);
-      fetchChapters()
+      fetchChapters();
     }
-  }, [selectedStandard, selectedSubject]);
+  }, [selectedStandard, selectedSubject, showPopup]);
   
   useEffect(() => {
-    if (selectedStandard && selectedSubject && selectedChapter ) {
+    if (selectedStandard && selectedSubject && selectedChapter && showTopicPopup ) {
       setLoadingTopics(true);
       fetchTopics()
     }
-  }, [selectedStandard, selectedSubject, selectedChapter]);
+  }, [selectedStandard, selectedSubject, selectedChapter, showTopicPopup]);
 
   const handleTopicClick = async (topicId) => {
     try {
@@ -239,11 +284,49 @@ const ViewChapTop = () => {
   const handleResetFilters = () => {
     setSelectedSubject("");
     setSelectedChapter("");
-    setSelectedStandard("")
   }
 
+  const handleSaveEditedTopic = async () => {
+    try {
+      const response = await axios.put(`${server}/api/edit/topic/${editingTopic._id}`, {
+        name: editedName,
+      });
+  
+      if (response.data.success) {
+        setAllTopics((prevTopics) =>
+          prevTopics.map((topic) =>
+            topic._id === editingTopic._id ? { ...topic, name: editedName } : topic
+          )
+        );
+        handleCloseEditPopup();
+      } else {
+        console.error("Error editing topic name:", response.data.error);
+      }
+    } catch (error) {
+      console.error("Error editing topic:", error);
+    }
+  };
+
+const handleDeleteTopic = async (topicId) => {
+  try {
+    const confirmDelete = window.confirm("Are you sure you want to delete this topic?");
+    if (!confirmDelete) return;
+
+    const response = await axios.delete(`${server}/api/delete/topic/${topicId}`);
+
+    if (response.data.success) {
+      setAllTopics((prevTopics) => prevTopics.filter((topic) => topic._id !== topicId));
+      alert("Topic deleted successfully!");
+    } else {
+      alert("Error deleting topic. Please try again later.");
+    }
+  } catch (error) {
+    console.error("Error deleting topic:", error);
+  }
+};
   return (
     <>
+    {isAdmin? (
       <div className="w-full max-w-md px-2 py-4 sm:px-2">
       <div className="flex space-x-4 mb-4">
   <Button
@@ -261,6 +344,8 @@ const ViewChapTop = () => {
     View Topic
   </Button>
 </div>
+
+     
 
         {showPopup && (
           <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
@@ -443,43 +528,37 @@ const ViewChapTop = () => {
           </div>
         )}
 
-        {showTopicPopup && (
-          <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white rounded p-4 w-1/2 h-3/4 overflow-y-auto">
-              <Button
-                type="primary"
-                onClick={handleCloseTopicPopup}
-                className="fixed top-4 right-8"
-              >
-                Close
-              </Button>
-              
- <div className="w-full max-w-md px-2 py-4 sm:px-2">
-          
-          <h2 className="text-center text-gray-900 mb-4">View Topics</h2>
-           <div className="flex space-x-4 mb-4">
+{showTopicPopup && (
+  <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-40">
+    <div className="bg-white rounded p-4 w-1/2 h-3/4 overflow-y-auto">
+      <Button
+        type="primary"
+        onClick={handleCloseTopicPopup}
+        className="fixed top-4 right-8"
+      >
+        Close
+      </Button>
+      <div className="w-full max-w-md px-2 py-4 sm:px-2">
+        <h2 className="text-center text-gray-900 mb-4">View Topics</h2>
+        <div className="flex space-x-4 mb-4">
           <div className="w-1/2">
+            <div className="mb-4">
+              <label className="text-gray-500 text-sm dark:text-white-400">
+                Standard
+              </label>
+              <Select
+                style={{ width: 200 }}
+                showSearch
+                value={selectedStandard}
+                onChange={handleStandardChange}
+                options={standards.map((standard) => ({
+                  value: standard.value,
+                  label: standard.label,
+                }))}
+              />
+            </div>
+            <div className="w-1/2">
               <div className="mb-4">
-                <label className="text-gray-500 text-sm dark:text-white-400">
-                  Standard
-                </label>
-                <Select
-                  style={{ width: 200 }}
-                  showSearch
-                  value={selectedStandard}
-                  onChange={(value) => {
-                    setSelectedStandard(value);
-                    setSelectedSubject("");
-                    setSelectedChapter("");
-                  }}
-                  options={standards.map((standard) => ({
-                    value: standard.value,
-                    label: standard.label,
-                  }))}
-                />
-                </div>
-                <div className="w-1/2">
-                <div className="mb-4">
                 <label className="text-gray-500 text-sm dark:text-white-400">
                   Subject
                 </label>
@@ -487,10 +566,7 @@ const ViewChapTop = () => {
                   style={{ width: 200 }}
                   showSearch
                   value={selectedSubject}
-                  onChange={(value) => {
-                    setSelectedSubject(value);
-                    setSelectedChapter("");
-                  }}
+                  onChange={handleSubjectChange}
                   filterOption={(input, option) =>
                     (option.label ?? "")
                       .toLowerCase()
@@ -501,76 +577,143 @@ const ViewChapTop = () => {
                     label: name,
                   }))}
                 />
-                </div>
-                </div>
-                </div>
-                </div>
-                 <div className="flex space-x-4 mb-4">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex space-x-4 mb-4">
           <div className="w-1/2">
             <div className="mb-4">
-                 <label className="text-gray-500 text-sm dark:text-white-400">
+              <label className="text-gray-500 text-sm dark:text-white-400">
                 Chapter
               </label>
               <Select
-                  style={{ width: 200 }}
-                  showSearch
-                  value={selectedChapter}
-                  onChange={(value) => setSelectedChapter(value)}
-                  filterOption={(input, option) =>
-                    (option.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  options={allChapters.map((chapter) => ({
-                    value: chapter.name,
-                    label: chapter.name,
-                  }))}
-                />
-                </div>
-                </div>
-                </div>
-              
-              <div className="w-1/2 m-5">
-            <button
-              className=" border-green-600 border-2 p-2 bg-green-900 rounded-lg"
-              onClick={handleResetFilters}
-            >
-              Reset Filters
-            </button>
-          </div>
-          </div>
-              {loadingTopics ? (
-                <Loading />
-              ) : (
-                <ul className="flex flex-wrap text-gray-900 cursor-pointer justify-center">
-                  {allTopics.map((topic) => (
-                    <li
-                      key={topic._id}
-                      className="bg-white rounded shadow-md p-4 w-48 mb-4 hover:bg-gray-100 transition duration-300 ease-in-out"
-                      onClick={() => handleTopicClick(topic._id)}
-                    >
-                      <h5 className="text-lg font-bold">{topic.name}</h5>
-                      {topic.exam && (
-                        <div className="flex flex-wrap">
-                          {topic.exam.map((examTag, index) => (
-                            <span
-                              key={index}
-                              className={`bg-${getBadgeColor(
-                                examTag
-                              )} text-sm m-2 text-white px-2 py-1 rounded-full ml-2`}
-                            >
-                              {examTag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
+                style={{ width: 200 }}
+                showSearch
+                value={selectedChapter}
+                onChange={handleChapterChange}
+                filterOption={(input, option) =>
+                  (option.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                options={chapterList.map((chapter) => ({
+                  value: chapter.name,
+                  label: chapter.name,
+                }))}
+              />
             </div>
           </div>
+        </div>
+        <div className="w-1/2 m-5">
+          <button
+            className="border-green-600 border-2 p-2 bg-green-900 rounded-lg text-white"
+            onClick={handleResetFilters}
+          >
+            Reset Filters
+          </button>
+        </div>
+
+        
+        {loadingTopics ? (
+          <div className="text-center">
+            <Loading />
+          </div>
+        ) : allTopics.length === 0 ? (
+          <div className="text-center text-gray-500 mb-4">
+            No topics found.
+          </div>
+        ) : (
+          <ul className="flex flex-wrap text-gray-900 cursor-pointer justify-center">
+            {allTopics.map((topic) => (
+              <li
+                key={topic._id}
+                className="bg-white rounded shadow-md p-4 w-48 mb-4 hover:bg-gray-100 transition duration-300 ease-in-out"
+              >
+                <div className="flex justify-end mt-2 space-x-2">
+                  <Button
+                    // type="primary"
+                    onClick={() => handleEditTopic(topic)}
+                  >
+                    <AiOutlineEdit size={20} />
+                  </Button>
+                  <Button
+                    type="danger"
+                    onClick={() => handleDeleteTopic(topic._id)}
+                  >
+                    <AiOutlineDelete size={20} />
+                  </Button>
+                  <Button
+                    type="info"
+                    onClick={() => handleTopicClick(topic._id)}
+                  >
+                    <AiOutlineInfoCircle size={20} />
+                  </Button>
+                </div>
+                <h5 className="text-lg font-bold">{topic.name}</h5>
+                {topic.exam && (
+                  <div className="flex flex-wrap">
+                    {topic.exam.map((examTag, index) => (
+                      <span
+                        key={index}
+                        className={`bg-${getBadgeColor(examTag)} text-sm m-2 text-white px-2 py-1 rounded-full ml-2`}
+                      >
+                        {examTag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
+      </div>
+    </div>
+
+    {showEditPopup && editingTopic && (
+        <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-60">
+          <div className="bg-white rounded p-4 w-1/2 h-3/4 overflow-y-auto">
+            <div className="flex justify-end">
+              <button
+                className="text-gray-500 hover:text-gray-700"
+                onClick={handleCloseEditPopup}
+              >
+                <AiOutlineClose size={24} />
+              </button>
+            </div>
+            <h2 className="text-center text-gray-900 mb-4">Edit Topic Name</h2>
+            <div className="mb-4">
+              <label className="text-gray-500 text-sm">Topic Name</label>
+              <input
+                type="text"
+                className="border rounded-md text-gray-500 px-3 py-2 w-full mt-1"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-center">
+              <button
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg mr-4"
+                onClick={handleSaveEditedTopic}
+              >
+                Save
+              </button>
+              <button
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg"
+                onClick={handleCloseEditPopup}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+  </div>
+
+  
+)}
+
+
 
         {showTopicDetails && (
           <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
@@ -665,6 +808,9 @@ const ViewChapTop = () => {
           </div>
         )}
       </div>
+      ): (
+        <div></div>
+      )}
     </>
   );
 };
