@@ -17,6 +17,8 @@ function getBadgeColor(examTag) {
       return "green-700";
     case "jeemains":
       return "yellow-900";
+    case "jeeadvance":
+      return "red-900";
     case "boards":
       return "black";
     default:
@@ -508,6 +510,7 @@ const handleDeleteTopic = async (topicId) => {
                   >
                     <Select.Option key="neet">Neet</Select.Option>
                     <Select.Option key="jeemains">JeeMains</Select.Option>
+                    <Select.Option key="jeeadvance">JeeAdvance</Select.Option>
                     <Select.Option key="boards">Boards</Select.Option>
                   </Select>
                 </div>
@@ -788,6 +791,7 @@ const handleDeleteTopic = async (topicId) => {
                   >
                     <Select.Option key="neet">Neet</Select.Option>
                     <Select.Option key="jeemains">JeeMains</Select.Option>
+                    <Select.Option key="jeeadvance">JeeAdvance</Select.Option>
                     <Select.Option key="boards">Boards</Select.Option>
                   </Select>
                 </div>
