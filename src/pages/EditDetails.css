@@ -1,0 +1,12 @@
+.no-dropdown-icon .ant-select-arrow {
+    display: none;
+  }
+  
+.custom-dark-text .ant-select-selector {
+  color: #000 !important; 
+}
+
+.custom-dark-text .ant-select-selection-item {
+  color: #000 !important;
+  text-align: center;
+}

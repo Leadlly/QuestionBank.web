@@ -13,6 +13,7 @@ import CreateSubtopic from "./pages/CreateSubtopic";
 import Requests from "./pages/Requests";
 import Profile from "./pages/Profile";
 import { clearErrors, profile } from "./actions/userAction";
+import EditDetails from "./pages/EditDetails";
 
 function App() {
   const dispatch = useDispatch();
@@ -31,7 +32,7 @@ function App() {
   window.addEventListener("contextmenu", (e) => e.preventDefault());
 
   const isAdmin = user && user.role === "admin";
-console.log(isAdmin)
+  console.log(isAdmin);
   return (
     <Router>
       {isAuthenticated && <Navbar />}
@@ -65,6 +66,10 @@ console.log(isAdmin)
             <Route
               path="/request"
               element={isAuthenticated ? <Requests /> : <Login />}
+            />
+            <Route
+              path="/editdetails"
+              element={isAuthenticated ? <EditDetails /> : <Login />}
             />
           </>
         )}
