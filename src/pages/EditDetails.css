@@ -10,3 +10,30 @@
   color: #000 !important;
   text-align: center;
 }
+
+/* Add styles for the dropdown button */
+.dropdown-btn {
+  background-color: #1890ff;
+  color: rgb(0, 0, 0);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Style the menu items */
+.chapter-item {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+/* Add hover effect for menu items */
+.chapter-item:hover {
+  background-color: #000000;
+}
+
+/* Style the dropdown menu */
+.chapter-dropdown .ant-dropdown-menu {
+  max-height: 300px; /* Adjust based on your needs */
+  overflow-y: auto;
+}
