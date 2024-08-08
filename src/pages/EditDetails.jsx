@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import "./EditDetails.css";
-import { Button, Select } from "antd";
+import { Select } from "antd";
 import { server } from "../main";
 import Loader from "../components/Loader";
 import toast from "react-hot-toast";
+import Loading from "./Loading";
 
 const EditDetails = () => {
   const [standard, setStandard] = useState("12");
@@ -140,6 +141,7 @@ const EditDetails = () => {
             { label: "11", value: "11" },
             { label: "12", value: "12" },
           ]}
+          value={standard}
         />
       </div>
       <div className="flex flex-wrap gap-4">
@@ -160,21 +162,20 @@ const EditDetails = () => {
                     <li key={chapter._id} className="chapter-item">
                       <div className="flex justify-between items-center">
                         <span>{chapter.name}</span>
-                        <Button
-                          className="ml-2"
-                          onClick={() =>
-                            handleChapterClick(subject, chapter.name)
-                          }
-                        >
-                          {visibleChapters[chapter.name]
-                            ? "Hide Topics"
-                            : "Show Topics"}
-                        </Button>
+                        <a
+  className="ml-2 cursor-pointer text-blue-500 custom-underline"
+  onClick={() =>
+    handleChapterClick(subject, chapter.name)
+  }
+>
+  {visibleChapters[chapter.name] ? "Hide Topics" : "Show Topics"}
+</a>
+
                       </div>
                       {visibleChapters[chapter.name] && (
                         <div className="mt-2">
                           {loadingTopics[chapter.name] ? (
-                            <p>Loading...</p>
+                            <Loading/>
                           ) : (
                             <>
                               {Array.isArray(topicsByChapter[chapter.name]) &&
@@ -184,26 +185,20 @@ const EditDetails = () => {
                                     <li key={topic._id} className="text-sm">
                                       <div className="flex justify-between items-center">
                                         <strong>{topic.name}</strong>
-                                        <Button
-                                          className="ml-2"
-                                          onClick={() =>
-                                            handleTopicClick(
-                                              subject,
-                                              chapter.name,
-                                              topic._id,
-                                              topic.name
-                                            )
-                                          }
-                                        >
-                                          {visibleTopics[topic._id]
-                                            ? "Hide Subtopics"
-                                            : "Show Subtopics"}
-                                        </Button>
+                                        <a
+   className="ml-2 cursor-pointer text-blue-500 custom-underline"
+  onClick={() =>
+    handleTopicClick(subject, chapter.name, topic._id, topic.name)
+  }
+>
+  {visibleTopics[topic._id] ? "Hide Subtopics" : "Show Subtopics"}
+</a>
+
                                       </div>
                                       {visibleTopics[topic._id] && (
                                         <div className="mt-2 ml-4">
                                           {loadingSubtopics[topic._id] ? (
-                                            <h2>Loading...</h2>
+                                            <Loading/>
                                           ) : (
                                             <>
                                               {subTopicByTopics[topic._id] &&
