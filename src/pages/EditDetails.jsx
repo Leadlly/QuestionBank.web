@@ -6,10 +6,10 @@ import { server } from "../main";
 import Loader from "../components/Loader";
 import toast from "react-hot-toast";
 import Loading from "./Loading";
-import { FaEdit, FaTrashAlt } from "react-icons/fa";
+import { FaEdit, FaTrashAlt, FaChevronDown, FaChevronUp } from "react-icons/fa";
 
 const EditDetails = () => {
-  const [standard, setStandard] = useState("12");
+  const [standard, setStandard] = useState("11");
   const [subjectList, setSubjectList] = useState([]);
   const [chaptersBySubject, setChaptersBySubject] = useState({});
   const [topicsByChapter, setTopicsByChapter] = useState({});
@@ -85,11 +85,17 @@ const EditDetails = () => {
     if (!topicsByChapter[chapterName]) {
       fetchTopics(subjectName, chapterName);
     }
-    setVisibleChapters((prev) => ({
-      ...prev,
-      [chapterName]: !prev[chapterName],
-    }));
+    
+    setVisibleChapters((prev) => {
+      const updatedChapters = {
+        ...prev,
+        [chapterName]: !prev[chapterName],
+      };
+      console.log("Updated visibleChapters:", updatedChapters);
+      return updatedChapters;
+    });
   };
+  
 
   const fetchSubTopics = async (
     subjectName,
@@ -146,7 +152,9 @@ const EditDetails = () => {
           const updatedChapters = { ...prev };
           Object.keys(updatedChapters).forEach((chapter) => {
             updatedChapters[chapter] = updatedChapters[chapter].map((topic) =>
-              topic._id === currentTopicId ? { ...topic, name: newTopicName } : topic
+              topic._id === currentTopicId
+                ? { ...topic, name: newTopicName }
+                : topic
             );
           });
           return updatedChapters;
@@ -169,36 +177,41 @@ const EditDetails = () => {
   };
   const handleDeleteTopic = (topicId) => {
     Modal.confirm({
-      title: 'Are you sure you want to delete this topic?',
-      content: 'This action cannot be undone.',
-      okText: 'Yes',
-      okType: 'danger',
-      cancelText: 'No',
+      title: "Are you sure you want to delete this topic?",
+      content: "This action cannot be undone.",
+      okText: "Yes",
+      okType: "danger",
+      cancelText: "No",
       onOk: async () => {
         try {
-          const response = await axios.delete(`${server}/api/delete/null/topic/${topicId}`);
-  
+          const response = await axios.delete(
+            `${server}/api/delete/null/topic/${topicId}`
+          );
+
           if (response.data.success) {
-            toast.success('Topic deleted successfully');
-            setTopicsByChapter(prev => {
+            toast.success("Topic deleted successfully");
+            setTopicsByChapter((prev) => {
               const updatedChapters = { ...prev };
-              Object.keys(updatedChapters).forEach(chapter => {
-                updatedChapters[chapter] = updatedChapters[chapter].filter(topic => topic._id !== topicId);
+              Object.keys(updatedChapters).forEach((chapter) => {
+                updatedChapters[chapter] = updatedChapters[chapter].filter(
+                  (topic) => topic._id !== topicId
+                );
               });
               return updatedChapters;
             });
           } else {
-            toast.error(response.data.message || 'Failed to delete topic');
+            toast.error(response.data.message || "Failed to delete topic");
           }
         } catch (error) {
           console.error("Error in handleDeleteTopic:", error);
-          const errorMessage = error.response?.data?.message || 'An unexpected error occurred. Please try again later.';
+          const errorMessage =
+            error.response?.data?.message ||
+            "An unexpected error occurred. Please try again later.";
           toast.error(errorMessage);
         }
-      }
+      },
     });
   };
-  
 
   if (loading) {
     return <Loader />;
@@ -228,133 +241,150 @@ const EditDetails = () => {
         />
       </div>
       <div className="flex flex-wrap gap-4">
-  {subjectList.length > 0 ? (
-    subjectList.map((subject) => (
-      <div key={subject} className="relative z-0 flex-shrink-0 w-48 md:w-auto">
-        <Select
-          style={{ width: 200, backgroundColor: "#f5f5f5" }}
-          value={subject}
-          disabled
-          className="custom-dark-text"
-        />
-        <hr />
-        {Array.isArray(chaptersBySubject[subject]) &&
-        chaptersBySubject[subject].length > 0 ? (
-          <ul className="mt-2">
-            {chaptersBySubject[subject].map((chapter) => (
-              <li key={chapter._id} className="chapter-item">
-                <div className="flex justify-between items-center">
-                  <span className="text-left flex-grow">{chapter.name}</span>
-                  <div className="flex items-center space-x-2 text-right">
-                    <a
-                      className="ml-2 cursor-pointer text-blue-500 custom-underline"
-                      onClick={() =>
-                        handleChapterClick(subject, chapter.name)
-                      }
-                    >
-                      {visibleChapters[chapter.name]
-                        ? "Hide Topics"
-                        : "Show Topics"}
-                    </a>
-                   
-                  </div>
-                </div>
-                {visibleChapters[chapter.name] && (
-                  <div className="mt-2">
-                    {loadingTopics[chapter.name] ? (
-                      <Loading />
-                    ) : (
-                      <>
-                        {Array.isArray(topicsByChapter[chapter.name]) &&
-                        topicsByChapter[chapter.name].length > 0 ? (
-                          <ul>
-                            {topicsByChapter[chapter.name].map((topic) => (
-                              <li key={topic._id} className="text-sm">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-left flex-grow">
-                                    {topic.name}
-                                  </span>
-                                  <div className="flex items-center space-x-2 text-right">
-                                    <a
-                                      className="cursor-pointer text-blue-500 custom-underline"
-                                      onClick={() =>
-                                        handleTopicClick(
-                                          subject,
-                                          chapter.name,
-                                          topic._id,
-                                          topic.name
-                                        )
-                                      }
-                                    >
-                                      {visibleTopics[topic._id]
-                                        ? "Hide Subtopics"
-                                        : "Show Subtopics"}
-                                    </a>
-                                    <FaEdit
-                                            className="cursor-pointer text-green-500"
-                                            onClick={() =>
-                                              openEditModal(topic._id, topic.name)
-                                            }
-                                          />
-                                          <FaTrashAlt
-  className="text-red-500 cursor-pointer"
-  onClick={() => handleDeleteTopic(topic._id)}
-/>
-
-                                  </div>
-                                </div>
-                                {visibleTopics[topic._id] && (
-                                  <div className="mt-2 mb-2 ml-4">
-                                    {loadingSubtopics[topic._id] ? (
-                                      <Loading />
-                                    ) : (
-                                      <>
-                                        {subTopicByTopics[topic._id] &&
-                                        subTopicByTopics[topic._id].length > 0 ? (
-                                          <ul>
-                                            {subTopicByTopics[topic._id].map(
-                                              (subtopic) => (
-                                                <li
-                                                  key={subtopic._id}
-                                                  className="text-xs"
-                                                >
-                                                  {subtopic.name}
-                                                </li>
-                                              )
+        {subjectList.length > 0 ? (
+          subjectList.map((subject) => (
+            <div
+              key={subject}
+              className="relative z-0 flex-shrink-0 w-48 md:w-auto"
+            >
+              <Select
+                style={{ width: 200, backgroundColor: "#f5f5f5" }}
+                value={subject}
+                disabled
+                className="custom-dark-text"
+              />
+              <hr />
+              {Array.isArray(chaptersBySubject[subject]) &&
+              chaptersBySubject[subject].length > 0 ? (
+                <ul className="mt-2">
+                  {chaptersBySubject[subject].map((chapter) => (
+                    <li key={chapter._id} className="chapter-item">
+                      <div className="flex justify-between items-center">
+                        <span className="text-left flex-grow">
+                          {chapter.name}
+                        </span>
+                        <div className="flex items-center space-x-2 text-right">
+    <a
+      className="ml-2 cursor-pointer text-blue-500 custom-underline"
+      onClick={() => handleChapterClick(subject, chapter.name)}
+    >
+      {visibleChapters[chapter.name] ? (
+        <FaChevronUp />
+      ) : (
+        <FaChevronDown />
+      )}
+    </a>
+  </div>
+                      </div>
+                      {visibleChapters[chapter.name] && (
+                        <div className="mt-2">
+                          {loadingTopics[chapter.name] ? (
+                            <Loading />
+                          ) : (
+                            <>
+                              {Array.isArray(topicsByChapter[chapter.name]) &&
+                              topicsByChapter[chapter.name].length > 0 ? (
+                                <ul>
+                                  {topicsByChapter[chapter.name].map(
+                                    (topic) => (
+                                      <li key={topic._id} className="text-sm">
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-left flex-grow">
+                                            {topic.name}
+                                          </span>
+                                          <div className="flex items-center space-x-2 text-right">
+                                            <a
+                                              className="ml-2 cursor-pointer text-blue-500 custom-underline"
+                                              onClick={() =>
+                                                handleTopicClick(
+                                                  subject,
+                                                  chapter.name,
+                                                  topic._id,
+                                                  topic.name
+                                                )
+                                              }
+                                            >
+                                              {visibleTopics[topic._id] ? (
+                                                <>
+                                                  <FaChevronUp />
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <FaChevronDown />
+                                                </>
+                                              )}
+                                            </a>
+                                            <FaEdit
+                                              className="cursor-pointer text-green-500"
+                                              onClick={() =>
+                                                openEditModal(
+                                                  topic._id,
+                                                  topic.name
+                                                )
+                                              }
+                                            />
+                                            <FaTrashAlt
+                                              className="text-red-500 cursor-pointer"
+                                              onClick={() =>
+                                                handleDeleteTopic(topic._id)
+                                              }
+                                            />
+                                          </div>
+                                        </div>
+                                        {visibleTopics[topic._id] && (
+                                          <div className="mt-2 mb-2 ml-4">
+                                            {loadingSubtopics[topic._id] ? (
+                                              <Loading />
+                                            ) : (
+                                              <>
+                                                {subTopicByTopics[topic._id] &&
+                                                subTopicByTopics[topic._id]
+                                                  .length > 0 ? (
+                                                  <ul>
+                                                    {subTopicByTopics[
+                                                      topic._id
+                                                    ].map((subtopic) => (
+                                                      <li
+                                                        key={subtopic._id}
+                                                        className="text-xs"
+                                                      >
+                                                        {subtopic.name}
+                                                      </li>
+                                                    ))}
+                                                  </ul>
+                                                ) : (
+                                                  <div className="text-xs">
+                                                    No subtopics available
+                                                  </div>
+                                                )}
+                                              </>
                                             )}
-                                          </ul>
-                                        ) : (
-                                          <div className="text-xs">
-                                            No subtopics available
                                           </div>
                                         )}
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div>No topics available</div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              ) : (
+                                <div>No topics available</div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div>No chapters available</div>
+              )}
+            </div>
+          ))
         ) : (
-          <div>No chapters available</div>
+          <div>No subjects available</div>
         )}
       </div>
-    ))
-  ) : (
-    <div>No subjects available</div>
-  )}
-</div>
-<Modal
+      <Modal
         title="Edit Topic Name"
         open={isModalOpen}
         onOk={handleUpdateTopic}
