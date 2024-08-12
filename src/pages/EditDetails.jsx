@@ -26,6 +26,9 @@ const EditDetails = () => {
   const [newTopicName, setNewTopicName] = useState("");
   const [currentSubtopicId, setCurrentSubtopicId] = useState(null);
   const [newSubtopicName, setNewSubtopicName] = useState("");
+  const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
+  const [newChapterName, setNewChapterName] = useState("");
+  const [currentChapterId, setCurrentChapterId] = useState(null);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -217,22 +220,19 @@ const EditDetails = () => {
 
   const handleUpdateSubtopic = async () => {
     try {
-      // Ensure both subtopicId and newSubtopicName are provided
       if (!currentSubtopicId || !newSubtopicName) {
         toast.error("Subtopic ID and new name must be provided");
         return;
       }
-  
-      // API request to update the subtopic name
+
       const response = await axios.put(
         `${server}/api/update/subtopic/${currentSubtopicId}`,
         { name: newSubtopicName }
       );
-  
+
       if (response.data.success) {
         toast.success("Subtopic name updated successfully");
-  
-        // Update the local state to reflect the changes
+
         setSubTopicByTopics((prev) => {
           const updatedTopics = { ...prev };
           Object.keys(updatedTopics).forEach((topic) => {
@@ -251,10 +251,10 @@ const EditDetails = () => {
       console.error("Error in handleUpdateSubtopic:", error);
       toast.error("An unexpected error occurred. Please try again later.");
     } finally {
-      setIsSubtopicModalOpen(false); // Close the modal after the update
+      setIsSubtopicModalOpen(false); 
     }
   };
-  
+
   const openEditSubtopicModal = (subtopicId, subtopicName) => {
     setCurrentSubtopicId(subtopicId);
     setNewSubtopicName(subtopicName);
@@ -264,7 +264,8 @@ const EditDetails = () => {
   const handleDeleteSubtopic = (subtopicId) => {
     Modal.confirm({
       title: "Are you sure you want to delete this subtopic?",
-      content: "This action cannot be undone. If this subtopic is associated with any questions, it cannot be deleted.",
+      content:
+        "This action cannot be undone. If this subtopic is associated with any questions, it cannot be deleted.",
       okText: "Yes",
       okType: "danger",
       cancelText: "No",
@@ -273,10 +274,10 @@ const EditDetails = () => {
           const response = await axios.delete(
             `${server}/api/delete/subtopic/${subtopicId}`
           );
-  
+
           if (response.data.success) {
             toast.success("Subtopic deleted successfully");
-  
+
             setSubTopicByTopics((prev) => {
               const updatedTopics = { ...prev };
               Object.keys(updatedTopics).forEach((topic) => {
@@ -299,7 +300,87 @@ const EditDetails = () => {
       },
     });
   };
-  
+
+  const handleUpdateChapter = async () => {
+    try {
+      if (!currentChapterId || !newChapterName) {
+        toast.error("Chapter ID and new name must be provided");
+        return;
+      }
+
+      const response = await axios.put(
+        `${server}/api/update/chapter/${currentChapterId}`,
+        { name: newChapterName }
+      );
+
+      if (response.data.success) {
+        toast.success("Topic name updated successfully");
+        setChaptersBySubject((prev) => {
+          const updatedChapters = { ...prev };
+          Object.keys(updatedChapters).forEach((chapter) => {
+            updatedChapters[chapter] = updatedChapters[chapter].map((chapter) =>
+              chapter._id === currentChapterId
+                ? { ...chapter, name: newChapterName }
+                : chapter
+            );
+          });
+          return updatedChapters;
+        });
+      } else {
+        toast.error(response.data.message || "Failed to update chapter name");
+      }
+    } catch (error) {
+      console.error("Error in handleUpdateChapter:", error);
+      toast.error("An unexpected error occurred. Please try again later.");
+    } finally {
+      setIsChapterModalOpen(false);
+    }
+  };
+  const openEditChapterModal = (chapterId, chapterName) => {
+    setCurrentChapterId(chapterId);
+    setNewChapterName(chapterName);
+    setIsChapterModalOpen(true);
+  };
+
+  const handleDeleteChapter = (chapterId) => {
+    Modal.confirm({
+      title: "Are you sure you want to delete this Chapter?",
+      content:
+        "This action cannot be undone. If this Chapter is associated with any questions, it cannot be deleted.",
+      okText: "Yes",
+      okType: "danger",
+      cancelText: "No",
+      onOk: async () => {
+        try {
+          const response = await axios.delete(
+            `${server}/api/delete/chapter/${chapterId}`
+          );
+
+          if (response.data.success) {
+            toast.success("Subtopic deleted successfully");
+            
+            setSubTopicByTopics((prev) => {
+              const updatedTopics = { ...prev };
+              Object.keys(updatedTopics).forEach((chapter) => {
+                updatedTopics[chapter] = updatedTopics[chapter].filter(
+                  (chapter) => chapter._id !== chapterId
+                );
+              });
+              return updatedTopics;
+            });
+          } else {
+            toast.error(response.data.message || "Failed to delete chapter");
+          }
+        } catch (error) {
+          console.error("Error in handleDeleteChapter:", error);
+          const errorMessage =
+            error.response?.data?.message ||
+            "An unexpected error occurred. Please try again later.";
+          toast.error(errorMessage);
+        }
+      },
+    });
+  };
   if (loading) {
     return <Loader />;
   }
@@ -363,6 +444,16 @@ const EditDetails = () => {
                               <FaChevronDown />
                             )}
                           </a>
+                          <FaEdit
+                            className="cursor-pointer text-green-500"
+                            onClick={() =>
+                              openEditChapterModal(chapter._id, chapter.name)
+                            }
+                          />
+                          <FaTrashAlt
+                            className="text-red-500 cursor-pointer"
+                            onClick={() => handleDeleteChapter(chapter._id)}
+                          />
                         </div>
                       </div>
                       {visibleChapters[chapter.name] && (
@@ -421,38 +512,56 @@ const EditDetails = () => {
                                           </div>
                                         </div>
                                         {visibleTopics[topic._id] && (
-  <div className="mt-2 mb-2 ml-4">
-    {loadingSubtopics[topic._id] ? (
-      <Loading />
-    ) : (
-      <>
-        {subTopicByTopics[topic._id] && subTopicByTopics[topic._id].length > 0 ? (
-          <ul>
-            {subTopicByTopics[topic._id].map((subtopic) => (
-              <li key={subtopic._id} className="text-xs flex justify-between items-center">
-                <span>{subtopic.name}</span>
-                <div className="flex space-x-2">
-                  <FaEdit
-                    className="cursor-pointer text-green-500"
-                    onClick={() => openEditSubtopicModal(subtopic._id, subtopic.name)}
-                  />
-                  <FaTrashAlt
-                    className="text-red-500 cursor-pointer"
-                    onClick={() => handleDeleteSubtopic(subtopic._id)}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="text-xs">No subtopics available</div>
-        )}
-      </>
-    )}
-  </div>
-)}
-
-
+                                          <div className="mt-2 mb-2 ml-4">
+                                            {loadingSubtopics[topic._id] ? (
+                                              <Loading />
+                                            ) : (
+                                              <>
+                                                {subTopicByTopics[topic._id] &&
+                                                subTopicByTopics[topic._id]
+                                                  .length > 0 ? (
+                                                  <ul>
+                                                    {subTopicByTopics[
+                                                      topic._id
+                                                    ].map((subtopic) => (
+                                                      <li
+                                                        key={subtopic._id}
+                                                        className="text-xs flex justify-between items-center"
+                                                      >
+                                                        <span>
+                                                          {subtopic.name}
+                                                        </span>
+                                                        <div className="flex space-x-2">
+                                                          <FaEdit
+                                                            className="cursor-pointer text-green-500"
+                                                            onClick={() =>
+                                                              openEditSubtopicModal(
+                                                                subtopic._id,
+                                                                subtopic.name
+                                                              )
+                                                            }
+                                                          />
+                                                          <FaTrashAlt
+                                                            className="text-red-500 cursor-pointer"
+                                                            onClick={() =>
+                                                              handleDeleteSubtopic(
+                                                                subtopic._id
+                                                              )
+                                                            }
+                                                          />
+                                                        </div>
+                                                      </li>
+                                                    ))}
+                                                  </ul>
+                                                ) : (
+                                                  <div className="text-xs">
+                                                    No subtopics available
+                                                  </div>
+                                                )}
+                                              </>
+                                            )}
+                                          </div>
+                                        )}
                                       </li>
                                     )
                                   )}
@@ -498,6 +607,18 @@ const EditDetails = () => {
           value={newSubtopicName}
           onChange={(e) => setNewSubtopicName(e.target.value)}
           placeholder="Enter new Subtopic name"
+        />
+      </Modal>
+      <Modal
+        title="Edit Chapter Name"
+        open={isChapterModalOpen}
+        onOk={handleUpdateChapter}
+        onCancel={() => setIsChapterModalOpen(false)}
+      >
+        <Input
+          value={newChapterName}
+          onChange={(e) => setNewChapterName(e.target.value)}
+          placeholder="Enter new Chapter name"
         />
       </Modal>
     </div>
