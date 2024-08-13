@@ -10,10 +10,14 @@ import axios from "axios";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { animateScroll as scroll } from "react-scroll";
+import { Modal, Select } from "antd";
 
 const Profile = () => {
-  const navigate = useNavigate();
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [subjectList, setSubjectList] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState();
+  const navigate = useNavigate();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editedQuestion, setEditedQuestion] = useState("");
   const [editedOption, setEditedOption] = useState({ id: "", name: "", tag: "" });
@@ -141,6 +145,61 @@ const Profile = () => {
     </div>
   );
 
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await  axios.get(
+        `${server}/api/get/subject`,  {
+          params: { standard: selectedQuestion.standard }, // Pass the standard if required
+        });
+        if (response.data.success) {
+          setSubjectList(response.data.subjectList.map(subject => ({ value: subject, label: subject })));
+        } 
+      else {
+        console.error('Error fetching subjects:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+    }
+    };
+
+    if (isModalOpen) {
+      fetchSubjects();
+    }
+  }, [isModalOpen]);
+
+  const handleUpdateSubject = async () => {
+    if (!selectedQuestion || !selectedQuestion._id) {
+      console.error('Selected question or question ID is missing');
+      return;
+    }
+  
+    try {
+      const payload = {
+        subject: selectedSubject,
+      };
+  
+      const updateUrl = `${server}/api/question/${selectedQuestion._id}/subject`; // Ensure URL is correct
+  
+      const updateResponse = await axios.put(updateUrl, payload); // Use PUT for updating
+  
+      if (updateResponse.data.success) {
+         setSelectedQuestion(prevQuestion => ({
+          ...prevQuestion,
+          subject: selectedSubject,
+        }));
+        console.log('Subject Updated')
+      } else {
+        console.error('Failed to update subject');
+      }
+    } catch (error) {
+      console.error('Error updating subject:', error);
+    }
+    finally {
+      setIsModalOpen(false)
+    }
+  };
+  
   
   useEffect(() => {
     if (!isAuthenticated) {
@@ -339,21 +398,71 @@ const Profile = () => {
               <p>No options available</p>
             )}
           </div>
-          <p>Class: {selectedQuestion.standard}</p>
-          <p>Subject: {selectedQuestion.subject}</p>
-          <p>Chapter: {selectedQuestion.chapter.join(", ")}</p>
-          <p>
-  Topics: {selectedQuestion && selectedQuestion.topics ? selectedQuestion.topics.join(", ") : "No topics available"}
-</p>
-
-          <p>Level: {selectedQuestion.level}</p>
-          <p>
-            Subtopics:{" "}
-            {selectedQuestion.subtopics.length > 0
-              ? selectedQuestion.subtopics.join(", ")
-              : "N/A"}
-          </p>
-          <p>Nested Subtopic: {selectedQuestion.nestedSubTopic || "N/A"}</p>
+          <div>
+      <p>
+        Class: {selectedQuestion.standard}
+        <button
+          className="ml-2 text-blue-500"
+          onClick={() => handleEditOption('standard')}
+        >
+          <LuPencilLine />
+        </button>
+      </p>
+      <p>
+        Subject: {selectedQuestion.subject}
+        <button
+          className="ml-2 text-blue-500"
+          onClick={() => setIsModalOpen(true)}
+        >
+          <LuPencilLine />
+        </button>
+      </p>
+      <p>
+        Chapter: {selectedQuestion.chapter.join(", ")}
+        <button
+          className="ml-2 text-blue-500"
+          onClick={() => handleEditOption('chapter')}
+        >
+          <LuPencilLine />
+        </button>
+      </p>
+      <p>
+        Topics: {selectedQuestion && selectedQuestion.topics ? selectedQuestion.topics.join(", ") : "No topics available"}
+        <button
+          className="ml-2 text-blue-500"
+          onClick={() => handleEditOption('topics')}
+        >
+          <LuPencilLine />
+        </button>
+      </p>
+      <p>
+        Level: {selectedQuestion.level}
+        <button
+          className="ml-2 text-blue-500"
+          onClick={() => handleEditOption('level')}
+        >
+          <LuPencilLine />
+        </button>
+      </p>
+      <p>
+        Subtopics: {selectedQuestion.subtopics.length > 0 ? selectedQuestion.subtopics.join(", ") : "N/A"}
+        <button
+          className="ml-2 text-blue-500"
+          onClick={() => handleEditOption('subtopics')}
+        >
+          <LuPencilLine />
+        </button>
+      </p>
+      <p>
+        Nested Subtopic: {selectedQuestion.nestedSubTopic || "N/A"}
+        <button
+          className="ml-2 text-blue-500"
+          onClick={() => handleEditOption('nestedSubTopic')}
+        >
+          <LuPencilLine />
+        </button>
+      </p>
+    </div>
         </div>
         <div className="p-6 pt-0">
           <button
@@ -466,7 +575,24 @@ const Profile = () => {
     </div>
   </div>
 )}
-
+<Modal
+        title="Edit Subject"
+        open={isModalOpen}
+        onOk={handleUpdateSubject}
+        onCancel={() => setIsModalOpen(false)}
+      >
+        <Select
+          showSearch
+          style={{ width: 200 }}
+          placeholder="Select Subject"
+          filterOption={(input, option) =>
+            (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
+          onChange={(value) => setSelectedSubject(value)}
+          options={subjectList}
+          value={selectedSubject}
+        />
+      </Modal>
   </div>
 );
 };
