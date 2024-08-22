@@ -7,8 +7,11 @@ import { getTopics } from "../actions/topicAction";
 import { getSubtopics } from "../actions/subtopicAction";
 import { standards } from "./Options";
 import { useDispatch, useSelector } from 'react-redux';
+import axios from 'axios';
+import { server } from '../main';
+import toast from 'react-hot-toast';
 
-const EditModel = ({ isOpen, onClose, selectedQuestion, onSave }) => {
+const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }) => {
     const { subjectList } = useSelector((state) => state.getSubject);
     const { chapterList } = useSelector((state) => state.getChapter);
     const { topicList } = useSelector((state) => state.getTopic);
@@ -34,18 +37,34 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave }) => {
             dispatch(getSubtopics(subject, standard, chapter, topic))
 
         }
-    }, [dispatch, standard, subject,])
-    const handleSaveChanges = () => {
-        onSave({
-            ...selectedQuestion,
+    }, [dispatch, standard, subject, chapter, topic, subtopic])
+    const handleSaveChanges = async () => {
+        const updatedQuestion = {
             standard,
             subject,
             chapter,
             topics: topic,
             subtopics: subtopic,
-        });
-        onClose();
+        };
+
+        try {
+            const response = await axios.put(`${server}/api/updatequestion/${selectedQuestion._id}`, updatedQuestion);
+            const data = response.data; 
+
+            if (response.status === 200) {
+                onSave(data.question);
+                toast.success("Updated successfully");
+                setIsModalOpen(false);
+            } else {
+                console.error('Failed to update question:', data.message);
+                toast.error('Failed to update question: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error updating question:', error);
+            toast.error('Error updating question: ' + error.message);
+        }
     };
+    
 
     const handleOverlayClick = (e) => {
         if (e.target === e.currentTarget) {
@@ -61,7 +80,7 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave }) => {
         >
             <div
                 className="bg-white rounded-lg shadow-lg p-6 w-11/12 sm:w-2/3 md:w-1/2 lg:w-1/3 xl:w-1/4 text-gray-900"
-                onClick={(e) => e.stopPropagation()} // Prevent clicks inside the modal from closing it
+                onClick={(e) => e.stopPropagation()} 
             >
                 <h3 className="text-xl mb-4">Edit Details</h3>
 
@@ -165,6 +184,9 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave }) => {
                         filterOption={(input, option) =>
                             (option.label ?? "").toLowerCase().includes(input.toLowerCase())
                         }
+                        onChange={(value) => {
+                            setSubtopic(value)
+                        }}
                         options={subtopics.map((subtopic) => ({
                             value: subtopic.name,
                             label: subtopic.name,

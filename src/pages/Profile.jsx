@@ -114,25 +114,14 @@ const Profile = () => {
     { symbol: '⊫', name: 'Triple Turnstile' },
   ];
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editedFields, setEditedFields] = useState({
-    standard: selectedQuestion?.standard || "",
-    subject: selectedQuestion?.subject || "",
-    chapter: selectedQuestion?.chapter || [],
-    topics: selectedQuestion?.topics || [],
-    subtopics: selectedQuestion?.subtopics || [],
-  });
+
   const handleEdit = () => {
     setIsModalOpen(true);
   };
 
-  const handleFieldChange = (field, value) => {
-    setEditedFields((prev) => ({ ...prev, [field]: value }));
-  };
 
-  const handleSaveEdits = () => {
-    // Update the selected question with the edited fields
-    setSelectedQuestion((prev) => ({ ...prev, ...editedFields }));
-    // Close the modal
+  const handleSaveEdits = (updatedQuestion) => {
+    setSelectedQuestion(updatedQuestion);
     setIsModalOpen(false);
   };
 
@@ -505,6 +494,7 @@ const Profile = () => {
           onClose={closeModals}
           selectedQuestion={selectedQuestion}
           onSave={handleSaveEdits}
+          setIsModalOpen={setIsEditModalOpen}
         />
       )}
     </div>
