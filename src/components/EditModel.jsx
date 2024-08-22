@@ -21,7 +21,8 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
     const [chapter, setChapter] = useState(selectedQuestion.chapter || '');
     const [topic, setTopic] = useState(selectedQuestion.topics || []);
     const [subtopic, setSubtopic] = useState(selectedQuestion.subtopics || []);
-    const dispatch = useDispatch()
+    const dispatch = useDispatch();
+    const [error, setError] = useState('');
     if (!isOpen) return null;
     useEffect(() => {
         if (standard) {
@@ -30,15 +31,36 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
         if (subject && standard) {
             dispatch(getChapters(subject, standard));
         }
-        if (subject && standard && chapter) {
-            dispatch(getTopics(subject, standard, chapter));
+    
+        const fetchTopics = async () => {
+            if (subject && standard && chapter.length > 0) {
+                setError(''); // Clear any error if chapters are selected
+                let allTopics = []; // To store all topics from selected chapters
+                for (const chap of chapter) {
+                    const response = await dispatch(getTopics(subject, standard, chap));
+                    allTopics = [...allTopics, ...response.topics]; // Combine topics from all chapters
+                }
+                setTopic(allTopics); // Set the combined topics if different from current state
+            } else if (subject && standard && chapter.length === 0) {
+                setError('Chapter selection is required.');
+            }
+        };
+    
+        fetchTopics(); // Call the function to fetch topics
+    
+        if (subject && standard && chapter.length > 0 && topic) {
+            dispatch(getSubtopics(subject, standard, chapter, topic));
         }
-        if (subject && standard && chapter && topic) {
-            dispatch(getSubtopics(subject, standard, chapter, topic))
-
-        }
-    }, [dispatch, standard, subject, chapter, topic, subtopic])
+    }, [dispatch, standard, subject, chapter, topic, subtopic]);
+    
     const handleSaveChanges = async () => {
+        // Check if chapter is selected
+        if (!chapter || chapter.length === 0) {
+            setError('Chapter selection is required.');
+            return; // Prevent form submission if chapter is not selected
+        }
+    
+        // Create the updated question object after validation passes
         const updatedQuestion = {
             standard,
             subject,
@@ -46,15 +68,16 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
             topics: topic,
             subtopics: subtopic,
         };
-
+    
         try {
+            // Send the PUT request to update the question
             const response = await axios.put(`${server}/api/updatequestion/${selectedQuestion._id}`, updatedQuestion);
-            const data = response.data; 
-
+            const data = response.data;
+    
             if (response.status === 200) {
                 onSave(data.question);
                 toast.success("Updated successfully");
-                setIsModalOpen(false);
+                setIsModalOpen(false); // Close the modal after successful update
             } else {
                 console.error('Failed to update question:', data.message);
                 toast.error('Failed to update question: ' + data.message);
@@ -64,6 +87,7 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
             toast.error('Error updating question: ' + error.message);
         }
     };
+    
     
 
     const handleOverlayClick = (e) => {
@@ -132,6 +156,7 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                     <Select
                         mode="multiple"
                         showSearch
+                        
                         style={{ width: 200 }}
                         placeholder="Select Chapter"
                         filterOption={(input, option) =>
@@ -147,10 +172,12 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                             label: chapter.name,
                         }))}
                         value={chapter}
+                        required
                     />
                     <label className="text-white-500 text-sm dark:text-white-400 mt-1">
                         Chapter
                     </label>
+                    {error && <span className="text-red-500 text-xs mt-1">{error}</span>}
                 </div>
 
                 <div className="relative z-0 w-full md:w-auto flex flex-col-reverse group">
