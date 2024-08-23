@@ -25,6 +25,8 @@ const Profile = () => {
   const { success: editSuccess, error: editError } = useSelector((state) => state.editQuestion);
   const dispatch = useDispatch();
   const quillRef = useRef(null);
+  const { user } = useSelector((state) => state.user);
+  const isAdmin = user?.role === "admin";
   const mathSymbols = [
     { symbol: '⁰', name: 'Numerator' },
     { symbol: '₁', name: 'Denominator' },
@@ -378,13 +380,16 @@ const Profile = () => {
             >
               Delete
             </button>
-            <button
-              className="ml-4 align-middle select-none font-sans font-bold text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 px-6 rounded-lg bg-blue-700 text-white shadow-md shadow-blue-700/10 hover:shadow-lg hover:shadow-blue-700/20 focus:opacity-[0.85] focus:shadow-none active:opacity-[0.85] active:shadow-none"
-              type="button"
-              onClick={() => handleEdit(selectedQuestion)}
-            >
-              Edit
-            </button>
+            {isAdmin && (
+  <button
+    className="ml-4 align-middle select-none font-sans font-bold text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 px-6 rounded-lg bg-blue-700 text-white shadow-md shadow-blue-700/10 hover:shadow-lg hover:shadow-blue-700/20 focus:opacity-[0.85] focus:shadow-none active:opacity-[0.85] active:shadow-none"
+    type="button"
+    onClick={() => handleEdit(selectedQuestion)}
+  >
+    Edit
+  </button>
+)}
+
           </div>
         </div>
       ) : (
