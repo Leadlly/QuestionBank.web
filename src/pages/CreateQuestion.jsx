@@ -321,12 +321,12 @@ const CreateQuestion = () => {
     }
     setCorrectOptions(newCorrectOptions);
   };
-  const handleOptionImageUpload = (index, event) => {
-    const files = Array.from(event.target.files);
-    const updatedImages = [...optionImages];
-    updatedImages[index] = files[0]; 
-    setOptionImages(updatedImages);
-  };
+  // const handleOptionImageUpload = (index, event) => {
+  //   const files = Array.from(event.target.files);
+  //   const updatedImages = [...optionImages];
+  //   updatedImages[index] = files[0]; 
+  //   setOptionImages(updatedImages);
+  // };
 
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files);
@@ -669,7 +669,7 @@ const CreateQuestion = () => {
               >
                 Option {index + 1}
               </label>
-              <label
+              {/* <label
                 htmlFor={`optionImageUpload-${index}`}
                 className="cursor-pointer ml-2"
               >
@@ -684,7 +684,7 @@ const CreateQuestion = () => {
                 className="hidden"
                 accept="image/*"
                 onChange={(event) => handleOptionImageUpload(index, event)}
-              />
+              /> */}
               <div
                 className={`ml-2 w-4 h-4 rounded-sm ${
                   correctOptions.includes(index)
