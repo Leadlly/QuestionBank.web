@@ -198,9 +198,17 @@ const CreateQuestion = () => {
     if (subject && standard) {
       dispatch(getChapters(subject, standard));
     }
-    if (subject && standard && chapter) {
-      dispatch(getTopics(subject, standard, chapter));
-    }
+    const fetchTopics = async () => {
+      if (subject && standard && chapter) {
+          let allTopics = []; // To store all topics from selected chapters
+          for (const chap of chapter) {
+              const response = await dispatch(getTopics(subject, standard, chap));
+              allTopics = [...allTopics, ...response.topic]; // Combine topics from all chapters
+          }
+      } 
+  };
+
+  fetchTopics();
     if (subject && standard && chapter && topic) {
       setIsSubtopicsLoading(true);
       dispatch(getSubtopics(subject, standard, chapter, topic))
