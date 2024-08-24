@@ -14,6 +14,7 @@ import { getChapters } from "../actions/chapterAction";
 import { getTopics } from "../actions/topicAction";
 import Loading from "../pages/Loading";
 import ViewChapTop from "./ViewChapTop";
+import { getSubtopics } from "../actions/subtopicAction";
 
 
 
@@ -85,16 +86,44 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const { topicList } = useSelector((state) => state.getTopic);
 
   useEffect(() => {
+    // Fetch subjects when standard changes
     if (selectedStandard) {
       dispatch(getSubjects(selectedStandard));
     }
+
+    // Fetch chapters when both standard and subject are selected
     if (selectedSubject && selectedStandard) {
       dispatch(getChapters(selectedSubject, selectedStandard));
     }
-    if (selectedSubject && selectedStandard && selectedChapter) {
-      dispatch(getTopics(selectedSubject, selectedStandard, selectedChapter));
+
+    // Function to fetch topics
+    const fetchTopics = async () => {
+      if (selectedSubject && selectedStandard && selectedChapter.length > 0) {
+        setError('');
+        try {
+          const chapterNames = selectedChapter.join(','); // Convert array to comma-separated string
+          const response = await dispatch(getTopics(selectedSubject, selectedStandard, chapterNames));
+
+          if (response && response.payload) {
+            setTopics(response.payload);
+          }
+        } catch (error) {
+          console.error('Error fetching topics:', error);
+          setError('Error fetching topics.');
+        }
+      } else if (selectedSubject && selectedStandard) {
+        setError('Chapter selection is required.');
+      }
+    };
+
+    fetchTopics();
+
+    // Fetch subtopics if everything is selected
+    if (selectedSubject && selectedStandard && selectedChapter.length > 0 && selectedTopic.length > 0) {
+      dispatch(getSubtopics(selectedSubject, selectedStandard, selectedChapter, selectedTopic));
     }
-  }, [dispatch, selectedStandard, selectedSubject, selectedChapter]);
+
+  }, [dispatch, selectedStandard, selectedSubject, selectedChapter, selectedTopic]);
 
   const { user } = useSelector((state) => state.user);
 
@@ -651,32 +680,32 @@ const handleTabChange = (index) => {
         </div>
         <div className="flex space-x-4 mb-4">
           <div className="w-1/2">
-            <div className="mb-4">
-              <label className="text-white-500 text-sm dark:text-white-400">
-                Chapter
-              </label>
-              <Select
-                style={{ width: 200 }}
-                showSearch
-                value={selectedChapter}
-                onChange={(value) => {
-                  setSelectedChapter(value);
-                  setSelectedTopic("");
-                  setSelectedQuestion(null);
-                  setCurrentPage(1)
-                  setMyCurrentPage(1)
-                }}
-                filterOption={(input, option) =>
-                  (option.label ?? "")
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                options={chapterList?.map((chapter) => ({
-                  value: chapter.name,
-                  label: chapter.name,
-                }))}
-              />
-            </div>
+          <div className="relative z-0 w-full md:w-auto flex flex-col-reverse group">
+    <Select
+      mode="multiple"
+      showSearch
+      style={{ width: 200 }}
+      placeholder="Select Chapter"
+      filterOption={(input, option) =>
+        (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+      }
+      onChange={(value) => {
+        setSelectedChapter(value);
+        setSelectedTopic("");
+        setSelectedQuestion(null);
+        setCurrentPage(1)
+        setMyCurrentPage(1)
+      }}
+      options={chapterList?.map((chapter) => ({
+        value: chapter.name,
+        label: chapter.name,
+      }))}
+      value={selectedChapter}
+    />
+    <label className="text-white-500 text-sm dark:text-white-400 mt-1">
+      Chapter
+    </label>
+  </div>
           </div>
           <div className="w-1/2">
             <div className="mb-4">
@@ -684,7 +713,7 @@ const handleTabChange = (index) => {
                 Topic
               </label>
               <Select
-              
+               mode="multiple"
                 style={{ width: 200 }}
                 showSearch
                 value={selectedTopic}
