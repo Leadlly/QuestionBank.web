@@ -15,12 +15,11 @@ import { getTopics } from "../actions/topicAction";
 import Loading from "../pages/Loading";
 import ViewChapTop from "./ViewChapTop";
 import { getSubtopics } from "../actions/subtopicAction";
-
-
+import _ from 'lodash';
 
 function debounce(func, delay) {
   let timeoutId;
-  return function(...args) {
+  return function (...args) {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
@@ -29,8 +28,6 @@ function debounce(func, delay) {
     }, delay);
   };
 }
-
-
 
 const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const [questions, setQuestions] = useState([]);
@@ -42,8 +39,8 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const [myTodayQuestions, setTodayMyQuestions] = useState("");
   const [selectedStandard, setSelectedStandard] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
-  const [selectedChapter, setSelectedChapter] = useState("");
-  const [selectedTopic, setSelectedTopic] = useState("");
+  const [selectedChapter, setSelectedChapter] = useState([]);
+  const [selectedTopic, setSelectedTopic] = useState([]);
   // eslint-disable-next-line no-unused-vars
   const [subjects, setSubjects] = useState([]);
   // eslint-disable-next-line no-unused-vars
@@ -73,10 +70,12 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const [searchMyQuery, setSearchMyQuery] = useState("");
   const questionsPerPage = 50;
   const [inputValue, setInputValue] = useState('');
-    // eslint-disable-next-line no-unused-vars
+  const [selectedSubtopics, setSelectedSubtopics] = useState([]);
+  const [isSubtopicsLoading, setIsSubtopicsLoading] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [myInputValue, setMyInputValue] = useState('');
- const inputRef = useRef(null);
- const myInputRef = useRef(null);
+  const inputRef = useRef(null);
+  const myInputRef = useRef(null);
   const dispatch = useDispatch();
 
 
@@ -84,47 +83,79 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const { subjectList } = useSelector((state) => state.getSubject);
   const { chapterList } = useSelector((state) => state.getChapter);
   const { topicList } = useSelector((state) => state.getTopic);
+  const { subtopics } = useSelector((state) => state.getSubtopic);
+
 
   useEffect(() => {
-    // Fetch subjects when standard changes
     if (selectedStandard) {
       dispatch(getSubjects(selectedStandard));
     }
+  }, [dispatch, selectedStandard]);
 
-    // Fetch chapters when both standard and subject are selected
+  useEffect(() => {
     if (selectedSubject && selectedStandard) {
       dispatch(getChapters(selectedSubject, selectedStandard));
     }
+  }, [dispatch, selectedSubject, selectedStandard]);
 
-    // Function to fetch topics
+  useEffect(() => {
     const fetchTopics = async () => {
       if (selectedSubject && selectedStandard && selectedChapter.length > 0) {
-        setError('');
         try {
           const chapterNames = selectedChapter.join(','); // Convert array to comma-separated string
           const response = await dispatch(getTopics(selectedSubject, selectedStandard, chapterNames));
 
           if (response && response.payload) {
-            setTopics(response.payload);
+            setTopicList(response.payload);
           }
         } catch (error) {
           console.error('Error fetching topics:', error);
-          setError('Error fetching topics.');
         }
-      } else if (selectedSubject && selectedStandard) {
-        setError('Chapter selection is required.');
       }
     };
 
     fetchTopics();
+  }, [dispatch, selectedSubject, selectedStandard, selectedChapter]);
 
-    // Fetch subtopics if everything is selected
-    if (selectedSubject && selectedStandard && selectedChapter.length > 0 && selectedTopic.length > 0) {
-      dispatch(getSubtopics(selectedSubject, selectedStandard, selectedChapter, selectedTopic));
-    }
-
-  }, [dispatch, selectedStandard, selectedSubject, selectedChapter, selectedTopic]);
-
+  useEffect(() => {
+    const fetchSubtopics = async () => {
+      if (
+        selectedSubject &&
+        selectedStandard &&
+        selectedChapter.length > 0 &&
+        selectedTopic.length > 0
+      ) {
+        setIsSubtopicsLoading(true);
+        try {
+          // Fetch subtopics based on selected criteria
+          const response = await dispatch(
+            getSubtopics(
+              selectedSubject,
+              selectedStandard,
+              selectedChapter.join(","), // Convert chapter array to comma-separated string
+              selectedTopic.join(",") // Convert topic array to comma-separated string
+            )
+          );
+  
+          if (response && response.payload) {
+            setSelectedSubtopics(response.payload); // Update state with fetched subtopics
+          } else {
+            setSelectedSubtopics([]); // Reset subtopics if no data is received
+          }
+        } catch (error) {
+          console.error("Error fetching subtopics:", error);
+          setSelectedSubtopics([]); // Reset subtopics on error
+        } finally {
+          setIsSubtopicsLoading(false);
+        }
+      } else {
+        setSelectedSubtopics([]); // Reset subtopics if required fields are not selected
+      }
+    };
+  
+    fetchSubtopics();
+  }, [dispatch, selectedSubject, selectedStandard, selectedChapter, selectedTopic]);
+  
   const { user } = useSelector((state) => state.user);
 
   const isAdmin = user?.role === "admin";
@@ -136,6 +167,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
         selectedSubject,
         selectedChapter,
         selectedTopic,
+        selectedSubtopics,
         selectedUser,
         searchKeyword,
       );
@@ -145,6 +177,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
         selectedSubject,
         selectedChapter,
         selectedTopic,
+        selectedSubtopics,
         searchMyQuery
       );
     }
@@ -153,6 +186,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     selectedSubject,
     selectedChapter,
     selectedTopic,
+    selectedSubtopics,
     activeTabIndex,
     selectedUser,
     searchKeyword,
@@ -164,47 +198,99 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     subject,
     chapter,
     topic,
+    subtopic,
     createdBy,
-    limit,
-    page
+    limit, 
+    page 
   ) => {
     setLoading(true);
     try {
       const response = await axios.get(`${server}/api/get/question`, {
         params: {
-          standard: selectedStandard,
+          standard,
           subject,
           chapter,
           topic,
+          subtopic,
           createdBy,
-          limit: questionsPerPage,
+          limit,
           page,
-          search: searchKeyword,
+          search: searchKeyword, 
         },
         withCredentials: true,
       });
-
+  
       if (response.data.success) {
         const questions = response.data.questions;
-        setQuestions(questions.reverse());
+        setQuestions(questions.reverse()); 
         setUserTodayQuestions(response.data?.todaysQuestionsCount);
         setUserRank(response.data?.userRank);
         setTopperUser(response.data?.topperUser);
         const totalQuestions = response.data.totalQuestions || 0;
         setTotalQuestions(totalQuestions);
-        setTotalPages(Math.ceil(totalQuestions / limit));
+        setTotalPages(Math.ceil(totalQuestions / limit)); 
       } else {
         setQuestions([]);
       }
     } catch (error) {
-      console.error(error);
-      toast.error(error.message);
+      console.error("Error fetching questions:", error);
+      toast.error("Failed to fetch questions. Please try again."); 
     } finally {
       setLoading(false);
     }
   };
+  
+  const fetchTotalQuestionsDebounced = useCallback(
+    _.debounce(async (
+      standard,
+      subject,
+      chapter,
+      topic,
+      subtopic,
+      createdBy,
+      search,
+      mySearch
+    ) => {
+      try {
+        const response = await axios.get(`${server}/api/get/totalquestion`, {
+          params: {
+            standard,
+            subject,
+            chapter,
+            topic,
+            subtopic, 
+            createdBy,
+            search,
+            mySearch,
+          },
+          withCredentials: true,
+        });
+  
+        if (response.data.success) {
+          const fixedMyTotalQuestions = response.data.totalMyQuestions || 0;
+          setFixedTotalMyQuestions(fixedMyTotalQuestions);
+          const fixedTotalQuestions = response.data.fixedTotalQuestions || 0;
+          setFixedTotalQuestions(fixedTotalQuestions);
+          setTotalQuestions(response.data.totalQuestions);
+          setQuestionsLength(response.data.questionsLength);
+          setTotalPages(
+            Math.ceil(response.data.totalQuestions / questionsPerPage)
+          );
+  
+          setMyTotalPages(
+            Math.ceil(response.data.questionsLength / questionsPerPage)
+          );
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to fetch total questions count");
+      }
+    }, 500),
+    []
+  );
+  
 
-  const fetchUserQuestions = async (standard, subject, chapter, topic, limit, page) => {
+  const fetchUserQuestions = async (standard, subject, chapter, topicList, subtopic, limit, page) => {
     setLoading(true);
     try {
       const response = await axios.get(`${server}/api/get/myquestion`, {
@@ -213,9 +299,10 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
           subject,
           chapter,
           topicList,
+          subtopic,
           limit: questionsPerPage,
           page,
-          search: searchMyQuery, 
+          search: searchMyQuery,
         },
         withCredentials: true,
       });
@@ -256,52 +343,8 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     }
   };
 
-  
 
-  const fetchTotalQuestions = async (
-    standard,
-    subject,
-    chapter,
-    topic,
-    createdBy,
-    search,
-    mySearch
-  ) => {
-    try {
-      const response = await axios.get(`${server}/api/get/totalquestion`, {
-        params: {
-          standard,
-          subject,
-          chapter,
-          topic,
-          createdBy,
-          search,
-          mySearch,
-        },
-        withCredentials: true,
-      });
-  
-      if (response.data.success) {
-        const fixedMyTotalQuestions = response.data.totalMyQuestions || 0;
-        setFixedTotalMyQuestions(fixedMyTotalQuestions);
-        const fixedTotalQuestions = response.data.fixedTotalQuestions || 0;
-        setFixedTotalQuestions(fixedTotalQuestions);
-        setTotalQuestions(response.data.totalQuestions);
-        setQuestionsLength(response.data.questionsLength);
-        setTotalPages(
-          Math.ceil(response.data.totalQuestions / questionsPerPage)
-        );
-        
-        setMyTotalPages(
-          Math.ceil(response.data.questionsLength / questionsPerPage)
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch total questions count");
-    }
-  };
-  
+
 
   useEffect(() => {
     fetchUsers(
@@ -346,33 +389,33 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     setMyCurrentPage(1)
   };
 
-const handleTabChange = (index) => {
-  setSelectedStandard("")
-  setSelectedQuestion(null);
-  setActiveTabIndex(index);
-  setCurrentPage(1);
-  setMyCurrentPage(1);
-  setSelectedSubject("");
-  setSelectedChapter("");
-  setSelectedTopic("");
-  setSubjects([]);
-  setChapters([]);
-  setTopics([]);
-  setMySubjects([]);
-  setMyChapters([]);
-  setMyTopics([]);
-  setQuestions([]);
-  setSelectedUser(null);
-  setMyQuestions([]);
-  setMyRank("");
-  setUserRank("");
-  setUserTodayQuestions("");
-  setTodayMyQuestions("");
-  setSearchMyQuery("");
-  setSearchKeyword("");
-  setInputValue("");
-  setMyInputValue("")
-};
+  const handleTabChange = (index) => {
+    setSelectedStandard("")
+    setSelectedQuestion(null);
+    setActiveTabIndex(index);
+    setCurrentPage(1);
+    setMyCurrentPage(1);
+    setSelectedSubject("");
+    setSelectedChapter("");
+    setSelectedTopic("");
+    setSubjects([]);
+    setChapters([]);
+    setTopics([]);
+    setMySubjects([]);
+    setMyChapters([]);
+    setMyTopics([]);
+    setQuestions([]);
+    setSelectedUser(null);
+    setMyQuestions([]);
+    setMyRank("");
+    setUserRank("");
+    setUserTodayQuestions("");
+    setTodayMyQuestions("");
+    setSearchMyQuery("");
+    setSearchKeyword("");
+    setInputValue("");
+    setMyInputValue("")
+  };
   useEffect(() => {
     if (!isAdmin) {
       setActiveTabIndex(1);
@@ -381,8 +424,9 @@ const handleTabChange = (index) => {
 
   useEffect(() => {
     setSelectedSubject("");
-    setSelectedChapter("");
-    setSelectedTopic("");
+    setSelectedChapter([]);
+    setSelectedTopic([]);
+    setSelectedSubtopics([])
     setSelectedUser("");
     setSubjects([]);
     setChapters([]);
@@ -415,16 +459,21 @@ const handleTabChange = (index) => {
     setSelectedUser(value);
     setUserRank("");
     setUserTodayQuestions("");
-   
+
   };
-
-   useEffect(() => {
-    fetchTotalQuestions(selectedStandard, selectedSubject, selectedChapter, selectedTopic, selectedUser, searchKeyword, searchMyQuery);
+  useEffect(() => {
+    fetchTotalQuestionsDebounced(
+      selectedStandard,
+      selectedSubject,
+      selectedChapter,
+      selectedTopic,
+      selectedSubtopics,
+      selectedUser,
+      searchKeyword,
+      searchMyQuery
+    );
   });
-
-
   
-
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
     toBottom();
@@ -440,6 +489,7 @@ const handleTabChange = (index) => {
           selectedSubject,
           selectedChapter,
           selectedTopic,
+          selectedSubtopics,
           selectedUser,
           questionsPerPage,
           newPage
@@ -454,6 +504,7 @@ const handleTabChange = (index) => {
           selectedSubject,
           selectedChapter,
           selectedTopic,
+          selectedSubtopics,
           questionsPerPage,
           newPage
         );
@@ -471,6 +522,7 @@ const handleTabChange = (index) => {
           selectedSubject,
           selectedChapter,
           selectedTopic,
+          selectedSubtopics,
           selectedUser,
           questionsPerPage,
           newPage
@@ -485,84 +537,124 @@ const handleTabChange = (index) => {
           selectedSubject,
           selectedChapter,
           selectedTopic,
+          selectedSubtopics,
           questionsPerPage,
           newPage
         );
       }
     }
   };
- 
+
   const handleSearch = useCallback(
     debounce((keyword) => {
-      setCurrentPage(1); 
+      setCurrentPage(1);
       setSearchKeyword(keyword);
       if (inputRef.current) {
-        inputRef.current.focus(); 
+        inputRef.current.focus();
       }
-      fetchQuestions(keyword); 
-    }, 300), 
+      fetchQuestions(keyword);
+    }, 300),
     []
   );
 
   const handleSearchChange = (e) => {
     setCurrentPage(1);
-     const value = e.target.value;
+    const value = e.target.value;
     setInputValue(value);
 
     if (value === '') {
       resetSearchResults();
     } else if (value.endsWith(' ') || value.endsWith('\n')) {
-      const trimmedValue = value.trim(); 
+      const trimmedValue = value.trim();
       handleSearch(trimmedValue);
     }
   };
   const handleSearchClick = () => {
     handleSearch(inputValue.trim());
   };
-   const resetSearchResults = () => {
+  const resetSearchResults = () => {
     setSearchKeyword('');
     setInputValue('');
-    };
+  };
 
 
-   const handleMySearch = useCallback(
+  const handleMySearch = useCallback(
     debounce((keyword) => {
       setMyCurrentPage(1);
       setSearchMyQuery(keyword);
       if (myInputRef.current) {
-        myInputRef.current.focus(); 
+        myInputRef.current.focus();
       }
-      fetchUserQuestions(keyword); 
-    }, 300), 
+      fetchUserQuestions(keyword);
+    }, 300),
     []
   );
   const handleMySearcChange = (e) => {
     setMyCurrentPage(1);
-     const value = e.target.value;
+    const value = e.target.value;
     setMyInputValue(value);
-// setSearchMyQuery(e.target.value)
+    // setSearchMyQuery(e.target.value)
     if (value === '') {
-      
+
       resetMySearchResults();
     } else if (value.endsWith(' ') || value.endsWith('\n')) {
-      const trimmedValue = value.trim(); 
+      const trimmedValue = value.trim();
       handleMySearch(trimmedValue);
     }
   }
   const resetMySearchResults = () => {
     setSearchMyQuery('');
-    setMyInputValue(''); 
+    setMyInputValue('');
   };
   const handleMySearchClick = () => {
     fetchUserQuestions(handleMySearch)
   }
 
-
-
+  const renderSubtopicSelectors = (subtopics, level) => {
+    if (!subtopics || subtopics.length === 0) {
+      return null; // Return early if there are no subtopics
+    }
   
+    return (
+      
+     <div className="w-1/2">
+  <div className="mb-4">
+    <label className="text-white-500 text-sm dark:text-white-400">Subtopic</label>
+
+    {/* Topic Selection */}
+    {subtopics.length > 0 && (
+            <Select
+              mode="multiple"
+              style={{ width: 200 }}
+              value={selectedSubtopics}
+              placeholder="Select Subtopics"
+              onChange={(value) => setSelectedSubtopics(value)}
+              loading={isSubtopicsLoading}
+              options={subtopics.map((subtopic) => ({
+                label: subtopic.name, // Adjust this based on the actual API response field
+                value: subtopic.name, // Adjust this based on the actual API response field
+              }))}
+            />
+          )}
+
+          {/* Render recursive subtopics if they exist */}
+          {subtopics.map((subtopic) => (
+            <div key={`${subtopic._id}-${level}`} className="mt-3 ml-6">
+              {/* Recursive call to render further levels of subtopics */}
+              {renderSubtopicSelectors(subtopic.subtopics, level + 1)}
+            </div>
+          ))}
+  </div>
+      </div>
+    );
+  };
+  
+
+
+
   return (
     <>
-<ViewChapTop/>
+      <ViewChapTop />
       <div className="w-full max-w-md px-2 py-4 sm:px-2">
         <div className="flex space-x-4 mb-4">
           <div className="w-1/2">
@@ -635,8 +727,9 @@ const handleTabChange = (index) => {
                 onChange={(value) => {
                   setSelectedStandard(value);
                   setSelectedSubject("");
-                  setSelectedChapter("");
-                  setSelectedTopic("");
+                  setSelectedChapter([]);
+                  setSelectedTopic([]);
+                  setSelectedSubtopics([])
                   setSelectedQuestion(null);
                   setCurrentPage(1)
                   setMyCurrentPage(1)
@@ -659,8 +752,9 @@ const handleTabChange = (index) => {
                 value={selectedSubject}
                 onChange={(value) => {
                   setSelectedSubject(value);
-                  setSelectedChapter("");
-                  setSelectedTopic("");
+                  setSelectedChapter([]);
+                  setSelectedTopic([]);
+                  setSelectedSubtopics([])
                   setSelectedQuestion(null);
                   setCurrentPage(1)
                   setMyCurrentPage(1)
@@ -679,67 +773,89 @@ const handleTabChange = (index) => {
           </div>
         </div>
         <div className="flex space-x-4 mb-4">
-          <div className="w-1/2">
-          <div className="relative z-0 w-full md:w-auto flex flex-col-reverse group">
-    <Select
-      mode="multiple"
-      showSearch
-      style={{ width: 200 }}
-      placeholder="Select Chapter"
-      filterOption={(input, option) =>
-        (option.label ?? "").toLowerCase().includes(input.toLowerCase())
-      }
-      onChange={(value) => {
-        setSelectedChapter(value);
-        setSelectedTopic("");
-        setSelectedQuestion(null);
-        setCurrentPage(1)
-        setMyCurrentPage(1)
-      }}
-      options={chapterList?.map((chapter) => ({
-        value: chapter.name,
-        label: chapter.name,
-      }))}
-      value={selectedChapter}
-    />
-    <label className="text-white-500 text-sm dark:text-white-400 mt-1">
-      Chapter
-    </label>
-  </div>
-          </div>
-          <div className="w-1/2">
-            <div className="mb-4">
-              <label className="text-white-500 text-sm dark:text-white-400">
-                Topic
-              </label>
-              <Select
-               mode="multiple"
-                style={{ width: 200 }}
-                showSearch
-                value={selectedTopic}
-                filterOption={(input, option) =>
-                  (option.label ?? "")
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                onChange={(value) => {setSelectedTopic(value);
-                  setCurrentPage(1);
-                  setMyCurrentPage(1);}
-                }
-                options={topicList?.map((el) => ({
-                  value: el.name,
-                  label: el.name,
-                }))}
-              />
-            </div>
-          </div>
+      <div className="w-1/2">
+        <div className="relative z-0 w-full md:w-auto flex flex-col-reverse group">
+          <Select
+            mode="multiple"
+            showSearch
+            style={{ width: 200 }}
+            filterOption={(input, option) =>
+              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+            onChange={(value) => {
+              setSelectedChapter(value);
+              setSelectedTopic([]);
+              setSelectedSubtopics([]);
+            }}
+            options={chapterList?.map((chapter) => ({
+              value: chapter.name,
+              label: chapter.name,
+            }))}
+            value={selectedChapter}
+          />
+          <label className="text-white-500 text-sm dark:text-white-400 mt-1">
+            Chapter
+          </label>
         </div>
+      </div>
+
+      <div className="w-1/2">
+        <div className="mb-4">
+          <label className="text-white-500 text-sm dark:text-white-400">
+            Topic
+          </label>
+          
+          <Select
+            mode="multiple"
+            style={{ width: 200 }}
+            showSearch
+            value={selectedTopic}
+            filterOption={(input, option) =>
+              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+            onChange={(value) => {
+              setSelectedTopic(value);
+              setSelectedSubtopics([]);
+            }}
+            options={topicList?.map((el) => ({
+              value: el.name,
+              label: el.name,
+            }))}
+          />
+        </div>
+        {isSubtopicsLoading && (
+            <div className="loader relative top-0 right-0">
+              <Loading />
+            </div>
+          )}
+      </div>
+       </div>
+      <div className="flex space-x-4 mb-4">
+      {selectedTopic.length > 0 && !isSubtopicsLoading && (
+        renderSubtopicSelectors(subtopics, 0)
+      )}
+      </div>
         {subjectList && chapterList && topicList ? (
-        <Tab.Group selectedIndex={activeTabIndex} onChange={handleTabChange}>
-          <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
-            {isAdmin && (
+          <Tab.Group selectedIndex={activeTabIndex} onChange={handleTabChange}>
+            <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
+              {isAdmin && (
+                <Tab
+                  key="all-questions"
+                  className={({ selected }) =>
+                    classNames(
+                      "w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700",
+                      "ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2",
+                      selected
+                        ? "bg-white shadow"
+                        : "text-blue-100 hover:bg-white/[0.12] hover:text-white"
+                    )
+                  }
+                >
+                  All Questions
+                </Tab>
+              )}
               <Tab
-                key="all-questions"
+                key="my-questions"
                 className={({ selected }) =>
                   classNames(
                     "w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700",
@@ -750,141 +866,201 @@ const handleTabChange = (index) => {
                   )
                 }
               >
-                All Questions
+                My Questions
               </Tab>
-            )}
-            <Tab
-              key="my-questions"
-              className={({ selected }) =>
-                classNames(
-                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700",
-                  "ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2",
-                  selected
-                    ? "bg-white shadow"
-                    : "text-blue-100 hover:bg-white/[0.12] hover:text-white"
-                )
-              }
-            >
-              My Questions
-            </Tab>
-          </Tab.List>
+            </Tab.List>
 
-          <Tab.Panels className="mt-2">
-            {selectedUser && (
-              <button className=" border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">
-                Todays Total Questions: {userTodayQuestions || 0}
-              </button>
-            )}
-            {selectedUser && userRank && (
-              <button className=" border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">
-                Todays Rank: {userRank}
-              </button>
-            )}
-  <div className="max-w-md mx-auto mb-2">
-  {activeTabIndex === 0 && (
-    <div className="flex items-center bg-white rounded-lg overflow-hidden shadow-md">
-      <input
-        ref={inputRef}
-        type="text"
-        className="w-full py-2 px-4 bg-gray-100 text-gray-900 focus:outline-none"
-        placeholder="Search questions..."
-        onChange={handleSearchChange}
-        value={inputValue}
-      />
-      <button
-        className="bg-green-500 hover:bg-green-600 text-white py-2 px-4"
-        onClick={handleSearchClick}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M10 10 H 90 V 90 H 10 L 10 10"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-           d="M10 10 H 90 V 90 H 10 L 10 10"
-          />
-        </svg>
-      </button>
-    </div>
-  )}
+            <Tab.Panels className="mt-2">
+              {selectedUser && (
+                <button className=" border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">
+                  Todays Total Questions: {userTodayQuestions || 0}
+                </button>
+              )}
+              {selectedUser && userRank && (
+                <button className=" border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">
+                  Todays Rank: {userRank}
+                </button>
+              )}
+              <div className="max-w-md mx-auto mb-2">
+                {activeTabIndex === 0 && (
+                  <div className="flex items-center bg-white rounded-lg overflow-hidden shadow-md">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      className="w-full py-2 px-4 bg-gray-100 text-gray-900 focus:outline-none"
+                      placeholder="Search questions..."
+                      onChange={handleSearchChange}
+                      value={inputValue}
+                    />
+                    <button
+                      className="bg-green-500 hover:bg-green-600 text-white py-2 px-4"
+                      onClick={handleSearchClick}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 10 H 90 V 90 H 10 L 10 10"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 10 H 90 V 90 H 10 L 10 10"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
 
-  {activeTabIndex === 1 && (
-    <div className="flex items-center bg-white rounded-lg overflow-hidden shadow-md">
-      <input
-        type="text"
-        className="w-full py-2 px-4 bg-gray-100 text-gray-900 focus:outline-none"
-        placeholder="Search my questions..."
-        onChange={handleMySearcChange}
-        value={myInputValue}
-      />
-      <button
-        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4"
-        onClick={handleMySearchClick}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-           d="M10 10 H 90 V 90 H 10 L 10 10"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-           d="M10 10 H 90 V 90 H 10 L 10 10"
-          />
-        </svg>
-      </button>
-    </div>
-  )}
-</div>
+                {activeTabIndex === 1 && (
+                  <div className="flex items-center bg-white rounded-lg overflow-hidden shadow-md">
+                    <input
+                      type="text"
+                      className="w-full py-2 px-4 bg-gray-100 text-gray-900 focus:outline-none"
+                      placeholder="Search my questions..."
+                      onChange={handleMySearcChange}
+                      value={myInputValue}
+                    />
+                    <button
+                      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4"
+                      onClick={handleMySearchClick}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 10 H 90 V 90 H 10 L 10 10"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 10 H 90 V 90 H 10 L 10 10"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
 
-            {isAdmin && (
-              <Tab.Panel
-                key="all-questions"
-                className="rounded-xl bg-white p-3"
-              >
+              {isAdmin && (
+                <Tab.Panel
+                  key="all-questions"
+                  className="rounded-xl bg-white p-3"
+                >
+                  <div className="max-h-64 overflow-y-auto">
+                    {loading ? (
+                      <Loading />
+                    ) : (
+                      <>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">
+                          Total Questions: {totalQuestions}
+                        </h3>
+
+                        {totalQuestions === 0 ? (
+                          <div className="text-center text-gray-500">
+                            No questions found.
+                          </div>
+                        ) : (
+                          filteredQuestions.map((question, index) => (
+                            <div
+                              key={question._id}
+                              onClick={() => handleQuestionClick(question)}
+                              className="cursor-pointer text-gray-900 p-2 "
+                            >
+                              <b>
+                                Q.
+                                {(currentPage - 1) * questionsPerPage + index + 1}
+                              </b>
+                              <span
+                                dangerouslySetInnerHTML={{
+                                  __html: question.question,
+                                }}
+                              />
+                            </div>
+                          ))
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <div className="flex justify-between mt-4">
+                    <button
+                      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 0}
+                    >
+                      Prev
+                    </button>
+                    <p>
+                      <span className="text-gray-900">
+                        {totalQuestions === 0 ? "0 / " : `${currentPage} / `}
+                      </span>
+                      <span className="text-gray-900">
+                        {totalQuestions === 0 ? "0" : totalPages}
+                      </span>
+                    </p>
+
+                    <button
+                      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages || totalPages === 0}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </Tab.Panel>
+              )}
+
+              {activeTabIndex === 1 ? (
+                <div>
+                  <button className="border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">
+                    Todays Total Questions: {myTodayQuestions}
+                  </button>
+                  <button className="border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">
+                    Todays Rank: {myRank || 0}
+                  </button>
+                </div>
+              ) : null}
+
+              <Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
                 <div className="max-h-64 overflow-y-auto">
                   {loading ? (
                     <Loading />
                   ) : (
                     <>
                       <h3 className="text-lg font-medium text-gray-900 mb-4">
-                        Total Questions: {totalQuestions}
+                        Total Questions: {questionsLength}
                       </h3>
 
-                      {totalQuestions === 0 ? (
+                      {questionsLength === 0 ? (
                         <div className="text-center text-gray-500">
                           No questions found.
                         </div>
                       ) : (
-                        filteredQuestions.map((question, index) => (
+                        filteredMyQuestions.map((question, index) => (
                           <div
                             key={question._id}
                             onClick={() => handleQuestionClick(question)}
-                            className="cursor-pointer text-gray-900 p-2 "
+                            className="cursor-pointer text-gray-900 p-2"
                           >
                             <b>
-                              Q.
-                              {(currentPage - 1) * questionsPerPage + index + 1}
+                              Q.{" "}
+                              {(myCurrentPage - 1) * questionsPerPage + index + 1}
                             </b>
                             <span
                               dangerouslySetInnerHTML={{
@@ -901,108 +1077,33 @@ const handleTabChange = (index) => {
                   <button
                     className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
                     onClick={handlePrevPage}
-                    disabled={currentPage === 0}
+                    disabled={myCurrentPage === 1}
                   >
                     Prev
                   </button>
                   <p>
                     <span className="text-gray-900">
-                      {totalQuestions === 0 ? "0 / " : `${currentPage} / `}
+                      {questionsLength === 0 ? "0 / " : `${myCurrentPage} / `}
                     </span>
                     <span className="text-gray-900">
-                      {totalQuestions === 0 ? "0" : totalPages}
+                      {questionsLength === 0 ? "0" : myTotalPages}
                     </span>
                   </p>
 
                   <button
                     className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
                     onClick={handleNextPage}
-                    disabled={currentPage === totalPages || totalPages === 0}
+                    disabled={
+                      myCurrentPage === myTotalPages || myTotalPages === 0
+                    }
                   >
                     Next
                   </button>
                 </div>
               </Tab.Panel>
-            )}
-
-            {activeTabIndex === 1 ? (
-              <div>
-                <button className="border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">
-                  Todays Total Questions: {myTodayQuestions}
-                </button>
-                <button className="border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">
-                  Todays Rank: {myRank || 0}
-                </button>
-              </div>
-            ) : null}
-
-            <Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
-              <div className="max-h-64 overflow-y-auto">
-                {loading ? (
-                  <Loading />
-                ) : (
-                  <>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
-                      Total Questions: {questionsLength}
-                    </h3>
-
-                    {questionsLength === 0 ? (
-                      <div className="text-center text-gray-500">
-                        No questions found.
-                      </div>
-                    ) : (
-                      filteredMyQuestions.map((question, index) => (
-                        <div
-                          key={question._id}
-                          onClick={() => handleQuestionClick(question)}
-                          className="cursor-pointer text-gray-900 p-2"
-                        >
-                          <b>
-                            Q.{" "}
-                            {(myCurrentPage - 1) * questionsPerPage + index + 1}
-                          </b>
-                          <span
-                            dangerouslySetInnerHTML={{
-                              __html: question.question,
-                            }}
-                          />
-                        </div>
-                      ))
-                    )}
-                  </>
-                )}
-              </div>
-              <div className="flex justify-between mt-4">
-                <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-                  onClick={handlePrevPage}
-                  disabled={myCurrentPage === 1}
-                >
-                  Prev
-                </button>
-                <p>
-                  <span className="text-gray-900">
-                    {questionsLength === 0 ? "0 / " : `${myCurrentPage} / `}
-                  </span>
-                  <span className="text-gray-900">
-                    {questionsLength === 0 ? "0" : myTotalPages}
-                  </span>
-                </p>
-
-                <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-                  onClick={handleNextPage}
-                  disabled={
-                    myCurrentPage === myTotalPages || myTotalPages === 0
-                  }
-                >
-                  Next
-                </button>
-              </div>
-            </Tab.Panel>
-          </Tab.Panels>
-        </Tab.Group>
-         ) : (
+            </Tab.Panels>
+          </Tab.Group>
+        ) : (
           <div>Loading...</div>
         )}
       </div>

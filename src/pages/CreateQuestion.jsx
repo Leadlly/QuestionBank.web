@@ -189,39 +189,53 @@ const CreateQuestion = () => {
   );
   
   
-  
-  
   useEffect(() => {
+    // Fetch subjects when the standard changes
     if (standard) {
       dispatch(getSubjects(standard));
     }
-    if (subject && standard) {
+
+    // Fetch chapters when both standard and subject are selected
+    if (standard && subject) {
       dispatch(getChapters(subject, standard));
     }
-    const fetchTopics = async () => {
-      if (subject && standard && chapter) {
-          let allTopics = []; // To store all topics from selected chapters
-          for (const chap of chapter) {
-              const response = await dispatch(getTopics(subject, standard, chap));
-              allTopics = [...allTopics, ...response.topic]; // Combine topics from all chapters
-          }
-      } 
-  };
 
-  fetchTopics();
-    if (subject && standard && chapter && topic) {
+    // Function to fetch topics for selected chapters
+    const fetchTopics = async () => {
+      if (standard && subject && chapter && chapter.length > 0) {
+        const chapterNames = chapter.join(','); // Join chapter names with commas
+
+        try {
+          const response = await dispatch(getTopics(subject, standard, chapterNames));
+          if (response && response.payload && response.payload.success) {
+            // Assuming you have some logic to handle the fetched topics
+            // e.g., setting them in local state or using Redux state
+          }
+        } catch (error) {
+          console.error('Error fetching topics:', error);
+        }
+      }
+    };
+
+    // Fetch topics based on the selected chapters
+    fetchTopics();
+
+    // Fetch subtopics only when all criteria are met
+    if (standard && subject && chapter && chapter.length > 0 && topic && topic.length > 0) {
       setIsSubtopicsLoading(true);
       dispatch(getSubtopics(subject, standard, chapter, topic))
-        .then(() => {
+        .then((response) => {
           setIsSubtopicsLoading(false);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('Error fetching subtopics:', error);
           setIsSubtopicsLoading(false);
         });
     } else {
       setIsSubtopicsLoading(false);
     }
   }, [dispatch, standard, subject, chapter, topic]);
+  
 
   const uploadImageToS3 = async (file, signedUrl) => {
     const response = await fetch(signedUrl, {
