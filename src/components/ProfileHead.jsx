@@ -5,7 +5,7 @@ import axios from "axios";
 import classNames from "classnames";
 import toast from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
-import { Select } from "antd";
+import { Checkbox, Select } from "antd";
 import { standards } from "../components/Options";
 import { server } from "../main";
 import "../styles/login.scss";
@@ -29,7 +29,7 @@ function debounce(func, delay) {
   };
 }
 
-const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
+const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
   const [questions, setQuestions] = useState([]);
   const [userTodayQuestions, setUserTodayQuestions] = useState("");
   const [userRank, setUserRank] = useState("");
@@ -62,7 +62,6 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const [myCurrentPage, setMyCurrentPage] = useState(1);
   const [myTotalPages, setMyTotalPages] = useState(1);
   const [totalQuestions, setTotalQuestions] = useState(0);
-  // const [MyTotalQuestions, setMyTotalQuestions] = useState(0);
   const [questionsLength, setQuestionsLength] = useState(0);
   const [fixedTotalQuestions, setFixedTotalQuestions] = useState(0);
   const [fixedMyTotalQuestions, setFixedTotalMyQuestions] = useState(0);
@@ -72,18 +71,18 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
   const [inputValue, setInputValue] = useState('');
   const [selectedSubtopics, setSelectedSubtopics] = useState([]);
   const [isSubtopicsLoading, setIsSubtopicsLoading] = useState(false);
-  // eslint-disable-next-line no-unused-vars
   const [myInputValue, setMyInputValue] = useState('');
   const inputRef = useRef(null);
   const myInputRef = useRef(null);
   const dispatch = useDispatch();
-
-
-
   const { subjectList } = useSelector((state) => state.getSubject);
   const { chapterList } = useSelector((state) => state.getChapter);
   const { topicList } = useSelector((state) => state.getTopic);
   const { subtopics } = useSelector((state) => state.getSubtopic);
+  const [selectAll, setSelectAll] = useState(false);
+  const [selectedQuestions, setSelectedQuestions] = useState({});
+  // State to track the currently expanded question
+  const [viewedQuestionId, setViewedQuestionId] = useState(null);
 
 
   useEffect(() => {
@@ -649,6 +648,28 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
     );
   };
   
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedQuestions({}); // deselect all
+    } else {
+      const selectedQuestions = {};
+      questions.forEach((question) => {
+        selectedQuestions[question._id] = true;
+      });
+      setSelectedQuestions(selectedQuestions); 
+    }
+    setSelectAll(!selectAll);
+  };
+
+  const handleSelectQuestion = (questionId) => {
+    const newSelectedQuestions = { ...selectedQuestions };
+    if (newSelectedQuestions[questionId]) {
+      delete newSelectedQuestions[questionId];
+    } else {
+      newSelectedQuestions[questionId] = true;
+    }
+    setSelectedQuestions(newSelectedQuestions);
+  };
 
 
 
@@ -959,72 +980,101 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
               </div>
 
               {isAdmin && (
-                <Tab.Panel
-                  key="all-questions"
-                  className="rounded-xl bg-white p-3"
-                >
-                  <div className="max-h-64 overflow-y-auto">
-                    {loading ? (
-                      <Loading />
-                    ) : (
-                      <>
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">
-                          Total Questions: {totalQuestions}
-                        </h3>
+  <Tab.Panel key="all-questions" className="rounded-xl bg-white p-3">
+    <div className="max-h-64 overflow-y-auto">
+      {loading ? (
+        <Loading />
+      ) : (
+        <>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Total Questions: {totalQuestions}
+          </h3>
 
-                        {totalQuestions === 0 ? (
-                          <div className="text-center text-gray-500">
-                            No questions found.
-                          </div>
-                        ) : (
-                          filteredQuestions.map((question, index) => (
-                            <div
-                              key={question._id}
-                              onClick={() => handleQuestionClick(question)}
-                              className="cursor-pointer text-gray-900 p-2 "
-                            >
-                              <b>
-                                Q.
-                                {(currentPage - 1) * questionsPerPage + index + 1}
-                              </b>
-                              <span
-                                dangerouslySetInnerHTML={{
-                                  __html: question.question,
-                                }}
-                              />
-                            </div>
-                          ))
-                        )}
-                      </>
+          {/* Only show the question list if there are questions */}
+          {totalQuestions > 0 && filteredQuestions.length > 0 ? (
+            <>
+                {(selectedTopic && selectedSubtopics.length === 0) || (selectedTopic && selectedSubtopics.length > 0) ? (
+               <div>
+                  <Checkbox checked={selectAll} onChange={handleSelectAll}>
+                    Select All
+                  </Checkbox>
+                </div>
+              ) : null}
+
+              {/* Display the questions with checkboxes only if a topic is selected */}
+              {selectedTopic ? (
+                filteredQuestions.map((question, index) => (
+                  <div
+                    key={question._id}
+                    onClick={() => handleQuestionClick(question)}
+                    className="cursor-pointer text-gray-900 p-2 flex items-start space-x-4"
+                  >
+                    {selectedTopic && selectedSubtopics.length > 0 && (
+                    <Checkbox
+                      checked={!!selectedQuestions[question._id]} 
+                      onChange={() => handleSelectQuestion(question._id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    />
                     )}
+                    <div>
+                      <b>
+                        Q. {(currentPage - 1) * questionsPerPage + index + 1}
+                      </b>
+                      <span
+                        dangerouslySetInnerHTML={{
+                          __html: question.question,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between mt-4">
-                    <button
-                      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-                      onClick={handlePrevPage}
-                      disabled={currentPage === 0}
-                    >
-                      Prev
-                    </button>
-                    <p>
-                      <span className="text-gray-900">
-                        {totalQuestions === 0 ? "0 / " : `${currentPage} / `}
-                      </span>
-                      <span className="text-gray-900">
-                        {totalQuestions === 0 ? "0" : totalPages}
-                      </span>
-                    </p>
-
-                    <button
-                      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-                      onClick={handleNextPage}
-                      disabled={currentPage === totalPages || totalPages === 0}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </Tab.Panel>
+                ))
+              ) : (
+                <div className="text-center text-gray-500">
+                  Please select a topic to view questions.
+                </div>
               )}
+            </>
+          ) : (
+            <div className="text-center text-gray-500">
+              No questions available.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+    <div className="flex justify-between mt-4">
+      <button
+        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+        onClick={handlePrevPage}
+        disabled={currentPage === 0}
+      >
+        Prev
+      </button>
+      <p>
+        <span className="text-gray-900">
+          {totalQuestions === 0 ? "0 / " : `${currentPage} / `}
+        </span>
+        <span className="text-gray-900">
+          {totalQuestions === 0 ? "0" : totalPages}
+        </span>
+      </p>
+      <button
+        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+        onClick={handleNextPage}
+        disabled={currentPage === totalPages || totalPages === 0}
+      >
+        Next
+      </button>
+    </div>
+  </Tab.Panel>
+)}
+
+
+
+
+
 
               {activeTabIndex === 1 ? (
                 <div>
@@ -1114,6 +1164,7 @@ const ProfileHead = ({ setSelectedQuestion, toBottom }) => {
 ProfileHead.propTypes = {
   setSelectedQuestion: PropTypes.func.isRequired,
   toBottom: PropTypes.func.isRequired,
+  selectedQuestion: PropTypes.func.isRequired
 };
 
 export default ProfileHead;
