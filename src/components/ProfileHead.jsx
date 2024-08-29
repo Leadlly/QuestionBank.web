@@ -5,7 +5,7 @@ import axios from "axios";
 import classNames from "classnames";
 import toast from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
-import { Checkbox, Select } from "antd";
+import { Button, Checkbox, Modal, Select } from "antd";
 import { standards } from "../components/Options";
 import { server } from "../main";
 import "../styles/login.scss";
@@ -51,6 +51,7 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
   const [myChapters, setMyChapters] = useState([]);
   // eslint-disable-next-line no-unused-vars
   const [topics, setTopics] = useState([]);
+  const [subTopics, setSubtopics] = useState([]);
   // eslint-disable-next-line no-unused-vars
   const [myTopics, setMyTopics] = useState([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -81,9 +82,17 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
   const { subtopics } = useSelector((state) => state.getSubtopic);
   const [selectAll, setSelectAll] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState({});
-  // State to track the currently expanded question
-  const [viewedQuestionId, setViewedQuestionId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [areQuestionsSelected, setAreQuestionsSelected] = useState(false);
+  const [selectedTopic1, setSelectedTopic1] = useState([]);
+  const [selectedSubtopics1, setSelectedSubtopics1] = useState([]);
 
+
+  useEffect(() => {
+    // Check if any question is selected to update button state
+    const anySelected = Object.values(selectedQuestions).some(Boolean);
+    setAreQuestionsSelected(anySelected);
+  }, [selectedQuestions]);
 
   useEffect(() => {
     if (selectedStandard) {
@@ -105,7 +114,9 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
           const response = await dispatch(getTopics(selectedSubject, selectedStandard, chapterNames));
 
           if (response && response.payload) {
-            setTopicList(response.payload);
+            setTopics(response.payload);
+            selectedTopic1(response.payload)
+
           }
         } catch (error) {
           console.error('Error fetching topics:', error);
@@ -122,39 +133,83 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
         selectedSubject &&
         selectedStandard &&
         selectedChapter.length > 0 &&
-        selectedTopic.length > 0
+        (selectedTopic.length > 0)
       ) {
         setIsSubtopicsLoading(true);
         try {
-          // Fetch subtopics based on selected criteria
+
           const response = await dispatch(
             getSubtopics(
               selectedSubject,
               selectedStandard,
               selectedChapter.join(","), // Convert chapter array to comma-separated string
-              selectedTopic.join(",") // Convert topic array to comma-separated string
+              selectedTopic.join(",")
             )
           );
-  
+
           if (response && response.payload) {
-            setSelectedSubtopics(response.payload); // Update state with fetched subtopics
+            const fetchedSubtopics = response.payload;
+            setSubtopics(fetchedSubtopics);
+            setSelectedSubtopics1([]); // Clear previously selected subtopics
           } else {
-            setSelectedSubtopics([]); // Reset subtopics if no data is received
+            setSubtopics([]);
+            setSelectedSubtopics1([]);
           }
         } catch (error) {
           console.error("Error fetching subtopics:", error);
-          setSelectedSubtopics([]); // Reset subtopics on error
+          setSubtopics([]);
+          setSelectedSubtopics1([]);
         } finally {
           setIsSubtopicsLoading(false);
         }
       } else {
-        setSelectedSubtopics([]); // Reset subtopics if required fields are not selected
+        setSubtopics([]);
+        setSelectedSubtopics1([]);
       }
     };
-  
+
     fetchSubtopics();
-  }, [dispatch, selectedSubject, selectedStandard, selectedChapter, selectedTopic]);
-  
+  }, [dispatch, selectedSubject, selectedStandard, selectedChapter, selectedTopic, selectedTopic1]);
+
+  useEffect(() => {
+    const fetchSubtopicsForTopic1 = async () => {
+      if (
+        selectedSubject &&
+        selectedStandard &&
+        selectedChapter.length > 0 &&
+        selectedTopic1.length > 0
+      ) {
+        setIsSubtopicsLoading(true);
+        try {
+          const response = await dispatch(
+            getSubtopics(
+              selectedSubject,
+              selectedStandard,
+              selectedChapter.join(","),
+              selectedTopic1.join(",") // Fetch subtopics based on selectedTopic1
+            )
+          );
+
+          if (response && response.payload) {
+            // Update or merge subtopics if needed
+            setSelectedSubtopics1(response.payload);
+          } else {
+            setSelectedSubtopics1([]);
+          }
+        } catch (error) {
+          console.error("Error fetching subtopics for topic1:", error);
+          setSelectedSubtopics1([]);
+        } finally {
+          setIsSubtopicsLoading(false);
+        }
+      } else {
+        setSelectedSubtopics1([]);
+      }
+    };
+
+    fetchSubtopicsForTopic1();
+  }, [dispatch, selectedSubject, selectedStandard, selectedChapter, selectedTopic1]);
+
   const { user } = useSelector((state) => state.user);
 
   const isAdmin = user?.role === "admin";
@@ -167,6 +222,8 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
         selectedChapter,
         selectedTopic,
         selectedSubtopics,
+        selectedSubtopics1,
+        selectedTopic1,
         selectedUser,
         searchKeyword,
       );
@@ -186,6 +243,8 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
     selectedChapter,
     selectedTopic,
     selectedSubtopics,
+    selectedSubtopics1,
+    selectedTopic1,
     activeTabIndex,
     selectedUser,
     searchKeyword,
@@ -198,47 +257,60 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
     chapter,
     topic,
     subtopic,
-    createdBy,
-    limit, 
-    page 
+    limit,
+    page
   ) => {
     setLoading(true);
+
     try {
+      const params = {
+        standard,
+        subject,
+        chapter,
+        topic,
+        subtopic,
+        limit,
+        page,
+        search: searchKeyword,
+      };
+
+
+
       const response = await axios.get(`${server}/api/get/question`, {
-        params: {
-          standard,
-          subject,
-          chapter,
-          topic,
-          subtopic,
-          createdBy,
-          limit,
-          page,
-          search: searchKeyword, 
-        },
+        params,
         withCredentials: true,
       });
-  
+
       if (response.data.success) {
         const questions = response.data.questions;
-        setQuestions(questions.reverse()); 
+        setQuestions(questions.reverse());
         setUserTodayQuestions(response.data?.todaysQuestionsCount);
         setUserRank(response.data?.userRank);
         setTopperUser(response.data?.topperUser);
+
         const totalQuestions = response.data.totalQuestions || 0;
         setTotalQuestions(totalQuestions);
-        setTotalPages(Math.ceil(totalQuestions / limit)); 
+        setTotalPages(Math.ceil(totalQuestions / limit));
       } else {
         setQuestions([]);
       }
     } catch (error) {
       console.error("Error fetching questions:", error);
-      toast.error("Failed to fetch questions. Please try again."); 
+
+      if (error.response && error.response.data && error.response.data.message) {
+        // Display specific error message from the response if available
+        toast.error(error.response.data.message);
+      } else {
+        // Fallback error message
+        toast.error("Failed to fetch questions. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
-  
+
+
+
   const fetchTotalQuestionsDebounced = useCallback(
     _.debounce(async (
       standard,
@@ -257,14 +329,14 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
             subject,
             chapter,
             topic,
-            subtopic, 
+            subtopic,
             createdBy,
             search,
             mySearch,
           },
           withCredentials: true,
         });
-  
+
         if (response.data.success) {
           const fixedMyTotalQuestions = response.data.totalMyQuestions || 0;
           setFixedTotalMyQuestions(fixedMyTotalQuestions);
@@ -275,7 +347,7 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
           setTotalPages(
             Math.ceil(response.data.totalQuestions / questionsPerPage)
           );
-  
+
           setMyTotalPages(
             Math.ceil(response.data.questionsLength / questionsPerPage)
           );
@@ -287,7 +359,7 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
     }, 500),
     []
   );
-  
+
 
   const fetchUserQuestions = async (standard, subject, chapter, topicList, subtopic, limit, page) => {
     setLoading(true);
@@ -385,7 +457,7 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
     setInputValue("");
     setMyInputValue("")
     setCurrentPage(1);
-    setMyCurrentPage(1)
+    setMyCurrentPage(1);
   };
 
   const handleTabChange = (index) => {
@@ -395,8 +467,8 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
     setCurrentPage(1);
     setMyCurrentPage(1);
     setSelectedSubject("");
-    setSelectedChapter("");
-    setSelectedTopic("");
+    setSelectedChapter([]);
+    setSelectedTopic([]);
     setSubjects([]);
     setChapters([]);
     setTopics([]);
@@ -413,7 +485,9 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
     setSearchMyQuery("");
     setSearchKeyword("");
     setInputValue("");
-    setMyInputValue("")
+    setMyInputValue("");
+    setSelectedTopic1([]);
+    setSelectedSubtopics1([])
   };
   useEffect(() => {
     if (!isAdmin) {
@@ -441,6 +515,8 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
     setSearchKeyword('')
     setCurrentPage(1);
     setMyCurrentPage(1)
+    setSelectedTopic1([]);
+    setSelectedSubtopics1([]);
   }, [user]);
 
   const filteredQuestions = questions.filter(
@@ -458,6 +534,8 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
     setSelectedUser(value);
     setUserRank("");
     setUserTodayQuestions("");
+    setSelectedTopic([]);
+    setSelectedSubtopics([])
 
   };
   useEffect(() => {
@@ -472,7 +550,7 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
       searchMyQuery
     );
   });
-  
+
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
     toBottom();
@@ -613,15 +691,15 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
     if (!subtopics || subtopics.length === 0) {
       return null; // Return early if there are no subtopics
     }
-  
-    return (
-      
-     <div className="w-1/2">
-  <div className="mb-4">
-    <label className="text-white-500 text-sm dark:text-white-400">Subtopic</label>
 
-    {/* Topic Selection */}
-    {subtopics.length > 0 && (
+    return (
+
+      <div className="w-1/2">
+        <div className="mb-4">
+          <label className="text-white-500 text-sm dark:text-white-400">Subtopic</label>
+
+          {/* Topic Selection */}
+          {subtopics.length > 0 && (
             <Select
               mode="multiple"
               style={{ width: 200 }}
@@ -643,11 +721,11 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
               {renderSubtopicSelectors(subtopic.subtopics, level + 1)}
             </div>
           ))}
-  </div>
+        </div>
       </div>
     );
   };
-  
+
   const handleSelectAll = () => {
     if (selectAll) {
       setSelectedQuestions({}); // deselect all
@@ -656,7 +734,7 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
       questions.forEach((question) => {
         selectedQuestions[question._id] = true;
       });
-      setSelectedQuestions(selectedQuestions); 
+      setSelectedQuestions(selectedQuestions);
     }
     setSelectAll(!selectAll);
   };
@@ -671,6 +749,84 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
     setSelectedQuestions(newSelectedQuestions);
   };
 
+  const handleEditClick = (question) => {
+    if (areQuestionsSelected) {
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleModalOk = async () => {
+    // Filter to get only the selected question IDs
+    const questionIdsArray = Object.keys(selectedQuestions).filter((key) => selectedQuestions[key] === true);
+
+    try {
+      // Make the PUT request to update questions
+      const response = await axios.put(`${server}/api/updatequestiontopic`, {
+        questionIds: questionIdsArray, // Send the array of selected question IDs
+        topic: selectedTopic1, // Use selectedTopic1 from state
+        subtopic: selectedSubtopics1, // Use selectedSubtopics1 from state
+      });
+
+      // Show success toast if the request is successful
+      toast.success(response.data.message || 'Questions updated successfully.');
+      setIsModalOpen(false); // Close the modal on success
+
+      // Reset state or perform any other UI updates if needed
+      setSelectedQuestions({});
+      setSelectedTopic1([]);
+      setSelectedSubtopics1([]);
+
+    } catch (error) {
+      // Show error toast if there is an error
+      toast.error(error.response?.data.message || 'An error occurred while updating questions.');
+      console.error('Error updating questions:', error.response ? error.response.data.message : error.message);
+    }
+  };
+
+
+
+  const handleModalCancel = () => {
+    setIsModalOpen(false);
+  };
+
+
+  const handleTopicChange = (value) => {
+    setSelectedTopic1(value);
+    setSelectedSubtopics1([]);
+  };
+  const renderSubtopicSelector = (subtopics, level = 1) => {
+    if (!subtopics || subtopics.length === 0) {
+      return null; // Return early if there are no subtopics
+    }
+
+    return (
+      <div className="w-1/2">
+        <div className="mb-4">
+          <label className="text-white-500 text-sm dark:text-white-400">Subtopic</label>
+          <Select
+            mode="multiple"
+            style={{ width: 200 }}
+            value={selectedSubtopics1}
+            placeholder="Select Subtopics"
+            onChange={(value) => setSelectedSubtopics1(value)}
+            loading={isSubtopicsLoading}
+            options={subtopics.map((subtopic) => ({
+              label: subtopic.name,
+              value: subtopic.name,
+            }))}
+          />
+
+          {/* Render recursive subtopics if they exist */}
+          {subtopics.map((subtopic) => (
+            <div key={`${subtopic._id}-${level}`} className="mt-3 ml-6">
+              {/* Recursive call to render further levels of subtopics */}
+              {renderSubtopicSelectors(subtopic.subtopics, level + 1)}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
 
   return (
@@ -794,68 +950,68 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
           </div>
         </div>
         <div className="flex space-x-4 mb-4">
-      <div className="w-1/2">
-        <div className="relative z-0 w-full md:w-auto flex flex-col-reverse group">
-          <Select
-            mode="multiple"
-            showSearch
-            style={{ width: 200 }}
-            filterOption={(input, option) =>
-              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
-            }
-            onChange={(value) => {
-              setSelectedChapter(value);
-              setSelectedTopic([]);
-              setSelectedSubtopics([]);
-            }}
-            options={chapterList?.map((chapter) => ({
-              value: chapter.name,
-              label: chapter.name,
-            }))}
-            value={selectedChapter}
-          />
-          <label className="text-white-500 text-sm dark:text-white-400 mt-1">
-            Chapter
-          </label>
-        </div>
-      </div>
-
-      <div className="w-1/2">
-        <div className="mb-4">
-          <label className="text-white-500 text-sm dark:text-white-400">
-            Topic
-          </label>
-          
-          <Select
-            mode="multiple"
-            style={{ width: 200 }}
-            showSearch
-            value={selectedTopic}
-            filterOption={(input, option) =>
-              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
-            }
-            onChange={(value) => {
-              setSelectedTopic(value);
-              setSelectedSubtopics([]);
-            }}
-            options={topicList?.map((el) => ({
-              value: el.name,
-              label: el.name,
-            }))}
-          />
-        </div>
-        {isSubtopicsLoading && (
-            <div className="loader relative top-0 right-0">
-              <Loading />
+          <div className="w-1/2">
+            <div className="relative z-0 w-full md:w-auto flex flex-col-reverse group">
+              <Select
+                mode="multiple"
+                showSearch
+                style={{ width: 200 }}
+                filterOption={(input, option) =>
+                  (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
+                onChange={(value) => {
+                  setSelectedChapter(value);
+                  setSelectedTopic([]);
+                  setSelectedSubtopics([]);
+                }}
+                options={chapterList?.map((chapter) => ({
+                  value: chapter.name,
+                  label: chapter.name,
+                }))}
+                value={selectedChapter}
+              />
+              <label className="text-white-500 text-sm dark:text-white-400 mt-1">
+                Chapter
+              </label>
             </div>
+          </div>
+
+          <div className="w-1/2">
+            <div className="mb-4">
+              <label className="text-white-500 text-sm dark:text-white-400">
+                Topic
+              </label>
+
+              <Select
+                mode="multiple"
+                style={{ width: 200 }}
+                showSearch
+                value={selectedTopic}
+                filterOption={(input, option) =>
+                  (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
+                onChange={(value) => {
+                  setSelectedTopic(value);
+                  setSelectedSubtopics([]);
+                }}
+                options={topicList?.map((el) => ({
+                  value: el.name,
+                  label: el.name,
+                }))}
+              />
+            </div>
+            {isSubtopicsLoading && (
+              <div className="loader relative top-0 right-0">
+                <Loading />
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex space-x-4 mb-4">
+          {selectedTopic.length > 0 && !isSubtopicsLoading && (
+            renderSubtopicSelectors(subtopics, 0)
           )}
-      </div>
-       </div>
-      <div className="flex space-x-4 mb-4">
-      {selectedTopic.length > 0 && !isSubtopicsLoading && (
-        renderSubtopicSelectors(subtopics, 0)
-      )}
-      </div>
+        </div>
         {subjectList && chapterList && topicList ? (
           <Tab.Group selectedIndex={activeTabIndex} onChange={handleTabChange}>
             <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
@@ -980,101 +1136,104 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
               </div>
 
               {isAdmin && (
-  <Tab.Panel key="all-questions" className="rounded-xl bg-white p-3">
-    <div className="max-h-64 overflow-y-auto">
-      {loading ? (
-        <Loading />
-      ) : (
-        <>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Total Questions: {totalQuestions}
-          </h3>
+                <Tab.Panel key="all-questions" className="rounded-xl bg-white p-3">
+                  <div className="max-h-64 overflow-y-auto">
+                    {loading ? (
+                      <Loading />
+                    ) : (
+                      <>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">
+                          Total Questions: {totalQuestions}
+                        </h3>
 
-          {/* Only show the question list if there are questions */}
-          {totalQuestions > 0 && filteredQuestions.length > 0 ? (
-            <>
-                {(selectedTopic && selectedSubtopics.length === 0) || (selectedTopic && selectedSubtopics.length > 0) ? (
-               <div>
-                  <Checkbox checked={selectAll} onChange={handleSelectAll}>
-                    Select All
-                  </Checkbox>
-                </div>
-              ) : null}
+                        {totalQuestions > 0 && filteredQuestions.length > 0 ? (
+                          <>
+                            {selectedTopic.length > 0 && (
+                              <div>
+                                <Checkbox
+                                  checked={Object.values(selectedQuestions).length === filteredQuestions.length}
+                                  onChange={handleSelectAll}
+                                >
+                                  Select All
+                                </Checkbox>
+                                <button
+                                  className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded ml-4"
+                                  onClick={handleEditClick}
+                                  disabled={!areQuestionsSelected} // Disable button if no questions are selected
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            )}
 
-              {/* Display the questions with checkboxes only if a topic is selected */}
-              {selectedTopic ? (
-                filteredQuestions.map((question, index) => (
-                  <div
-                    key={question._id}
-                    onClick={() => handleQuestionClick(question)}
-                    className="cursor-pointer text-gray-900 p-2 flex items-start space-x-4"
-                  >
-                    {selectedTopic && selectedSubtopics.length > 0 && (
-                    <Checkbox
-                      checked={!!selectedQuestions[question._id]} 
-                      onChange={() => handleSelectQuestion(question._id)}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
-                    />
+                            {selectedTopic ? (
+                              filteredQuestions.map((question, index) => (
+                                <div
+                                  key={question._id}
+                                  onClick={() => handleQuestionClick(question)}
+                                  className="cursor-pointer text-gray-900 p-2 flex items-start space-x-4"
+                                >
+                                  {selectedTopic.length > 0 && (
+                                    <Checkbox
+                                      checked={!!selectedQuestions[question._id]}
+                                      onChange={() => handleSelectQuestion(question._id)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                      }}
+                                    />
+                                  )}
+                                  <div>
+                                    <b>
+                                      Q. {(currentPage - 1) * questionsPerPage + index + 1}
+                                    </b>
+                                    <span
+                                      dangerouslySetInnerHTML={{
+                                        __html: question.question,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center text-gray-500">
+                                Please select a topic to view questions.
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-center text-gray-500">
+                            No questions available.
+                          </div>
+                        )}
+                      </>
                     )}
-                    <div>
-                      <b>
-                        Q. {(currentPage - 1) * questionsPerPage + index + 1}
-                      </b>
-                      <span
-                        dangerouslySetInnerHTML={{
-                          __html: question.question,
-                        }}
-                      />
-                    </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center text-gray-500">
-                  Please select a topic to view questions.
-                </div>
+                  <div className="flex justify-between mt-4">
+                    <button
+                      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 0}
+                    >
+                      Prev
+                    </button>
+                    <p>
+                      <span className="text-gray-900">
+                        {totalQuestions === 0 ? "0 / " : `${currentPage} / `}
+                      </span>
+                      <span className="text-gray-900">
+                        {totalQuestions === 0 ? "0" : totalPages}
+                      </span>
+                    </p>
+                    <button
+                      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages || totalPages === 0}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </Tab.Panel>
               )}
-            </>
-          ) : (
-            <div className="text-center text-gray-500">
-              No questions available.
-            </div>
-          )}
-        </>
-      )}
-    </div>
-    <div className="flex justify-between mt-4">
-      <button
-        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-        onClick={handlePrevPage}
-        disabled={currentPage === 0}
-      >
-        Prev
-      </button>
-      <p>
-        <span className="text-gray-900">
-          {totalQuestions === 0 ? "0 / " : `${currentPage} / `}
-        </span>
-        <span className="text-gray-900">
-          {totalQuestions === 0 ? "0" : totalPages}
-        </span>
-      </p>
-      <button
-        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-        onClick={handleNextPage}
-        disabled={currentPage === totalPages || totalPages === 0}
-      >
-        Next
-      </button>
-    </div>
-  </Tab.Panel>
-)}
-
-
-
-
-
 
               {activeTabIndex === 1 ? (
                 <div>
@@ -1108,6 +1267,32 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
                             onClick={() => handleQuestionClick(question)}
                             className="cursor-pointer text-gray-900 p-2"
                           >
+                            {selectedTopic.length > 0 && (
+                              <div>
+                                <Checkbox
+                                  checked={Object.values(selectedQuestions).length === filteredQuestions.length}
+                                  onChange={handleSelectAll}
+                                >
+                                  Select All
+                                </Checkbox>
+                                <button
+                                  className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded ml-4"
+                                  onClick={handleEditClick}
+                                  disabled={!areQuestionsSelected} 
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            )}
+                            {selectedTopic.length > 0 && (
+                              <Checkbox
+                                checked={!!selectedQuestions[question._id]}
+                                onChange={() => handleSelectQuestion(question._id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                }}
+                              />
+                            )}
                             <b>
                               Q.{" "}
                               {(myCurrentPage - 1) * questionsPerPage + index + 1}
@@ -1157,6 +1342,43 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
           <div>Loading...</div>
         )}
       </div>
+
+      <Modal
+        title="Edit Question"
+        visible={isModalOpen}
+        onOk={handleModalOk}
+        onCancel={handleModalCancel}
+      >
+        <div className="flex space-x-4 mb-4">
+          <div className="w-1/2">
+            <div className="relative z-0 w-full md:w-auto flex flex-col-reverse group">
+
+              <Select
+                mode="multiple"
+                value={selectedTopic1}
+                placeholder="Select Topics"
+                style={{ width: 200 }}
+                onChange={handleTopicChange}
+                options={topicList.map((el) => ({
+                  value: el.name,
+                  label: el.name,
+                }))}
+              />
+              <label className="text-white-500 text-sm dark:text-white-400 mt-1">
+                Topic
+              </label>
+            </div>
+            {renderSubtopicSelector(subtopics)}
+            {isSubtopicsLoading && (
+              <div className="loader relative top-0 right-0">
+                <Loading />
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+
     </>
   );
 };
