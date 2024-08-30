@@ -80,7 +80,8 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
   const { chapterList } = useSelector((state) => state.getChapter);
   const { topicList } = useSelector((state) => state.getTopic);
   const { subtopics } = useSelector((state) => state.getSubtopic);
-  const [selectAll, setSelectAll] = useState(false);
+  const [selectAllAllQuestions, setSelectAllAllQuestions] = useState(false);
+const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [areQuestionsSelected, setAreQuestionsSelected] = useState(false);
@@ -89,7 +90,6 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
 
 
   useEffect(() => {
-    // Check if any question is selected to update button state
     const anySelected = Object.values(selectedQuestions).some(Boolean);
     setAreQuestionsSelected(anySelected);
   }, [selectedQuestions]);
@@ -343,13 +343,13 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
           const fixedTotalQuestions = response.data.fixedTotalQuestions || 0;
           setFixedTotalQuestions(fixedTotalQuestions);
           setTotalQuestions(response.data.totalQuestions);
-          setQuestionsLength(response.data.questionsLength);
+          setQuestionsLength(response.data.totalMyQuestions);
           setTotalPages(
             Math.ceil(response.data.totalQuestions / questionsPerPage)
           );
 
           setMyTotalPages(
-            Math.ceil(response.data.questionsLength / questionsPerPage)
+            Math.ceil(response.data.totalMyQuestions / questionsPerPage)
           );
         }
       } catch (error) {
@@ -725,19 +725,35 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
       </div>
     );
   };
-
-  const handleSelectAll = () => {
-    if (selectAll) {
-      setSelectedQuestions({}); // deselect all
-    } else {
-      const selectedQuestions = {};
-      questions.forEach((question) => {
-        selectedQuestions[question._id] = true;
+  const handleSelectAllAllQuestions = () => {
+    if (filteredQuestions.length === 0) return;
+  
+    const newSelectedQuestions = !selectAllAllQuestions ? {} : {};
+    if (!selectAllAllQuestions) {
+      filteredQuestions.forEach(question => {
+        newSelectedQuestions[question._id] = true;
       });
-      setSelectedQuestions(selectedQuestions);
     }
-    setSelectAll(!selectAll);
+  
+    setSelectedQuestions(newSelectedQuestions);
+    setSelectAllAllQuestions(!selectAllAllQuestions);
   };
+  
+  const handleSelectAllMyQuestions = () => {
+    if (filteredMyQuestions.length === 0) return;
+  
+    const newSelectedQuestions = !selectAllMyQuestions ? {} : {};
+    if (!selectAllMyQuestions) {
+      filteredMyQuestions.forEach(question => {
+        newSelectedQuestions[question._id] = true;
+      });
+    }
+  
+    setSelectedQuestions(newSelectedQuestions);
+    setSelectAllMyQuestions(!selectAllMyQuestions);
+  };
+  
+  
 
   const handleSelectQuestion = (questionId) => {
     const newSelectedQuestions = { ...selectedQuestions };
@@ -756,22 +772,18 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
   };
 
   const handleModalOk = async () => {
-    // Filter to get only the selected question IDs
     const questionIdsArray = Object.keys(selectedQuestions).filter((key) => selectedQuestions[key] === true);
 
     try {
-      // Make the PUT request to update questions
       const response = await axios.put(`${server}/api/updatequestiontopic`, {
-        questionIds: questionIdsArray, // Send the array of selected question IDs
-        topic: selectedTopic1, // Use selectedTopic1 from state
-        subtopic: selectedSubtopics1, // Use selectedSubtopics1 from state
+        questionIds: questionIdsArray, 
+        topic: selectedTopic1,
+        subtopic: selectedSubtopics1, 
       });
 
-      // Show success toast if the request is successful
       toast.success(response.data.message || 'Questions updated successfully.');
-      setIsModalOpen(false); // Close the modal on success
+      setIsModalOpen(false); 
 
-      // Reset state or perform any other UI updates if needed
       setSelectedQuestions({});
       setSelectedTopic1([]);
       setSelectedSubtopics1([]);
@@ -1148,23 +1160,26 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
 
                         {totalQuestions > 0 && filteredQuestions.length > 0 ? (
                           <>
+                            // Adjust the Select All Checkbox checked state logic
                             {selectedTopic.length > 0 && (
-                              <div>
-                                <Checkbox
-                                  checked={Object.values(selectedQuestions).length === filteredQuestions.length}
-                                  onChange={handleSelectAll}
-                                >
-                                  Select All
-                                </Checkbox>
-                                <button
-                                  className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded ml-4"
-                                  onClick={handleEditClick}
-                                  disabled={!areQuestionsSelected} // Disable button if no questions are selected
-                                >
-                                  Edit
-                                </button>
-                              </div>
-                            )}
+              <div>
+                <Checkbox
+                  checked={filteredQuestions.length > 0 &&
+                          filteredQuestions.every(question => selectedQuestions[question._id])}
+                  onChange={handleSelectAllAllQuestions}
+                >
+                  Select All
+                </Checkbox>
+                <button
+                  className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded ml-4"
+                  onClick={handleEditClick}
+                  disabled={!Object.keys(selectedQuestions).length}
+                >
+                  Edit
+                </button>
+              </div>
+            )}
+
 
                             {selectedTopic ? (
                               filteredQuestions.map((question, index) => (
@@ -1174,14 +1189,12 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
                                   className="cursor-pointer text-gray-900 p-2 flex items-start space-x-4"
                                 >
                                   {selectedTopic.length > 0 && (
-                                    <Checkbox
-                                      checked={!!selectedQuestions[question._id]}
-                                      onChange={() => handleSelectQuestion(question._id)}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                      }}
-                                    />
-                                  )}
+            <Checkbox
+            checked={!!selectedQuestions[question._id]}
+            onChange={() => handleSelectQuestion(question._id)}
+            onClick={(e) => e.stopPropagation()}
+          />
+          )}
                                   <div>
                                     <b>
                                       Q. {(currentPage - 1) * questionsPerPage + index + 1}
@@ -1246,96 +1259,93 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
                 </div>
               ) : null}
 
-              <Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
-                <div className="max-h-64 overflow-y-auto">
-                  {loading ? (
-                    <Loading />
-                  ) : (
-                    <>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">
-                        Total Questions: {questionsLength}
-                      </h3>
+<Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
+  <div className="max-h-64 overflow-y-auto">
+    {loading ? (
+      <Loading />
+    ) : (
+      <>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          Total Questions: {fixedMyTotalQuestions}
+        </h3>
 
-                      {questionsLength === 0 ? (
-                        <div className="text-center text-gray-500">
-                          No questions found.
-                        </div>
-                      ) : (
-                        filteredMyQuestions.map((question, index) => (
-                          <div
-                            key={question._id}
-                            onClick={() => handleQuestionClick(question)}
-                            className="cursor-pointer text-gray-900 p-2"
-                          >
-                            {selectedTopic.length > 0 && (
-                              <div>
-                                <Checkbox
-                                  checked={Object.values(selectedQuestions).length === filteredQuestions.length}
-                                  onChange={handleSelectAll}
-                                >
-                                  Select All
-                                </Checkbox>
-                                <button
-                                  className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded ml-4"
-                                  onClick={handleEditClick}
-                                  disabled={!areQuestionsSelected} 
-                                >
-                                  Edit
-                                </button>
-                              </div>
-                            )}
-                            {selectedTopic.length > 0 && (
-                              <Checkbox
-                                checked={!!selectedQuestions[question._id]}
-                                onChange={() => handleSelectQuestion(question._id)}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                }}
-                              />
-                            )}
-                            <b>
-                              Q.{" "}
-                              {(myCurrentPage - 1) * questionsPerPage + index + 1}
-                            </b>
-                            <span
-                              dangerouslySetInnerHTML={{
-                                __html: question.question,
-                              }}
-                            />
-                          </div>
-                        ))
-                      )}
-                    </>
-                  )}
-                </div>
-                <div className="flex justify-between mt-4">
-                  <button
-                    className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-                    onClick={handlePrevPage}
-                    disabled={myCurrentPage === 1}
-                  >
-                    Prev
-                  </button>
-                  <p>
-                    <span className="text-gray-900">
-                      {questionsLength === 0 ? "0 / " : `${myCurrentPage} / `}
-                    </span>
-                    <span className="text-gray-900">
-                      {questionsLength === 0 ? "0" : myTotalPages}
-                    </span>
-                  </p>
+        {fixedMyTotalQuestions === 0 ? (
+          <div className="text-center text-gray-500">No questions found.</div>
+        ) : (
+          <>
+            {selectedTopic.length > 0 && (
+              <div>
+                <Checkbox
+                  checked={filteredMyQuestions.length > 0 &&
+                          filteredMyQuestions.every(question => selectedQuestions[question._id])}
+                  onChange={handleSelectAllMyQuestions}
+                >
+                  Select All
+                </Checkbox>
+                <button
+                  className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded ml-4"
+                  onClick={handleEditClick}
+                  disabled={Object.keys(selectedQuestions).length === 0}
+                >
+                  Edit
+                </button>
+              </div>
+            )}
 
-                  <button
-                    className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-                    onClick={handleNextPage}
-                    disabled={
-                      myCurrentPage === myTotalPages || myTotalPages === 0
-                    }
-                  >
-                    Next
-                  </button>
-                </div>
-              </Tab.Panel>
+
+{filteredMyQuestions.map((question, index) => (
+              <div
+                key={question._id}
+                onClick={() => handleQuestionClick(question)}
+                className="cursor-pointer text-gray-900 p-2"
+              >
+                <Checkbox
+                  checked={!!selectedQuestions[question._id]}
+                  onChange={() => handleSelectQuestion(question._id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <b>
+                  Q. {(myCurrentPage - 1) * questionsPerPage + index + 1}
+                </b>
+                <span
+                  dangerouslySetInnerHTML={{ __html: question.question }}
+                />
+              </div>
+            ))}
+          </>
+        )}
+      </>
+    )}
+  </div>
+
+  {/* Pagination Controls */}
+  <div className="flex justify-between mt-4">
+    <button
+      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+      onClick={handlePrevPage}
+      disabled={myCurrentPage === 1}
+    >
+      Prev
+    </button>
+    <p>
+      <span className="text-gray-900">
+        {fixedMyTotalQuestions === 0 ? "0 / " : `${myCurrentPage} / `}
+      </span>
+      <span className="text-gray-900">
+        {fixedMyTotalQuestions === 0 ? "0" : myTotalPages}
+      </span>
+    </p>
+    <button
+      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+      onClick={handleNextPage}
+      disabled={myCurrentPage === myTotalPages || myTotalPages === 0}
+    >
+      Next
+    </button>
+  </div>
+</Tab.Panel>
+
+
             </Tab.Panels>
           </Tab.Group>
         ) : (
