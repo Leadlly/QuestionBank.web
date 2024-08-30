@@ -288,7 +288,7 @@ const Profile = () => {
 
   return (
     <div className="question_box pt-14">
-      <ProfileHead setSelectedQuestion={setSelectedQuestion} toBottom={toBottom} />
+      <ProfileHead setSelectedQuestion={setSelectedQuestion} toBottom={toBottom} selectedQuestion={selectedQuestion} />
 
       {selectedQuestion ? (
         <div className="box relative flex flex-col mt-6 m-7 text-white-700 shadow-md bg-clip-border rounded-xl">
@@ -358,18 +358,20 @@ const Profile = () => {
             </div>
             <p>Class: {selectedQuestion.standard}</p>
             <p>Subject: {selectedQuestion.subject}</p>
-            <p>Chapter: {selectedQuestion.chapter.join(", ")}</p>
+            <p>Chapter: {selectedQuestion?.chapter?.join(", ")}</p>
             <p>
               Topics: {selectedQuestion && selectedQuestion.topics ? selectedQuestion.topics.join(", ") : "No topics available"}
             </p>
 
             <p>Level: {selectedQuestion.level}</p>
             <p>
-              Subtopics:{" "}
-              {selectedQuestion.subtopics.length > 0
-                ? selectedQuestion.subtopics.join(", ")
-                : "N/A"}
-            </p>
+  Subtopics:{" "}
+  {selectedQuestion && selectedQuestion.subtopics
+    ? selectedQuestion.subtopics.length > 0
+      ? selectedQuestion.subtopics.join(", ")
+      : "No subtopics"
+    : "N/A"}
+</p>
             <p>Nested Subtopic: {selectedQuestion.nestedSubTopic || "N/A"}</p>
           </div>
           <div className="p-6 pt-0">
