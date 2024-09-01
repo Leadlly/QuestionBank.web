@@ -81,7 +81,7 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
   const { topicList } = useSelector((state) => state.getTopic);
   const { subtopics } = useSelector((state) => state.getSubtopic);
   const [selectAllAllQuestions, setSelectAllAllQuestions] = useState(false);
-const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
+  const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [areQuestionsSelected, setAreQuestionsSelected] = useState(false);
@@ -93,19 +93,16 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
     const anySelected = Object.values(selectedQuestions).some(Boolean);
     setAreQuestionsSelected(anySelected);
   }, [selectedQuestions]);
-
   useEffect(() => {
     if (selectedStandard) {
       dispatch(getSubjects(selectedStandard));
     }
   }, [dispatch, selectedStandard]);
-
   useEffect(() => {
     if (selectedSubject && selectedStandard) {
       dispatch(getChapters(selectedSubject, selectedStandard));
     }
   }, [dispatch, selectedSubject, selectedStandard]);
-
   useEffect(() => {
     const fetchTopics = async () => {
       if (selectedSubject && selectedStandard && selectedChapter.length > 0) {
@@ -126,7 +123,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
 
     fetchTopics();
   }, [dispatch, selectedSubject, selectedStandard, selectedChapter]);
-
   useEffect(() => {
     const fetchSubtopics = async () => {
       if (
@@ -170,7 +166,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
 
     fetchSubtopics();
   }, [dispatch, selectedSubject, selectedStandard, selectedChapter, selectedTopic, selectedTopic1]);
-
   useEffect(() => {
     const fetchSubtopicsForTopic1 = async () => {
       if (
@@ -186,12 +181,10 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
               selectedSubject,
               selectedStandard,
               selectedChapter.join(","),
-              selectedTopic1.join(",") // Fetch subtopics based on selectedTopic1
+              selectedTopic1.join(",")
             )
           );
-
           if (response && response.payload) {
-            // Update or merge subtopics if needed
             setSelectedSubtopics1(response.payload);
           } else {
             setSelectedSubtopics1([]);
@@ -206,14 +199,10 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
         setSelectedSubtopics1([]);
       }
     };
-
     fetchSubtopicsForTopic1();
   }, [dispatch, selectedSubject, selectedStandard, selectedChapter, selectedTopic1]);
-
   const { user } = useSelector((state) => state.user);
-
   const isAdmin = user?.role === "admin";
-
   useEffect(() => {
     if (activeTabIndex === 0) {
       fetchQuestions(
@@ -250,7 +239,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
     searchKeyword,
     searchMyQuery
   ]);
-
   const fetchQuestions = async (
     standard,
     subject,
@@ -298,19 +286,14 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
       console.error("Error fetching questions:", error);
 
       if (error.response && error.response.data && error.response.data.message) {
-        // Display specific error message from the response if available
         toast.error(error.response.data.message);
       } else {
-        // Fallback error message
         toast.error("Failed to fetch questions. Please try again.");
       }
     } finally {
       setLoading(false);
     }
   };
-
-
-
   const fetchTotalQuestionsDebounced = useCallback(
     _.debounce(async (
       standard,
@@ -359,8 +342,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
     }, 500),
     []
   );
-
-
   const fetchUserQuestions = async (standard, subject, chapter, topicList, subtopic, limit, page) => {
     setLoading(true);
     try {
@@ -395,8 +376,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
       setLoading(false);
     }
   };
-
-
   const fetchUsers = async () => {
     try {
       if (isAdmin) {
@@ -413,10 +392,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
       console.error(error);
     }
   };
-
-
-
-
   useEffect(() => {
     fetchUsers(
       selectedStandard,
@@ -433,12 +408,11 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
     selectedTopic,
     searchKeyword
   ]);
-
   const handleResetFilters = () => {
     setSelectedSubject("");
-    setSelectedChapter("");
-    setSelectedTopic("");
-    setSelectedStandard("")
+    setSelectedChapter([]);
+    setSelectedTopic([]);
+    setSelectedStandard([])
 
     setSubjects([]);
     setChapters([]);
@@ -459,7 +433,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
     setCurrentPage(1);
     setMyCurrentPage(1);
   };
-
   const handleTabChange = (index) => {
     setSelectedStandard("")
     setSelectedQuestion(null);
@@ -494,7 +467,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
       setActiveTabIndex(1);
     }
   }, [isAdmin]);
-
   useEffect(() => {
     setSelectedSubject("");
     setSelectedChapter([]);
@@ -518,18 +490,15 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
     setSelectedTopic1([]);
     setSelectedSubtopics1([]);
   }, [user]);
-
   const filteredQuestions = questions.filter(
     (question) =>
       (!selectedSubject || question.subject === selectedSubject) &&
       (!selectedUser || question.createdBy === selectedUser)
   );
-
   const filteredMyQuestions = myQuestions.filter((question) => {
     if (!selectedSubject) return true;
     return question.subject === selectedSubject;
   });
-
   const handleUserChange = (value) => {
     setSelectedUser(value);
     setUserRank("");
@@ -550,12 +519,10 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
       searchMyQuery
     );
   });
-
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
     toBottom();
   };
-
   const handleNextPage = () => {
     if (activeTabIndex === 0) {
       if (currentPage < totalPages) {
@@ -588,7 +555,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
       }
     }
   };
-
   const handlePrevPage = () => {
     if (activeTabIndex === 0) {
       if (currentPage > 1) {
@@ -621,7 +587,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
       }
     }
   };
-
   const handleSearch = useCallback(
     debounce((keyword) => {
       setCurrentPage(1);
@@ -633,7 +598,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
     }, 300),
     []
   );
-
   const handleSearchChange = (e) => {
     setCurrentPage(1);
     const value = e.target.value;
@@ -653,8 +617,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
     setSearchKeyword('');
     setInputValue('');
   };
-
-
   const handleMySearch = useCallback(
     debounce((keyword) => {
       setMyCurrentPage(1);
@@ -686,7 +648,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
   const handleMySearchClick = () => {
     fetchUserQuestions(handleMySearch)
   }
-
   const renderSubtopicSelectors = (subtopics, level) => {
     if (!subtopics || subtopics.length === 0) {
       return null; // Return early if there are no subtopics
@@ -727,34 +688,26 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
   };
   const handleSelectAllAllQuestions = () => {
     if (filteredQuestions.length === 0) return;
-  
     const newSelectedQuestions = !selectAllAllQuestions ? {} : {};
     if (!selectAllAllQuestions) {
       filteredQuestions.forEach(question => {
         newSelectedQuestions[question._id] = true;
       });
     }
-  
     setSelectedQuestions(newSelectedQuestions);
     setSelectAllAllQuestions(!selectAllAllQuestions);
   };
-  
   const handleSelectAllMyQuestions = () => {
     if (filteredMyQuestions.length === 0) return;
-  
     const newSelectedQuestions = !selectAllMyQuestions ? {} : {};
     if (!selectAllMyQuestions) {
       filteredMyQuestions.forEach(question => {
         newSelectedQuestions[question._id] = true;
       });
     }
-  
     setSelectedQuestions(newSelectedQuestions);
     setSelectAllMyQuestions(!selectAllMyQuestions);
   };
-  
-  
-
   const handleSelectQuestion = (questionId) => {
     const newSelectedQuestions = { ...selectedQuestions };
     if (newSelectedQuestions[questionId]) {
@@ -764,25 +717,23 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
     }
     setSelectedQuestions(newSelectedQuestions);
   };
-
   const handleEditClick = (question) => {
     if (areQuestionsSelected) {
       setIsModalOpen(true);
     }
   };
-
   const handleModalOk = async () => {
     const questionIdsArray = Object.keys(selectedQuestions).filter((key) => selectedQuestions[key] === true);
 
     try {
       const response = await axios.put(`${server}/api/updatequestiontopic`, {
-        questionIds: questionIdsArray, 
+        questionIds: questionIdsArray,
         topic: selectedTopic1,
-        subtopic: selectedSubtopics1, 
+        subtopic: selectedSubtopics1,
       });
 
       toast.success(response.data.message || 'Questions updated successfully.');
-      setIsModalOpen(false); 
+      setIsModalOpen(false);
 
       setSelectedQuestions({});
       setSelectedTopic1([]);
@@ -794,14 +745,9 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
       console.error('Error updating questions:', error.response ? error.response.data.message : error.message);
     }
   };
-
-
-
   const handleModalCancel = () => {
     setIsModalOpen(false);
   };
-
-
   const handleTopicChange = (value) => {
     setSelectedTopic1(value);
     setSelectedSubtopics1([]);
@@ -1058,7 +1004,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
                 My Questions
               </Tab>
             </Tab.List>
-
             <Tab.Panels className="mt-2">
               {selectedUser && (
                 <button className=" border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">
@@ -1146,39 +1091,39 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
                   </div>
                 )}
               </div>
-
               {isAdmin && (
                 <Tab.Panel key="all-questions" className="rounded-xl bg-white p-3">
-                  <div className="max-h-64 overflow-y-auto">
+                  <div className="max-h-80 overflow-y-auto">
                     {loading ? (
                       <Loading />
                     ) : (
                       <>
+                      <div className="sticky top-0 z-10 bg-white p-2">
                         <h3 className="text-lg font-medium text-gray-900 mb-4">
                           Total Questions: {totalQuestions}
                         </h3>
+                        </div>
 
                         {totalQuestions > 0 && filteredQuestions.length > 0 ? (
                           <>
-                            // Adjust the Select All Checkbox checked state logic
                             {selectedTopic.length > 0 && (
-              <div>
-                <Checkbox
-                  checked={filteredQuestions.length > 0 &&
-                          filteredQuestions.every(question => selectedQuestions[question._id])}
-                  onChange={handleSelectAllAllQuestions}
-                >
-                  Select All
-                </Checkbox>
-                <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded ml-4"
-                  onClick={handleEditClick}
-                  disabled={!Object.keys(selectedQuestions).length}
-                >
-                  Edit
-                </button>
-              </div>
-            )}
+                              <div className="sticky top-0 z-10 bg-white  p-2">
+                                <Checkbox
+                                  checked={filteredQuestions.length > 0 &&
+                                    filteredQuestions.every(question => selectedQuestions[question._id])}
+                                  onChange={handleSelectAllAllQuestions}
+                                >
+                                  Select All
+                                </Checkbox>
+                                <button
+                                  className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded ml-4"
+                                  onClick={handleEditClick}
+                                  disabled={!Object.keys(selectedQuestions).length}
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            )}
 
 
                             {selectedTopic ? (
@@ -1189,12 +1134,12 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
                                   className="cursor-pointer text-gray-900 p-2 flex items-start space-x-4"
                                 >
                                   {selectedTopic.length > 0 && (
-            <Checkbox
-            checked={!!selectedQuestions[question._id]}
-            onChange={() => handleSelectQuestion(question._id)}
-            onClick={(e) => e.stopPropagation()}
-          />
-          )}
+                                    <Checkbox
+                                      checked={!!selectedQuestions[question._id]}
+                                      onChange={() => handleSelectQuestion(question._id)}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  )}
                                   <div>
                                     <b>
                                       Q. {(currentPage - 1) * questionsPerPage + index + 1}
@@ -1247,7 +1192,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
                   </div>
                 </Tab.Panel>
               )}
-
               {activeTabIndex === 1 ? (
                 <div>
                   <button className="border-red-600 border-2 p-2 bg-red-900 rounded-lg m-5">
@@ -1258,101 +1202,100 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
                   </button>
                 </div>
               ) : null}
-
-<Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
-  <div className="max-h-64 overflow-y-auto">
-    {loading ? (
-      <Loading />
-    ) : (
-      <>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
-          Total Questions: {fixedMyTotalQuestions}
-        </h3>
-
-        {fixedMyTotalQuestions === 0 ? (
-          <div className="text-center text-gray-500">No questions found.</div>
-        ) : (
-          <>
-            {selectedTopic.length > 0 && (
-              <div>
-                <Checkbox
-                  checked={filteredMyQuestions.length > 0 &&
-                          filteredMyQuestions.every(question => selectedQuestions[question._id])}
-                  onChange={handleSelectAllMyQuestions}
-                >
-                  Select All
-                </Checkbox>
-                <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded ml-4"
-                  onClick={handleEditClick}
-                  disabled={Object.keys(selectedQuestions).length === 0}
-                >
-                  Edit
-                </button>
-              </div>
-            )}
-
-
-{filteredMyQuestions.map((question, index) => (
-              <div
-                key={question._id}
-                onClick={() => handleQuestionClick(question)}
-                className="cursor-pointer text-gray-900 p-2"
-              >
-                <Checkbox
-                  checked={!!selectedQuestions[question._id]}
-                  onChange={() => handleSelectQuestion(question._id)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <b>
-                  Q. {(myCurrentPage - 1) * questionsPerPage + index + 1}
-                </b>
-                <span
-                  dangerouslySetInnerHTML={{ __html: question.question }}
-                />
-              </div>
-            ))}
-          </>
-        )}
-      </>
-    )}
-  </div>
-
-  {/* Pagination Controls */}
-  <div className="flex justify-between mt-4">
-    <button
-      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-      onClick={handlePrevPage}
-      disabled={myCurrentPage === 1}
-    >
-      Prev
-    </button>
-    <p>
-      <span className="text-gray-900">
-        {fixedMyTotalQuestions === 0 ? "0 / " : `${myCurrentPage} / `}
-      </span>
-      <span className="text-gray-900">
-        {fixedMyTotalQuestions === 0 ? "0" : myTotalPages}
-      </span>
-    </p>
-    <button
-      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
-      onClick={handleNextPage}
-      disabled={myCurrentPage === myTotalPages || myTotalPages === 0}
-    >
-      Next
-    </button>
-  </div>
-</Tab.Panel>
+              <Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
+                <div className="max-h-64 overflow-y-auto">
+                  {loading ? (
+                    <Loading />
+                  ) : (
+                    <>
+                    <div className="sticky top-0 z-10 bg-white p-2">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Total Questions: {fixedMyTotalQuestions}
+                      </h3>
+                      </div>
+                      {fixedMyTotalQuestions === 0 ? (
+                        <div className="text-center text-gray-500">No questions found.</div>
+                      ) : (
+                        <>
+                          {selectedTopic.length > 0 && (
+                            <div className="sticky top-0 z-10 bg-white p-2">
+                              <Checkbox
+                                checked={filteredMyQuestions.length > 0 &&
+                                  filteredMyQuestions.every(question => selectedQuestions[question._id])}
+                                onChange={handleSelectAllMyQuestions}
+                              >
+                                Select All
+                              </Checkbox>
+                              <button
+                                className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded ml-4"
+                                onClick={handleEditClick}
+                                disabled={Object.keys(selectedQuestions).length === 0}
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          )}
 
 
+                          {filteredMyQuestions.map((question, index) => (
+                            <div
+                              key={question._id}
+                              onClick={() => handleQuestionClick(question)}
+                              className="cursor-pointer text-gray-900 p-2 flex items-start space-x-4"
+                            >
+                              {selectedTopic.length > 0 && (
+                              <Checkbox
+                                checked={!!selectedQuestions[question._id]}
+                                onChange={() => handleSelectQuestion(question._id)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              )}
+                              <b>
+                                Q. {(myCurrentPage - 1) * questionsPerPage + index + 1}
+                              </b>
+                              <span
+                                dangerouslySetInnerHTML={{ __html: question.question }}
+                              />
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="flex justify-between mt-4">
+                  <button
+                    className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+                    onClick={handlePrevPage}
+                    disabled={myCurrentPage === 1}
+                  >
+                    Prev
+                  </button>
+                  <p>
+                    <span className="text-gray-900">
+                      {fixedMyTotalQuestions === 0 ? "0 / " : `${myCurrentPage} / `}
+                    </span>
+                    <span className="text-gray-900">
+                      {fixedMyTotalQuestions === 0 ? "0" : myTotalPages}
+                    </span>
+                  </p>
+                  <button
+                    className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
+                    onClick={handleNextPage}
+                    disabled={myCurrentPage === myTotalPages || myTotalPages === 0}
+                  >
+                    Next
+                  </button>
+                </div>
+              </Tab.Panel>
             </Tab.Panels>
           </Tab.Group>
         ) : (
           <div>Loading...</div>
         )}
       </div>
-
       <Modal
         title="Edit Question"
         visible={isModalOpen}
@@ -1387,8 +1330,6 @@ const [selectAllMyQuestions, setSelectAllMyQuestions] = useState(false);
           </div>
         </div>
       </Modal>
-
-
     </>
   );
 };
