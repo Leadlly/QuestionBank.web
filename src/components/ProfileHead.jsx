@@ -752,6 +752,9 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
     setSelectedTopic1(value);
     setSelectedSubtopics1([]);
   };
+  useEffect(() => {
+    setSelectedTopic1(selectedTopic);
+  }, [selectedTopic]);
   const renderSubtopicSelector = (subtopics, level = 1) => {
     if (!subtopics || subtopics.length === 0) {
       return null; // Return early if there are no subtopics
