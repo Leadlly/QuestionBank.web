@@ -722,29 +722,75 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
       setIsModalOpen(true);
     }
   };
+  
+  
   const handleModalOk = async () => {
     const questionIdsArray = Object.keys(selectedQuestions).filter((key) => selectedQuestions[key] === true);
-
+  
+    // Ensure at least one question is selected
+    if (questionIdsArray.length === 0) {
+      toast.error('Please select at least one question.');
+      return;
+    }
+  
+    // Get the last selected topic (new topic) and the first selected topic (selected topic to keep)
+    const newTopic = selectedTopic1.length > 0 ? selectedTopic1[selectedTopic1.length - 1] : '';
+    const selectedTopicToKeep = selectedTopic.length > 0 ? selectedTopic[0] : '';
+  
     try {
-      const response = await axios.put(`${server}/api/updatequestiontopic`, {
-        questionIds: questionIdsArray,
-        topic: selectedTopic1,
-        subtopic: selectedSubtopics1,
-      });
-
+      // Prepare the payload with selected question IDs
+      let payload = {
+        questionIds: questionIdsArray
+      };
+  
+      // Case 1: Add a new topic if no previously selected topic exists
+      if (newTopic && !selectedTopicToKeep) {
+        payload = {
+          ...payload,
+          topic: newTopic  // Add the new topic
+        };
+        console.log("Adding new topic:", payload);
+      }
+  
+      // Case 2: Replace the selected topic with the new one if both exist
+      if (newTopic && selectedTopicToKeep) {
+        payload = {
+          ...payload,
+          topic: newTopic,  // Replace old topic with the new one
+          selectedTopic: selectedTopicToKeep  // Send the selected topic for replacement
+        };
+        console.log("Replacing the old topic with new topic:", payload);
+      }
+  
+      // Case 3: Retain the selected topic if no new topic is provided
+      if (selectedTopicToKeep && !newTopic) {
+        payload = {
+          ...payload,
+          topic: selectedTopicToKeep  // Retain the selected topic
+        };
+        console.log("Retaining selected topic:", payload);
+      }
+  
+      // Send the request to the backend
+      const response = await axios.put(`${server}/api/updatequestiontopic`, payload);
+  
+      // Handle successful response
       toast.success(response.data.message || 'Questions updated successfully.');
+  
+      // Reset modal and selections
       setIsModalOpen(false);
-
       setSelectedQuestions({});
-      setSelectedTopic1([]);
-      setSelectedSubtopics1([]);
-
+      setSelectedTopic1([]);  // Clear the topics
+  
     } catch (error) {
-      // Show error toast if there is an error
-      toast.error(error.response?.data.message || 'An error occurred while updating questions.');
-      console.error('Error updating questions:', error.response ? error.response.data.message : error.message);
+      const errorMessage = error.response?.data?.message || 'An error occurred while updating questions.';
+      toast.error(errorMessage);
+      console.error('Error updating questions:', errorMessage);
     }
   };
+  
+  
+  
   const handleModalCancel = () => {
     setIsModalOpen(false);
   };
@@ -1311,17 +1357,23 @@ const ProfileHead = ({ selectedQuestion, setSelectedQuestion, toBottom }) => {
           <div className="w-1/2">
             <div className="relative z-0 w-full md:w-auto flex flex-col-reverse group">
 
-              <Select
-                mode="multiple"
-                value={selectedTopic1}
-                placeholder="Select Topics"
-                style={{ width: 200 }}
-                onChange={handleTopicChange}
-                options={topicList.map((el) => ({
-                  value: el.name,
-                  label: el.name,
-                }))}
-              />
+           <Select
+  mode="multiple"
+  value={selectedTopic1}
+  placeholder="Select Topics"
+  style={{ width: 200 }}
+  onChange={(value) => {
+    console.log("Selected topics:", value);
+    setSelectedTopic1(value);
+  }}
+  options={topicList.map((el) => ({
+    value: el.name,
+    label: el.name,
+  }))}
+/>
+
+
+
               <label className="text-white-500 text-sm dark:text-white-400 mt-1">
                 Topic
               </label>
