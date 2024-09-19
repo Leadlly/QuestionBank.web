@@ -11,9 +11,10 @@ import CreateTopic from "./pages/CreateTopic";
 import CreateSubject from "./pages/CreateSubject";
 import CreateSubtopic from "./pages/CreateSubtopic";
 import Requests from "./pages/Requests";
-import Profile from "./pages/Profile";
+// import Profile from "./pages/Profile";
 import { clearErrors, profile } from "./actions/userAction";
 import EditDetails from "./pages/EditDetails";
+import ProfileHead from "./components/ProfileHead";
 
 function App() {
   const dispatch = useDispatch();
@@ -43,7 +44,7 @@ function App() {
         />
         <Route
           path="/profile"
-          element={isAuthenticated ? <Profile /> : <Login />}
+          element={isAuthenticated ? <ProfileHead /> : <Login />}
         />
         {isAdmin && (
           <>

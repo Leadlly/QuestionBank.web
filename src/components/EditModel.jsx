@@ -11,6 +11,7 @@ import axios from 'axios';
 import { server } from '../main';
 import toast from 'react-hot-toast';
 
+
 const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }) => {
     const { subjectList } = useSelector((state) => state.getSubject);
     const { chapterList } = useSelector((state) => state.getChapter);
@@ -23,6 +24,7 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
     const [subtopic, setSubtopic] = useState(selectedQuestion.subtopics || []);
     const dispatch = useDispatch();
     const [error, setError] = useState('');
+    const [level, setLevel] = useState(null);
     if (!isOpen) return null;
     useEffect(() => {
         if (standard) {
@@ -67,6 +69,7 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
             chapter,
             topics: topic,
             subtopics: subtopic,
+            level
         };
     
         try {
@@ -225,6 +228,28 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                     </label>
 
                 </div>
+                <div className="relative z-0 w-full mb-8 group flex flex-col-reverse">
+          <Select
+            showSearch
+            style={{ width: 200 }}
+            placeholder="Select Level"
+            filterOption={(input, option) =>
+              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
+            onChange={(value) => setLevel(value)}
+            value={level}
+            options={[
+              { value: "boards", label: "Boards" },
+              { value: "neet", label: "Neet" },
+              { value: "jeemains_easy", label: "JeeMains_Easy" },
+              { value: "jeemains", label: "JeeMains" },
+              { value: "jeeadvance", label: "JeeAdvance" },
+            ]}
+          />
+          <label className="text-white-500 text-sm dark:text-white-400">
+            Level
+          </label>
+        </div>
 
                 <div className="mt-4 flex justify-end">
                     <button
