@@ -266,7 +266,7 @@ const ProfileHead = () => {
 
       if (response.data.success) {
         const questions = response.data.questions;
-        setQuestions(questions.reverse());
+        setQuestions(questions);
         setUserTodayQuestions(response.data?.todaysQuestionsCount);
         setUserRank(response.data?.userRank);
         setTopperUser(response.data?.topperUser);
