@@ -100,8 +100,8 @@ const ProfileHead = () => {
   const { success: deleteSuccess, error: deleteError } = useSelector((state) => state.delete);
   const { success: editSuccess, error: editError } = useSelector((state) => state.editQuestion);
   const quillRef = useRef(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentMyIndex, setCurrentMyIndex] = useState(0);
+  const [isTagged, setIsTagged] = useState('');
+
 
   const mathSymbols = [
     { symbol: '⁰', name: 'Numerator' },
@@ -209,35 +209,7 @@ const ProfileHead = () => {
 
   const isAdmin = user?.role === "admin";
 
-  useEffect(() => {
-    if (activeTabIndex === 0) {
-      fetchQuestions(
-        selectedStandard,
-        selectedSubject,
-        selectedChapter,
-        selectedTopic,
-        selectedUser,
-        searchKeyword,
-      );
-    } else if (activeTabIndex === 1) {
-      fetchUserQuestions(
-        selectedStandard,
-        selectedSubject,
-        selectedChapter,
-        selectedTopic,
-        searchMyQuery
-      );
-    }
-  }, [
-    selectedStandard,
-    selectedSubject,
-    selectedChapter,
-    selectedTopic,
-    activeTabIndex,
-    selectedUser,
-    searchKeyword,
-    searchMyQuery
-  ]);
+ 
 
   const fetchQuestions = async (
     standard,
@@ -246,26 +218,28 @@ const ProfileHead = () => {
     topic,
     createdBy,
     limit,
-    page
+    page,
+    isTagged // New parameter
   ) => {
     setLoading(true);
     try {
       const response = await axios.get(`${server}/api/get/question`, {
         params: {
-          standard: selectedStandard,
+          standard,
           subject,
           chapter,
           topic,
           createdBy,
-          limit: questionsPerPage,
+          limit,
           page,
           search: searchKeyword,
+          isTagged: isTagged, // Pass tagged/untagged filter
         },
         withCredentials: true,
       });
-
+  
       if (response.data.success) {
-        const questions = response.data.questions;
+        const questions = response.data.questions || [];
         setQuestions(questions);
         setUserTodayQuestions(response.data?.todaysQuestionsCount);
         setUserRank(response.data?.userRank);
@@ -283,29 +257,101 @@ const ProfileHead = () => {
       setLoading(false);
     }
   };
-
-  const fetchUserQuestions = async (standard, subject, chapter, topic, limit, page) => {
-    setLoading(true);
+  
+  const fetchTotalQuestions = async (
+    standard,
+    subject,
+    chapter,
+    topic,
+    createdBy,
+    search,
+    mySearch,
+    isTagged // New parameter for tagged/untagged
+  ) => {
     try {
-      const response = await axios.get(`${server}/api/get/myquestion`, {
+      // Make API call to backend to fetch total questions
+      const response = await axios.get(`${server}/api/get/totalquestion`, {
         params: {
           standard,
           subject,
           chapter,
-          topicList,
-          limit: questionsPerPage,
-          page,
-          search: searchMyQuery,
+          topic,
+          createdBy,
+          search,
+          mySearch,
+          isTagged, // Pass the tagged/untagged value to backend
         },
         withCredentials: true,
       });
+  
+      if (response.data.success) {
+        // Update fixed total questions for "My Questions"
+        const fixedMyTotalQuestions = response.data.totalMyQuestions || 0;
+        setFixedTotalMyQuestions(fixedMyTotalQuestions);
+  
+        // Update fixed total questions globally
+        const fixedTotalQuestions = response.data.fixedTotalQuestions || 0;
+        setFixedTotalQuestions(fixedTotalQuestions);
+  
+        // Set total questions count (based on filtered questions)
+        setTotalQuestions(response.data.totalQuestions || 0);
+  
+        // Set length of fetched questions (used for paginated views)
+        setQuestionsLength(response.data.questionsLength || 0);
+  
+        // Calculate and set the total number of pages based on questions per page
+        setTotalPages(
+          Math.ceil(response.data.totalQuestions / questionsPerPage)
+        );
+  
+        // Set total pages for "My Questions"
+        setMyTotalPages(
+          Math.ceil(response.data.questionsLength / questionsPerPage)
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to fetch total questions count");
+    }
+  };
+  
+  
+  
 
+  const fetchUserQuestions = async (standard, subject, chapter, topic, limit, page, isTagged) => {
+    setLoading(true);
+    try {
+      console.log('Fetching user questions with params:', {
+        standard,
+        subject,
+        chapter,
+        topic,
+        limit,
+        page,
+        isTagged,
+        search: searchMyQuery,
+      });
+  
+      const response = await axios.get(`${server}/api/get/myquestion`, {
+        params: {
+          standard: standard || undefined, // Avoid sending empty strings
+          subject: subject || undefined,
+          chapter: chapter || undefined,
+          topicList: topic || undefined,
+          limit: limit || 50,
+          page: page || 1,
+          isTagged: isTagged, // Properly set isTagged
+          search: searchMyQuery || undefined,
+        },
+        withCredentials: true,
+      });
+  
       if (response.data.success) {
         const { questions, todaysQuestionsCount, userRank } = response.data;
         setMyQuestions(questions.reverse());
         setTodayMyQuestions(todaysQuestionsCount);
         setMyRank(userRank);
-        const questionsLength = response.data.questionsLength || 0
+        const questionsLength = response.data.totalQuestions || 0; // Use totalQuestions from response
         setQuestionsLength(questionsLength);
         setMyTotalPages(Math.ceil(questionsLength / limit));
       } else {
@@ -317,7 +363,44 @@ const ProfileHead = () => {
       setLoading(false);
     }
   };
-
+  
+  useEffect(() => {
+    if (activeTabIndex === 0) {
+      fetchQuestions(
+        selectedStandard,
+        selectedSubject,
+        selectedChapter,
+        selectedTopic,
+        selectedUser,
+        50,
+        currentPage,
+        isTagged,
+      );
+    } else if (activeTabIndex === 1) {
+      fetchUserQuestions(
+        selectedStandard,
+        selectedSubject,
+        selectedChapter,
+        selectedTopic,
+        50, // Pass limit if needed
+        currentPage, // Ensure currentPage is passed
+        isTagged,
+      );
+    }
+  }, [
+    selectedStandard,
+    selectedSubject,
+    selectedChapter,
+    selectedTopic,
+    activeTabIndex,
+    selectedUser,
+    searchKeyword,
+    searchMyQuery,
+    isTagged,
+    currentPage,
+  ]);
+  
+  
 
   const fetchUsers = async () => {
     try {
@@ -338,49 +421,9 @@ const ProfileHead = () => {
 
 
 
-  const fetchTotalQuestions = async (
-    standard,
-    subject,
-    chapter,
-    topic,
-    createdBy,
-    search,
-    mySearch
-  ) => {
-    try {
-      const response = await axios.get(`${server}/api/get/totalquestion`, {
-        params: {
-          standard,
-          subject,
-          chapter,
-          topic,
-          createdBy,
-          search,
-          mySearch,
-        },
-        withCredentials: true,
-      });
-
-      if (response.data.success) {
-        const fixedMyTotalQuestions = response.data.totalMyQuestions || 0;
-        setFixedTotalMyQuestions(fixedMyTotalQuestions);
-        const fixedTotalQuestions = response.data.fixedTotalQuestions || 0;
-        setFixedTotalQuestions(fixedTotalQuestions);
-        setTotalQuestions(response.data.totalQuestions);
-        setQuestionsLength(response.data.questionsLength);
-        setTotalPages(
-          Math.ceil(response.data.totalQuestions / questionsPerPage)
-        );
-
-        setMyTotalPages(
-          Math.ceil(response.data.questionsLength / questionsPerPage)
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch total questions count");
-    }
-  };
+ 
+  
+  
 
 
   useEffect(() => {
@@ -424,6 +467,7 @@ const ProfileHead = () => {
     setMyInputValue("")
     setCurrentPage(1);
     setMyCurrentPage(1)
+    setIsTagged("")
   };
 
   const handleTabChange = (index) => {
@@ -499,9 +543,11 @@ const ProfileHead = () => {
   };
 
   useEffect(() => {
-    fetchTotalQuestions(selectedStandard, selectedSubject, selectedChapter, selectedTopic, selectedUser, searchKeyword, searchMyQuery);
+    fetchTotalQuestions(selectedStandard, selectedSubject, selectedChapter, selectedTopic, selectedUser, searchKeyword, searchMyQuery, isTagged);
   });
-
+// useEffect(() => {
+//   fetchQuestions(isTagged)
+// })
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
     toBottom();
@@ -519,7 +565,8 @@ const ProfileHead = () => {
           selectedTopic,
           selectedUser,
           questionsPerPage,
-          newPage
+          newPage,
+          isTagged
         );
       }
     } else {
@@ -532,7 +579,8 @@ const ProfileHead = () => {
           selectedChapter,
           selectedTopic,
           questionsPerPage,
-          newPage
+          newPage,
+          isTagged
         );
       }
     }
@@ -550,7 +598,8 @@ const ProfileHead = () => {
           selectedTopic,
           selectedUser,
           questionsPerPage,
-          newPage
+          newPage,
+          isTagged
         );
       }
     } else {
@@ -563,7 +612,8 @@ const ProfileHead = () => {
           selectedChapter,
           selectedTopic,
           questionsPerPage,
-          newPage
+          newPage,
+          isTagged
         );
       }
     }
@@ -848,6 +898,7 @@ const ProfileHead = () => {
     }
     return 0;
   };
+ 
   return (
     <>
       <div className="flex justify-center items-center min-h-screen">
@@ -911,6 +962,18 @@ const ProfileHead = () => {
               </button>
             </div>
           </div>
+          <div className="mt-4">
+        <select
+          className="border-blue-600 border-2 p-2 bg-blue-900 text-white rounded-lg"
+          value={isTagged}
+          onChange={(e) => setIsTagged(e.target.value)}
+        >
+          <option value="">All Questions</option>
+          <option value="tagged">Tagged</option>
+          <option value="untagged">Untagged</option>
+        </select>
+      </div>
+
           <div className="flex space-x-4 mb-4">
             <div className="w-1/2">
               <div className="mb-4">
