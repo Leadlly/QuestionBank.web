@@ -1,6 +1,8 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable react/prop-types */
 // EditQuestionModal.jsx
 import { Select } from 'antd';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getSubjects } from "../actions/subjectAction";
 import { getChapters } from "../actions/chapterAction";
 import { getTopics } from "../actions/topicAction";
@@ -19,12 +21,22 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
     const { subtopics } = useSelector((state) => state.getSubtopic);
     const [standard, setStandard] = useState(selectedQuestion.standard || '');
     const [subject, setSubject] = useState(selectedQuestion.subject || '');
-    const [chapter, setChapter] = useState(selectedQuestion.chapter || '');
-    const [topic, setTopic] = useState(selectedQuestion.topics || []);
-    const [subtopic, setSubtopic] = useState(selectedQuestion.subtopics || []);
+    const [chapter, setChapter] = useState(selectedQuestion?.chapter || []);
+    const [topic, setTopic] = useState(selectedQuestion?.topics || []);
+    const [subtopic, setSubtopic] = useState(selectedQuestion?.subtopics || []);
     const dispatch = useDispatch();
     const [error, setError] = useState('');
     const [level, setLevel] = useState(null);
+
+
+    // const chapter = await getchpaterbyId(chapterId)
+    // const selectedchapter = {
+    //     name: chapter.name
+    //     _id: chapater._id
+    // }
+
+    // setChapter(selectedchapter)
+
     if (!isOpen) return null;
     useEffect(() => {
         if (standard) {
@@ -39,7 +51,7 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                 setError(''); // Clear any error if chapters are selected
                 let allTopics = []; // To store all topics from selected chapters
                 for (const chap of chapter) {
-                    const response = await dispatch(getTopics(subject, standard, chap));
+                    const response = await dispatch(getTopics(subject, standard, chap.name));
                     allTopics = [...allTopics, ...response.topics]; // Combine topics from all chapters
                 }
                 setTopic(allTopics); // Set the combined topics if different from current state
@@ -51,7 +63,7 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
         fetchTopics(); // Call the function to fetch topics
     
         if (subject && standard && chapter.length > 0 && topic) {
-            dispatch(getSubtopics(subject, standard, chapter, topic));
+            dispatch(getSubtopics(subject, standard, chapter.map(el => el.name), topic.map(el => el.name)));
         }
     }, [dispatch, standard, subject, chapter, topic, subtopic]);
     
@@ -156,27 +168,30 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                     </label>
                 </div>
                 <div className="relative z-0 w-full md:w-auto flex flex-col-reverse group">
-                    <Select
-                        mode="multiple"
-                        showSearch
-                        
-                        style={{ width: 200 }}
-                        placeholder="Select Chapter"
-                        filterOption={(input, option) =>
-                            (option.label ?? "").toLowerCase().includes(input.toLowerCase())
-                        }
-                        onChange={(value) => {
-                            setChapter(value);
-                            setTopic(null);
-                            setSubtopic(null)
-                        }}
-                        options={chapterList?.map((chapter) => ({
-                            value: chapter.name,
-                            label: chapter.name,
-                        }))}
-                        value={chapter}
-                        required
-                    />
+                <Select
+                    mode="multiple"
+                    showSearch
+                    style={{ width: 200 }}
+                    placeholder="Select Chapter"
+                    filterOption={(input, option) =>
+                        (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+                    }
+                    onChange={((values, options) => {
+                        const selectedChapters = options.map(option => ({
+                        _id: option.value, // this is the topic _id
+                        name: option.label, // this is the topic name
+                        }));
+                        setChapter(selectedChapters);
+                        setTopic(null);
+                        setSubtopic([]);
+                    })}
+                    options={chapterList?.map((chapter) => ({
+                        value: chapter._id,
+                        label: chapter.name,
+                    }))}
+                    value={chapter?.map(el => ({ value: el._id, label: el.name }))}
+                    labelInValue
+    />
                     <label className="text-white-500 text-sm dark:text-white-400 mt-1">
                         Chapter
                     </label>
@@ -192,14 +207,21 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                         filterOption={(input, option) =>
                             (option.label ?? "").toLowerCase().includes(input.toLowerCase())
                         }
-                        onChange={(value) => {
-                            setTopic(value);
-                        }}
-                        options={topicList?.map((el) => ({
-                            value: el.name,
-                            label: el.name,
-                        }))}
-                        value={topic}
+                        onChange={(values, options) => {
+                            // Set topics with both _id and name
+                            const selectedTopics = options.map(option => ({
+                              _id: option.value, // this is the topic _id
+                              name: option.label, // this is the topic name
+                            }));
+                            setTopic(selectedTopics);
+                          }}
+                          options={topicList?.map((el) => ({
+                            value: el._id, // topic _id
+                            label: el.name, // topic name
+                          }))}
+                          // Map over topic array to display names in the value
+                          value={topic?.map(el => ({ value: el._id, label: el.name }))}
+                          labelInValue
                     />
                     <label className="text-white-500 text-sm dark:text-white-400">
                         Topic
@@ -214,14 +236,21 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                         filterOption={(input, option) =>
                             (option.label ?? "").toLowerCase().includes(input.toLowerCase())
                         }
-                        onChange={(value) => {
-                            setSubtopic(value)
-                        }}
                         options={subtopics.map((subtopic) => ({
-                            value: subtopic.name,
+                            value: subtopic._id,
                             label: subtopic.name,
                         }))}
-                        value={subtopic}
+                        onChange={(values, options) => {
+                          // Set topics with both _id and name
+                          const selectedSubtopics = options.map(option => ({
+                            _id: option.value, // this is the topic _id
+                            name: option.label, // this is the topic name
+                          }));
+                          setSubtopic(selectedSubtopics);
+                        }}
+                        // Map over topic array to display names in the value
+                        value={subtopic?.map(el => ({ value: el._id, label: el.name }))}
+                        labelInValue
                     />
                     <label className="text-white-500 text-sm dark:text-white-400">
                         Subtopic
