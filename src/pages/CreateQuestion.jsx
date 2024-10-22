@@ -193,25 +193,33 @@ const CreateQuestion = () => {
   
   useEffect(() => {
     if (standard) {
-      dispatch(getSubjects(standard));
+      dispatch(getSubjects(standard)); // Fetch subjects based on the standard
     }
+  
     if (subject && standard) {
-      dispatch(getChapters(subject, standard));
+      dispatch(getChapters(subject, standard)); // Fetch chapters based on subject and standard
     }
+  
     const fetchTopics = async () => {
       if (subject && standard && chapter) {
-          let allTopics = []; // To store all topics from selected chapters
-          for (const chap of chapter) {
-              const response = await dispatch(getTopics(subject, standard, chap.name));
-              allTopics = [...allTopics, ...response.topic]; // Combine topics from all chapters
-          }
-      } 
-  };
-
-  fetchTopics();
+        let allTopics = []; // To store all topics from selected chapters
+  
+        // Fetch topics using chapter._id instead of chapter.name
+        for (const chap of chapter) {
+          const response = await dispatch(getTopics(subject, standard, chap._id)); // Pass chap._id
+          allTopics = [...allTopics, ...response.topic]; // Combine topics from all chapters
+        }
+        // Use allTopics here (e.g., set it in state if needed)
+      }
+    };
+  
+    fetchTopics();
+  
     if (subject && standard && chapter && topic) {
       setIsSubtopicsLoading(true);
-      dispatch(getSubtopics(subject, standard, chapter.map(el => el.name), topic.map(el => el.name)))
+  
+      // Fetch subtopics using chapter._id and topic._id instead of names
+      dispatch(getSubtopics(subject, standard, chapter.map(el => el._id), topic.map(el => el._id)))
         .then(() => {
           setIsSubtopicsLoading(false);
         })
@@ -222,6 +230,7 @@ const CreateQuestion = () => {
       setIsSubtopicsLoading(false);
     }
   }, [dispatch, standard, subject, chapter, topic]);
+  
 
   const uploadImageToS3 = async (file, signedUrl) => {
     const response = await fetch(signedUrl, {

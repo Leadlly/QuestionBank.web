@@ -21,20 +21,24 @@ const CreateSubtopic = () => {
   const [chapter, setChapter] = useState("");
   const [topic, setTopic] = useState("");
   const [subtopics, setSubtopics] = useState([{ name: "", subtopics: [] }]);
+  const [selectedChapter, setSelectedChapter] = useState('');
+const [selectedChapterId, setSelectedChapterId] = useState(null);
+
 
   const inputRef = useRef(null);
 
   useEffect(() => {
     if (standard) {
-      dispatch(getSubjects(standard));
+      dispatch(getSubjects(standard)); 
     }
     if (subject && standard) {
-      dispatch(getChapters(subject, standard));
+      dispatch(getChapters(subject, standard)); 
     }
-    if (subject && standard && chapter) {
-      dispatch(getTopics(subject, standard, chapter));
+    if (subject && standard && selectedChapterId) { 
+      dispatch(getTopics(subject, standard, selectedChapterId));
     }
-  }, [standard, subject, chapter, dispatch]);
+  }, [standard, subject, selectedChapterId, dispatch]); 
+  
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
@@ -208,28 +212,29 @@ const CreateSubtopic = () => {
           </label>
         </div>
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-          <Select
-            showSearch
-            style={{ width: 200 }}
-            placeholder="Select Chapter"
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option.label.toLowerCase().includes(input.toLowerCase())
-            }
-            onChange={(value) => {
-              setChapter(value);
-              getTopics(value);
-            }}
-            value={chapter}
-            options={
-              chapterList &&
-              chapterList.map((chapter) => ({
-                value: chapter.name,
-                label: chapter.name,
-                key: chapter._id,
-              }))
-            }
-          />
+        <Select
+  style={{ width: 200 }}
+  showSearch
+  placeholder="Select Chapter"
+  optionFilterProp="children"
+  filterOption={(input, option) =>
+    option.label.toLowerCase().includes(input.toLowerCase())
+  }
+  onChange={(value) => {
+    setSelectedChapter(value);
+    const selectedChapter = chapterList.find((chapter) => chapter.name === value);
+    if (selectedChapter) {
+      setSelectedChapterId(selectedChapter._id); 
+    }
+  }}
+  value={selectedChapter}
+  options={chapterList?.map((chapter) => ({
+    value: chapter.name,
+    label: chapter.name,
+  }))}
+  required
+/>
+
 
           <label
             htmlFor="chapter"
