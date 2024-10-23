@@ -13,6 +13,8 @@ const CreateTopic = () => {
     const [chapter, setChapter] = useState("");
     const [topics, setTopics] = useState([{ name: "", subtopics: [] }]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [chapterId, setChapterId] = useState(""); // Store selected chapter ID
+
 
     const dispatch = useDispatch();
     const { isLoading } = useSelector((state) => state.topic);
@@ -28,13 +30,19 @@ const CreateTopic = () => {
         }
     }, [standard, subject, dispatch]);
 
-    // Handle form submission
     const handleFormSubmit = async (event) => {
         event.preventDefault();
-
+    
         if (isSubmitting) return; // Prevent multiple submissions
         setIsSubmitting(true);
-
+    
+        // Validate the data (ensure chapterId is present)
+        if (!chapterId) {
+            toast.error("Please select a valid chapter.");
+            setIsSubmitting(false);
+            return;
+        }
+    
         // Format topics before submitting
         const formattedTopics = topics
             .map((topic) => {
@@ -47,24 +55,25 @@ const CreateTopic = () => {
                 };
             })
             .filter(topic => topic !== null); // Filter out invalid topics
-
+    
         if (formattedTopics.length === 0) {
             toast.error("Please provide at least one valid topic.");
             setIsSubmitting(false);
             return;
         }
-
-        // Prepare data to submit
+    
+        // Prepare data to submit including chapterId
         const formattedData = {
             standard,
             subjectName: subject,
             chapterName: chapter,
+            chapterId,  // Add the chapterId for backend validation
             topics: formattedTopics,
         };
-
+    
         try {
             const result = await dispatch(createTopic(formattedData)); // Dispatch the create topic action
-
+    
             if (result && result.success) {
                 toast.success("Topics added successfully!");
                 setTopics([{ name: "", subtopics: [] }]); // Reset topics
@@ -78,6 +87,8 @@ const CreateTopic = () => {
             setIsSubmitting(false);
         }
     };
+    
+    
 
     // Handle topic name change
     const handleTopicChange = (index, newName) => {
@@ -134,26 +145,30 @@ const CreateTopic = () => {
 
                 {/* Chapter Selection */}
                 <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-                    <Select
-                        showSearch
-                        style={{ width: 200 }}
-                        placeholder="Select Chapter"
-                        optionFilterProp="children"
-                        filterOption={(input, option) =>
-                            option.label.toLowerCase().includes(input.toLowerCase())
-                        }
-                        onChange={(value) => setChapter(value)}
-                        value={chapter}
-                        options={chapterList?.map((chapter) => ({
-                            value: chapter.name,
-                            label: chapter.name,
-                            key: chapter._id, // Use chapter._id as key
-                        }))}
-                    />
-                    <label className="text-white-500 text-sm dark:text-white-400">
-                        Chapter
-                    </label>
-                </div>
+    <Select
+        showSearch
+        style={{ width: 200 }}
+        placeholder="Select Chapter"
+        optionFilterProp="children"
+        filterOption={(input, option) =>
+            option.label.toLowerCase().includes(input.toLowerCase())
+        }
+        onChange={(value, option) => {
+            setChapter(option.label); // Set the chapter name
+            setChapterId(option.key); // Set the chapter ID
+        }}
+        value={chapter}
+        options={chapterList?.map((chapter) => ({
+            value: chapter.name, // Chapter name for the dropdown
+            label: chapter.name, // Display label
+            key: chapter._id, // Use chapter._id to store chapter ID
+        }))}
+    />
+    <label className="text-white-500 text-sm dark:text-white-400">
+        Chapter
+    </label>
+</div>
+
 
                 {/* Topics Section */}
                 <div className="relative z-0 w-full mb-5 group">
