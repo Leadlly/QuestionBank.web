@@ -21,6 +21,11 @@ const CreateSubtopic = () => {
   const [chapter, setChapter] = useState("");
   const [topic, setTopic] = useState("");
   const [subtopics, setSubtopics] = useState([{ name: "", subtopics: [] }]);
+  const [selectedChapter, setSelectedChapter] = useState('');
+  const [selectedTopic , setSelectedTopic ] = useState('');
+const [selectedChapterId, setSelectedChapterId] = useState(null);
+const [selectedTopicId , setSelectedTopicId ] = useState(null);
+
 
   const inputRef = useRef(null);
 
@@ -28,40 +33,76 @@ const CreateSubtopic = () => {
     if (standard) {
       dispatch(getSubjects(standard));
     }
+  }, [standard, dispatch]);
+  
+  useEffect(() => {
     if (subject && standard) {
       dispatch(getChapters(subject, standard));
     }
-    if (subject && standard && chapter) {
-      dispatch(getTopics(subject, standard, chapter));
+  }, [subject, standard, dispatch]);
+  
+  useEffect(() => {
+    if (subject && standard && selectedChapterId) {
+      dispatch(getTopics(subject, standard, selectedChapterId));
     }
-  }, [standard, subject, chapter, dispatch]);
+  }, [subject, standard, selectedChapterId, dispatch]);
+  
+  
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
-
+    console.log("Subject:", subject);
+    console.log("Standard:", standard);
+    console.log("Chapter:", selectedChapter); // Use the selectedChapter state
+    console.log("Topic:", selectedTopic); // Use the selectedTopic state
+    console.log("Subtopics:", subtopics);
+    
+    // Validate if required fields are filled
+    if (!subject || !standard || !selectedChapter || !selectedTopic) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+  
+    // Validate subtopics array - at least one valid subtopic name must be provided
+    if (!subtopics || subtopics.length === 0 || !subtopics.some(sub => sub.name)) {
+      toast.error("Please provide at least one valid subtopic name.");
+      return;
+    }
+  
+    const chapterId = selectedChapterId; 
+    const topicId = selectedTopicId;     
+  
+    if (!chapterId || !topicId) {
+      toast.error("Chapter or Topic ID is missing.");
+      return;
+    }
+  
     const formattedData = {
       subjectName: subject,
       standard: standard,
-      chapterName: chapter,
-      topicName: topic,
-      subtopics,
+      chapterName: selectedChapter, // Update to use selectedChapter
+      topicName: selectedTopic, // Update to use selectedTopic
+      chapterId,  
+      topicId,    
+      subtopics,  
     };
-
+  
     try {
       const result = await dispatch(createSubtopic(formattedData));
-
       if (result && result.success) {
         toast.success("Subtopic added successfully!");
         setSubtopics([{ name: "", subtopics: [] }]);
       } else {
-        const errorMessage =
-          result?.message || "Failed to add subtopic. Please try again.";
+        const errorMessage = result?.message || "Failed to add subtopic. Please try again.";
         toast.error(errorMessage);
       }
     } catch (error) {
-      toast.error(error.message || "Subtopic already exist!");
+      toast.error(error.message || "Subtopic already exists!");
     }
   };
+  
+
+  
 
   const handleSubtopicChange = (index, key, value) => {
     const updatedSubtopics = [...subtopics];
@@ -137,7 +178,26 @@ const CreateSubtopic = () => {
       </div>
     );
   };
-  
+  // When selecting a chapter
+const handleChapterChange = (value) => {
+  setSelectedChapter(value);
+  const selectedChapter = chapterList.find((chapter) => chapter.name === value);
+  if (selectedChapter) {
+    setSelectedChapterId(selectedChapter._id); // Set the chapter ID
+    console.log("Selected Chapter:", selectedChapter.name); // Debugging line
+  }
+};
+
+// When selecting a topic
+const handleTopicChange = (value) => {
+  setSelectedTopic(value);
+  const selectedTopic = topicList.find((topic) => topic.name === value);
+  if (selectedTopic) {
+    setSelectedTopicId(selectedTopic._id); // Set the topic ID
+    console.log("Selected Topic:", selectedTopic.name); // Debugging line
+  }
+};
+
 
   SubtopicInput.propTypes = {
     subtopic: PropTypes.shape({
@@ -208,28 +268,26 @@ const CreateSubtopic = () => {
           </label>
         </div>
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-          <Select
-            showSearch
-            style={{ width: 200 }}
-            placeholder="Select Chapter"
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option.label.toLowerCase().includes(input.toLowerCase())
-            }
-            onChange={(value) => {
-              setChapter(value);
-              getTopics(value);
-            }}
-            value={chapter}
-            options={
-              chapterList &&
-              chapterList.map((chapter) => ({
-                value: chapter.name,
-                label: chapter.name,
-                key: chapter._id,
-              }))
-            }
-          />
+        <Select
+  style={{ width: 200 }}
+  showSearch
+  placeholder="Select Chapter"
+  optionFilterProp="children"
+  filterOption={(input, option) =>
+    option.label.toLowerCase().includes(input.toLowerCase())
+  }
+  onChange={handleChapterChange} // Use the handler here
+  value={selectedChapter}
+  options={chapterList?.map((chapter) => ({
+    value: chapter.name,
+    label: chapter.name,
+  }))} 
+/>
+
+
+
+
+
 
           <label
             htmlFor="chapter"
@@ -239,25 +297,22 @@ const CreateSubtopic = () => {
           </label>
         </div>
         <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-          <Select
-            showSearch
-            style={{ width: 200 }}
-            placeholder="Select Topic"
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option.label.toLowerCase().includes(input.toLowerCase())
-            }
-            onChange={(value) => {
-              setTopic(value);
-              // getSubtopics(value);
-            }}
-            value={topic}
-            options={
-              topicList &&
-              topicList?.map((el) => ({ value: el.name, label: el.name }))
-            }
-            required
-          />
+        <Select
+  style={{ width: 200 }}
+  showSearch
+  placeholder="Select Topic"
+  optionFilterProp="children"
+  filterOption={(input, option) =>
+    option.label.toLowerCase().includes(input.toLowerCase())
+  }
+  onChange={handleTopicChange} // Use the handler here
+  value={selectedTopic}
+  options={topicList?.map((topic) => ({
+    value: topic.name,
+    label: topic.name,
+  }))} 
+/>
+
           <label className=" text-white-500 text-sm dark:text-white-400 ">
             Topic
           </label>

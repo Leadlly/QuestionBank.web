@@ -193,25 +193,33 @@ const CreateQuestion = () => {
   
   useEffect(() => {
     if (standard) {
-      dispatch(getSubjects(standard));
+      dispatch(getSubjects(standard)); // Fetch subjects based on the standard
     }
+  
     if (subject && standard) {
-      dispatch(getChapters(subject, standard));
+      dispatch(getChapters(subject, standard)); // Fetch chapters based on subject and standard
     }
+  
     const fetchTopics = async () => {
       if (subject && standard && chapter) {
-          let allTopics = []; // To store all topics from selected chapters
-          for (const chap of chapter) {
-              const response = await dispatch(getTopics(subject, standard, chap));
-              allTopics = [...allTopics, ...response.topic]; // Combine topics from all chapters
-          }
-      } 
-  };
-
-  fetchTopics();
+        let allTopics = []; // To store all topics from selected chapters
+  
+        // Fetch topics using chapter._id instead of chapter.name
+        for (const chap of chapter) {
+          const response = await dispatch(getTopics(subject, standard, chap._id)); // Pass chap._id
+          allTopics = [...allTopics, ...response.topic]; // Combine topics from all chapters
+        }
+        // Use allTopics here (e.g., set it in state if needed)
+      }
+    };
+  
+    fetchTopics();
+  
     if (subject && standard && chapter && topic) {
       setIsSubtopicsLoading(true);
-      dispatch(getSubtopics(subject, standard, chapter, topic))
+  
+      // Fetch subtopics using chapter._id and topic._id instead of names
+      dispatch(getSubtopics(subject, standard, chapter.map(el => el._id), topic.map(el => el._id)))
         .then(() => {
           setIsSubtopicsLoading(false);
         })
@@ -222,6 +230,7 @@ const CreateQuestion = () => {
       setIsSubtopicsLoading(false);
     }
   }, [dispatch, standard, subject, chapter, topic]);
+  
 
   const uploadImageToS3 = async (file, signedUrl) => {
     const response = await fetch(signedUrl, {
@@ -256,6 +265,7 @@ const CreateQuestion = () => {
       type: file?.type,
     }));
   
+    console.log(topic,chapter, selectedSubtopics, "here is the topic")
     const formattedData = {
       question: question,
       options: filteredOptions.map((option, index) => ({
@@ -358,19 +368,24 @@ const CreateQuestion = () => {
     setOptionImages([]); 
   };
 
-  const handleSubtopicChange = (value, level) => {
+  const handleSubtopicChange = (value, options, level) => {
     const updatedSubtopics = [...selectedSubtopics];
-    const parentSubtopics =
-      level === 0 ? subtopics : updatedSubtopics[level - 1].subtopics;
-
-    const selectedSubtopic = parentSubtopics.find((sub) => sub.name === value);
-
-    if (selectedSubtopic) {
-      selectedSubtopic.isSelected = true;
-      updatedSubtopics[level] = selectedSubtopic;
-    }
-
-    setSelectedSubtopics(value);
+  
+    // If at the root level, use the subtopics array directly; otherwise, access the nested subtopics
+    const parentSubtopics = level === 0 ? subtopics : updatedSubtopics[level - 1]?.subtopics;
+  
+    // Find the selected subtopics by matching _id with value
+    const selectedSubtopicsAtLevel = options.map((option) => {
+      return parentSubtopics.find((sub) => sub._id === option.value);
+    }).filter(Boolean); // Filter out any null or undefined results
+  
+    // Set the selected subtopics at the current level
+    updatedSubtopics[level] = selectedSubtopicsAtLevel.map((subtopic) => ({
+      _id: subtopic._id,
+      name: subtopic.name,
+    }));
+  
+    setSelectedSubtopics(updatedSubtopics);
   };
 
   const handleRemoveOptionImage = (indexToRemove) => {
@@ -410,7 +425,7 @@ const CreateQuestion = () => {
                   (option.label ?? "").toLowerCase().includes(input.toLowerCase())
                }
                 options={currentSubtopics.map((subtopic) => ({
-                    value: subtopic.name,
+                    value: subtopic._id,
                     label: subtopic.name,
                 }))}
                 onChange={(value) => handleSubtopicChange(value, level)}
@@ -487,17 +502,21 @@ const CreateQuestion = () => {
       filterOption={(input, option) =>
         (option.label ?? "").toLowerCase().includes(input.toLowerCase())
       }
-      onChange={(value) => {
-        setChapter(value);
+      onChange={((values, options) => {
+        const selectedChapters = options.map(option => ({
+          _id: option.value, // this is the topic _id
+          name: option.label, // this is the topic name
+        }));
+        setChapter(selectedChapters);
         setTopic(null);
         setSelectedSubtopics([]);
         setIsSubtopicsLoading(false);
-      }}
+      })}
       options={chapterList?.map((chapter) => ({
-        value: chapter.name,
+        value: chapter._id,
         label: chapter.name,
       }))}
-      value={chapter}
+      value={chapter?.map(el => ({ value: el._id, label: el.name }))}
     />
     <label className="text-white-500 text-sm dark:text-white-400 mt-1">
       Chapter
@@ -513,15 +532,22 @@ const CreateQuestion = () => {
       filterOption={(input, option) =>
         (option.label ?? "").toLowerCase().includes(input.toLowerCase())
       }
-      onChange={(value) => {
-        setTopic(value);
+      onChange={(values, options) => {
+        // Set topics with both _id and name
+        const selectedTopics = options.map(option => ({
+          _id: option.value, // this is the topic _id
+          name: option.label, // this is the topic name
+        }));
+        setTopic(selectedTopics);
         setSelectedSubtopics([]);
       }}
       options={topicList?.map((el) => ({
-        value: el.name,
-        label: el.name,
+        value: el._id, // topic _id
+        label: el.name, // topic name
       }))}
-      value={topic}
+      // Map over topic array to display names in the value
+      value={topic?.map(el => ({ value: el._id, label: el.name }))}
+      labelInValue
     />
     <label className="text-white-500 text-sm dark:text-white-400">
       Topic
@@ -537,7 +563,31 @@ const CreateQuestion = () => {
 
 
         {topic && subtopics && subtopics.length > 0 && (
-          <div>{renderSubtopicSelectors(subtopics, 0)}</div>
+         <Select
+         mode="multiple"
+         id={`subtopic-select-${level}`}
+         showSearch
+         style={{ width: 200 }}
+         placeholder={`Select ${level === 0 ? "Subtopic" : `Nested Subtopic`}`}
+         filterOption={(input, option) =>
+           (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+        }
+         options={subtopics.map((subtopic) => ({
+             value: subtopic._id,
+             label: subtopic.name,
+         }))}
+         onChange={(values, options) => {
+           // Set topics with both _id and name
+           const selectedSubtopics = options.map(option => ({
+             _id: option.value, // this is the topic _id
+             name: option.label, // this is the topic name
+           }));
+           setSelectedSubtopics(selectedSubtopics);
+         }}
+         // Map over topic array to display names in the value
+         value={selectedSubtopics?.map(el => ({ value: el._id, label: el.name }))}
+         labelInValue
+       />
         )}
 
         <div className="relative z-0 w-full mb-8 group flex flex-col-reverse">

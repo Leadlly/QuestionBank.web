@@ -30,6 +30,7 @@ const ViewChapTop = () => {
   const [allChapters, setAllChapters] = useState([]);
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [selectedChapterId, setSelectedChapterId] = useState(null);
   const [showChapterDetails, setShowChapterDetails] = useState(false);
   const [chapterDetails, setChapterDetails] = useState({
     _id: "",
@@ -114,9 +115,16 @@ const ViewChapTop = () => {
     setSelectedChapter(""); 
   };
   
-  const handleChapterChange = (value) => {
-    setSelectedChapter(value)
+  const handleChapterChange = (chapterId) => {
+    const selectedChapter = chapterList.find(chapter => chapter._id === chapterId); 
+  
+    if (selectedChapter) {
+      setSelectedChapter(selectedChapter.name); 
+      setSelectedChapterId(chapterId); 
+      setTopic(null);
+    }
   };
+  
 
   const fetchChapters = async () => {
     console.log("Selected Subject in fetchChapters:", selectedSubject);
@@ -145,15 +153,15 @@ const ViewChapTop = () => {
     setLoadingTopics(true);
     try {
       const response = await axios.get(`${server}/api/get/topic`, {
-        params:{
-
+        params: {
           standard: selectedStandard,
           subjectName: selectedSubject,
-          chapterName: selectedChapter,
+          chapterId: selectedChapterId, 
         }
       }, {
         withCredentials: true,
       });
+      
       if (response.data.success) {
         setAllTopics(response.data.topics);
       }
@@ -163,6 +171,7 @@ const ViewChapTop = () => {
       setLoadingTopics(false);
     }
   };
+
 
   const handleCloseTopicPopup = () => {
     setSelectedStandard("");
@@ -179,12 +188,12 @@ const ViewChapTop = () => {
   }, [selectedStandard, selectedSubject, showPopup]);
   
   useEffect(() => {
-    if (selectedStandard && selectedSubject && selectedChapter && showTopicPopup ) {
+    if (selectedStandard && selectedSubject && selectedChapterId && showTopicPopup) {
       setLoadingTopics(true);
-      fetchTopics()
+      fetchTopics();
     }
-  }, [selectedStandard, selectedSubject, selectedChapter, showTopicPopup]);
-
+  }, [selectedStandard, selectedSubject, selectedChapterId, showTopicPopup]);
+  
   const handleTopicClick = async (topicId) => {
     try {
       const response = await axios.get(`${server}/api/get/topic/${topicId}`);
@@ -591,20 +600,19 @@ const handleDeleteTopic = async (topicId) => {
                 Chapter
               </label>
               <Select
-                style={{ width: 200 }}
-                showSearch
-                value={selectedChapter}
-                onChange={handleChapterChange}
-                filterOption={(input, option) =>
-                  (option.label ?? "")
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                options={chapterList.map((chapter) => ({
-                  value: chapter.name,
-                  label: chapter.name,
-                }))}
-              />
+  style={{ width: 200 }}
+  showSearch
+  value={selectedChapter}
+  onChange={handleChapterChange}
+  filterOption={(input, option) =>
+    (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+  }
+  options={chapterList.map((chapter) => ({
+    value: chapter._id,
+    label: chapter.name, 
+  }))}
+/>
+
             </div>
           </div>
         </div>
