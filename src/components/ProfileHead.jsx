@@ -197,14 +197,22 @@ const ProfileHead = () => {
     if (selectedStandard) {
       dispatch(getSubjects(selectedStandard));
     }
+  
     if (selectedSubject && selectedStandard) {
       dispatch(getChapters(selectedSubject, selectedStandard));
     }
-    if (selectedSubject && selectedStandard && selectedChapter) {
-      dispatch(getTopics(selectedSubject, selectedStandard, selectedChapter));
+  
+    const chapterId = selectedChapter?._id || selectedChapter; // Ensure chapterId is an ID, not name
+  
+    if (selectedSubject && selectedStandard && chapterId) {
+      console.log("Dispatching getTopics with chapterId:", chapterId);
+      dispatch(getTopics(selectedSubject, selectedStandard, chapterId)); // Pass the chapter ID directly
+    } else {
+      console.log("Skipping getTopics dispatch, missing chapterId:", { selectedSubject, selectedStandard, chapterId });
     }
   }, [dispatch, selectedStandard, selectedSubject, selectedChapter]);
-
+  
+  
   const { user } = useSelector((state) => state.user);
 
   const isAdmin = user?.role === "admin";
@@ -214,12 +222,12 @@ const ProfileHead = () => {
   const fetchQuestions = async (
     standard,
     subject,
-    chapter,
-    topic,
+    chapterId,
+    topicId,
     createdBy,
     limit,
     page,
-    isTagged // New parameter
+    isTagged 
   ) => {
     setLoading(true);
     try {
@@ -227,13 +235,13 @@ const ProfileHead = () => {
         params: {
           standard,
           subject,
-          chapter,
-          topic,
+          chapterId, 
+          topicId,
           createdBy,
           limit,
           page,
-          search: searchKeyword,
-          isTagged: isTagged, // Pass tagged/untagged filter
+          search: searchKeyword, 
+          isTagged, 
         },
         withCredentials: true,
       });
@@ -258,53 +266,47 @@ const ProfileHead = () => {
     }
   };
   
+  
   const fetchTotalQuestions = async (
     standard,
     subject,
-    chapter,
-    topic,
+    chapterId,
+    topicId,
     createdBy,
     search,
     mySearch,
-    isTagged // New parameter for tagged/untagged
+    isTagged 
   ) => {
     try {
-      // Make API call to backend to fetch total questions
       const response = await axios.get(`${server}/api/get/totalquestion`, {
         params: {
           standard,
           subject,
-          chapter,
-          topic,
+          chapterId,
+          topicId,
           createdBy,
           search,
           mySearch,
-          isTagged, // Pass the tagged/untagged value to backend
+          isTagged, 
         },
         withCredentials: true,
       });
   
       if (response.data.success) {
-        // Update fixed total questions for "My Questions"
         const fixedMyTotalQuestions = response.data.totalMyQuestions || 0;
         setFixedTotalMyQuestions(fixedMyTotalQuestions);
   
-        // Update fixed total questions globally
         const fixedTotalQuestions = response.data.fixedTotalQuestions || 0;
         setFixedTotalQuestions(fixedTotalQuestions);
   
-        // Set total questions count (based on filtered questions)
         setTotalQuestions(response.data.totalQuestions || 0);
   
-        // Set length of fetched questions (used for paginated views)
         setQuestionsLength(response.data.questionsLength || 0);
   
-        // Calculate and set the total number of pages based on questions per page
         setTotalPages(
           Math.ceil(response.data.totalQuestions / questionsPerPage)
         );
   
-        // Set total pages for "My Questions"
         setMyTotalPages(
           Math.ceil(response.data.questionsLength / questionsPerPage)
         );
@@ -318,14 +320,14 @@ const ProfileHead = () => {
   
   
 
-  const fetchUserQuestions = async (standard, subject, chapter, topic, limit, page, isTagged) => {
+  const fetchUserQuestions = async (standard, subject, chapterId, topicId, limit, page, isTagged) => {
     setLoading(true);
     try {
       console.log('Fetching user questions with params:', {
         standard,
         subject,
-        chapter,
-        topic,
+        chapterId,
+        topicId,
         limit,
         page,
         isTagged,
@@ -334,24 +336,25 @@ const ProfileHead = () => {
   
       const response = await axios.get(`${server}/api/get/myquestion`, {
         params: {
-          standard: standard || undefined, // Avoid sending empty strings
+          standard: standard || undefined, 
           subject: subject || undefined,
-          chapter: chapter || undefined,
-          topicList: topic || undefined,
+          chapterId: chapterId || undefined,
+          topicId: topicId || undefined, 
           limit: limit || 50,
           page: page || 1,
-          isTagged: isTagged, // Properly set isTagged
+          isTagged: isTagged,
           search: searchMyQuery || undefined,
         },
         withCredentials: true,
       });
+      
   
       if (response.data.success) {
         const { questions, todaysQuestionsCount, userRank } = response.data;
         setMyQuestions(questions.reverse());
         setTodayMyQuestions(todaysQuestionsCount);
         setMyRank(userRank);
-        const questionsLength = response.data.totalQuestions || 0; // Use totalQuestions from response
+        const questionsLength = response.data.totalQuestions || 0; 
         setQuestionsLength(questionsLength);
         setMyTotalPages(Math.ceil(questionsLength / limit));
       } else {
@@ -418,12 +421,6 @@ const ProfileHead = () => {
       console.error(error);
     }
   };
-
-
-
- 
-  
-  
 
 
   useEffect(() => {
@@ -1037,26 +1034,25 @@ const ProfileHead = () => {
                   Chapter
                 </label>
                 <Select
-                  style={{ width: 200 }}
-                  showSearch
-                  value={selectedChapter}
-                  onChange={(value) => {
-                    setSelectedChapter(value);
-                    setSelectedTopic("");
-                    setSelectedQuestion(null);
-                    setCurrentPage(1)
-                    setMyCurrentPage(1)
-                  }}
-                  filterOption={(input, option) =>
-                    (option.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  options={chapterList?.map((chapter) => ({
-                    value: chapter.name,
-                    label: chapter.name,
-                  }))}
-                />
+  style={{ width: 200 }}
+  showSearch
+  value={selectedChapter}  // Ensure selectedChapter holds the chapter ID
+  onChange={(value) => {
+    setSelectedChapter(value); // Set the chapter ID as selectedChapter
+    setSelectedTopic("");
+    setSelectedQuestion(null);
+    setCurrentPage(1);
+    setMyCurrentPage(1);
+  }}
+  filterOption={(input, option) =>
+    (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+  }
+  options={chapterList?.map((chapter) => ({
+    value: chapter._id, // Use chapter ID here
+    label: chapter.name,
+  }))}
+/>
+
               </div>
             </div>
             <div className="w-1/2">
@@ -1065,26 +1061,23 @@ const ProfileHead = () => {
                   Topic
                 </label>
                 <Select
+  style={{ width: 200 }}
+  showSearch
+  value={selectedTopic} // selectedTopic should hold the topic ID
+  filterOption={(input, option) =>
+    (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+  }
+  onChange={(value) => {
+    setSelectedTopic(value); // value will now be the topic ID
+    setCurrentPage(1);
+    setMyCurrentPage(1);
+  }}
+  options={topicList?.map((el) => ({
+    value: el._id, // Assuming each topic has a unique `_id` for its ID
+    label: el.name,
+  }))}
+/>
 
-                  style={{ width: 200 }}
-                  showSearch
-                  value={selectedTopic}
-                  filterOption={(input, option) =>
-                    (option.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  onChange={(value) => {
-                    setSelectedTopic(value);
-                    setCurrentPage(1);
-                    setMyCurrentPage(1);
-                  }
-                  }
-                  options={topicList?.map((el) => ({
-                    value: el.name,
-                    label: el.name,
-                  }))}
-                />
               </div>
             </div>
           </div>
