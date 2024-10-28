@@ -1,10 +1,12 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable react/prop-types */
 // EditQuestionModal.jsx
 import { Select } from 'antd';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getSubjects } from "../actions/subjectAction";
-import { getChapters } from "../actions/chapterAction";
-import { getTopics } from "../actions/topicAction";
-import { getSubtopics } from "../actions/subtopicAction";
+import { getChapters, getChaptersByIds } from "../actions/chapterAction";
+import { getTopics, getTopicsByIds } from "../actions/topicAction";
+import { getSubtopics, getSubtopicsByIds } from "../actions/subtopicAction";
 import { standards } from "./Options";
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
@@ -19,79 +21,181 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
     const { subtopics } = useSelector((state) => state.getSubtopic);
     const [standard, setStandard] = useState(selectedQuestion.standard || '');
     const [subject, setSubject] = useState(selectedQuestion.subject || '');
-    const [chapter, setChapter] = useState(selectedQuestion.chapter || '');
-    const [topic, setTopic] = useState(selectedQuestion.topics || []);
-    const [subtopic, setSubtopic] = useState(selectedQuestion.subtopics || []);
+    const [chapter, setChapter] = useState([]);
+    const [topic, setTopic] = useState([]);
+    const [subtopic, setSubtopic] = useState(selectedQuestion?.subtopics || []);
     const dispatch = useDispatch();
     const [error, setError] = useState('');
     const [level, setLevel] = useState(null);
+
+
+    // console.log(selectedQuestion.chaptersId, selectedQuestion.topicsId, selectedQuestion.subtopicsId, "here is the quesitons")
+
+    useEffect(() => {
+        (async () => {
+            if (selectedQuestion && selectedQuestion.chaptersId) {
+                const { chapters } = await getChaptersByIds(selectedQuestion.chaptersId);
+                const selectedchapter = chapters.map((chapter) => ({
+                    name: chapter.name,
+                    _id: chapter._id
+                }));
+                setChapter(selectedchapter);
+            }
+        })();
+    
+        (async () => {
+            if (selectedQuestion && selectedQuestion.topicsId) {
+                const { topics } = await getTopicsByIds(selectedQuestion.topicsId);
+                console.log(topics, "Fetched topics");
+                const selectedTopics = topics.map((topic) => ({
+                    name: topic.name,
+                    _id: topic._id
+                }));
+                setTopic(selectedTopics);
+            }
+        })();
+
+        (async () => {
+            if (selectedQuestion && selectedQuestion.subtopicsId) {
+                const { subtopics } = await getSubtopicsByIds(selectedQuestion.subtopicsId);
+                console.log(subtopics, "Fetched topics");
+                const selectedSubTopics = subtopics.map((subtopic) => ({
+                    name: subtopic.name,
+                    _id: subtopic._id
+                }));
+                setSubtopic(selectedSubTopics);
+            }
+        })();
+    }, [selectedQuestion]);
+    
+
     if (!isOpen) return null;
     useEffect(() => {
-        if (standard) {
-            dispatch(getSubjects(standard));
-        }
-        if (subject && standard) {
-            dispatch(getChapters(subject, standard));
-        }
-    
+        const fetchSubjects = async () => {
+            if (standard) {
+                await dispatch(getSubjects(standard));
+            }
+        };
+
+        fetchSubjects();
+    }, [dispatch, standard]);
+
+    useEffect(() => {
+        const fetchChapters = async () => {
+            if (subject && standard) {
+                await dispatch(getChapters(subject, standard));
+            }
+        };
+
+        fetchChapters();
+    }, [dispatch, subject, standard]);
+
+    useEffect(() => {
         const fetchTopics = async () => {
             if (subject && standard && chapter.length > 0) {
-                setError(''); // Clear any error if chapters are selected
-                let allTopics = []; // To store all topics from selected chapters
+                setError('');
+                let allTopics = [];
+
                 for (const chap of chapter) {
-                    const response = await dispatch(getTopics(subject, standard, chap));
-                    allTopics = [...allTopics, ...response.topics]; // Combine topics from all chapters
+                    const response = await dispatch(getTopics(subject, standard, chap._id));
+
+                    console.log('Response from getTopics:', response);
+
+                    if (response && response.success) {
+                        allTopics = [...allTopics, ...response.topics];
+                    } else {
+                        // console.error('Failed to fetch topics:', response?.message);
+                        // setError('Failed to fetch topics.');
+                    }
                 }
-                setTopic(allTopics); // Set the combined topics if different from current state
+
+                // setTopic(allTopics); 
             } else if (subject && standard && chapter.length === 0) {
                 setError('Chapter selection is required.');
             }
         };
-    
-        fetchTopics(); // Call the function to fetch topics
-    
-        if (subject && standard && chapter.length > 0 && topic) {
-            dispatch(getSubtopics(subject, standard, chapter, topic));
-        }
-    }, [dispatch, standard, subject, chapter, topic, subtopic]);
-    
+
+        fetchTopics();
+    }, [dispatch, subject, standard, chapter]);
+
+    useEffect(() => {
+        const fetchSubtopics = async () => {
+            if (subject && standard && chapter.length > 0 && topic.length > 0) {
+                const subtopicsResponse = await dispatch(
+                    getSubtopics(
+                        subject,
+                        standard,
+                        chapter.map(el => el._id), 
+                        topic.map(el => el._id) 
+                    )
+                );
+
+                console.log('Response from getSubtopics:', subtopicsResponse);
+
+                if (subtopicsResponse && subtopicsResponse.success) {
+                    // setSubtopic(subtopicsResponse.subtopics);
+                } else {
+                    // console.error('Failed to fetch subtopics:', subtopicsResponse?.message);
+                    // setError('Failed to fetch subtopics.');
+                }
+            }
+        };
+
+        fetchSubtopics();
+    }, [dispatch, subject, standard, chapter, topic]);
+
+
+
     const handleSaveChanges = async () => {
-        // Check if chapter is selected
         if (!chapter || chapter.length === 0) {
             setError('Chapter selection is required.');
-            return; // Prevent form submission if chapter is not selected
+            return;
         }
-    
-        // Create the updated question object after validation passes
-        const updatedQuestion = {
-            standard,
-            subject,
-            chapter,
-            topics: topic,
-            subtopics: subtopic,
-            level
-        };
-    
+
         try {
-            // Send the PUT request to update the question
-            const response = await axios.put(`${server}/api/updatequestion/${selectedQuestion._id}`, updatedQuestion);
-            const data = response.data;
-    
-            if (response.status === 200) {
-                onSave(data.question);
-                toast.success("Updated successfully");
-                setIsModalOpen(false); // Close the modal after successful update
+            const chapterId = chapter[0]?._id;
+            const response = await axios.get(`${server}/api/get/chapter/${chapterId}`);
+
+            if (response.data.success) {
+                const fetchedChapter = response.data.chapter;
+                const selectedChapter = {
+                    name: fetchedChapter.name,
+                    _id: fetchedChapter._id
+                };
+
+                const updatedQuestion = {
+                    standard,
+                    subject,
+                    chapter: [selectedChapter],
+                    topics: topic,
+                    subtopics: subtopic,
+                    level
+                };
+
+                const updateResponse = await axios.put(`${server}/api/updatequestion/${selectedQuestion._id}`, updatedQuestion);
+                const data = updateResponse.data;
+
+                if (updateResponse.status === 200) {
+                    onSave(data.question);
+                    toast.success("Updated successfully");
+                    setIsModalOpen(false);
+                } else {
+                    console.error('Failed to update question:', data.message);
+                    toast.error('Failed to update question: ' + data.message);
+                }
             } else {
-                console.error('Failed to update question:', data.message);
-                toast.error('Failed to update question: ' + data.message);
+                console.error('Failed to fetch chapter:', response.data.message);
+                toast.error('Failed to fetch chapter: ' + response.data.message);
             }
         } catch (error) {
             console.error('Error updating question:', error);
             toast.error('Error updating question: ' + error.message);
         }
     };
-    
-    
+
+
+
+
 
     const handleOverlayClick = (e) => {
         if (e.target === e.currentTarget) {
@@ -107,7 +211,7 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
         >
             <div
                 className="bg-white rounded-lg shadow-lg p-6 w-11/12 sm:w-2/3 md:w-1/2 lg:w-1/3 xl:w-1/4 text-gray-900"
-                onClick={(e) => e.stopPropagation()} 
+                onClick={(e) => e.stopPropagation()}
             >
                 <h3 className="text-xl mb-4">Edit Details</h3>
 
@@ -159,24 +263,28 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                     <Select
                         mode="multiple"
                         showSearch
-                        
                         style={{ width: 200 }}
                         placeholder="Select Chapter"
                         filterOption={(input, option) =>
                             (option.label ?? "").toLowerCase().includes(input.toLowerCase())
                         }
-                        onChange={(value) => {
-                            setChapter(value);
+                        onChange={(values, options) => {
+                            const selectedChapters = options.map(option => ({
+                                _id: option.value,
+                                name: option.label,
+                            }));
+                            setChapter(selectedChapters);
                             setTopic(null);
-                            setSubtopic(null)
+                            setSubtopic(null);
                         }}
-                        options={chapterList?.map((chapter) => ({
-                            value: chapter.name,
+                        options={chapterList?.map(chapter => ({
+                            value: chapter._id,
                             label: chapter.name,
                         }))}
-                        value={chapter}
-                        required
+                        value={chapter?.map(chap => ({ value: chap._id, label: chap.name }))}
+                        labelInValue
                     />
+
                     <label className="text-white-500 text-sm dark:text-white-400 mt-1">
                         Chapter
                     </label>
@@ -192,14 +300,19 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                         filterOption={(input, option) =>
                             (option.label ?? "").toLowerCase().includes(input.toLowerCase())
                         }
-                        onChange={(value) => {
-                            setTopic(value);
+                        onChange={(values, options) => {
+                            const selectedTopics = options.map(option => ({
+                                _id: option.value,
+                                name: option.label,
+                            }));
+                            setTopic(selectedTopics);
                         }}
                         options={topicList?.map((el) => ({
-                            value: el.name,
+                            value: el._id, 
                             label: el.name,
                         }))}
-                        value={topic}
+                        value={topic?.map(el => ({ value: el._id, label: el.name }))}
+                        labelInValue
                     />
                     <label className="text-white-500 text-sm dark:text-white-400">
                         Topic
@@ -214,42 +327,48 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                         filterOption={(input, option) =>
                             (option.label ?? "").toLowerCase().includes(input.toLowerCase())
                         }
-                        onChange={(value) => {
-                            setSubtopic(value)
-                        }}
-                        options={subtopics.map((subtopic) => ({
-                            value: subtopic.name,
+                        options={subtopics?.map((subtopic) => ({
+                            value: subtopic._id, 
                             label: subtopic.name,
                         }))}
-                        value={subtopic}
+                        onChange={(values, options) => {
+                            const selectedSubtopics = options.map(option => ({
+                                _id: option.value, 
+                                name: option.label,
+                            }));
+                            setSubtopic(selectedSubtopics);
+                        }}
+                        value={subtopic?.map(el => ({ value: el._id, label: el.name }))} 
+                        labelInValue
                     />
+
                     <label className="text-white-500 text-sm dark:text-white-400">
                         Subtopic
                     </label>
 
                 </div>
                 <div className="relative z-0 w-full mb-8 group flex flex-col-reverse">
-          <Select
-            showSearch
-            style={{ width: 200 }}
-            placeholder="Select Level"
-            filterOption={(input, option) =>
-              (option.label ?? "").toLowerCase().includes(input.toLowerCase())
-          }
-            onChange={(value) => setLevel(value)}
-            value={level}
-            options={[
-              { value: "boards", label: "Boards" },
-              { value: "neet", label: "Neet" },
-              { value: "jeemains_easy", label: "JeeMains_Easy" },
-              { value: "jeemains", label: "JeeMains" },
-              { value: "jeeadvance", label: "JeeAdvance" },
-            ]}
-          />
-          <label className="text-white-500 text-sm dark:text-white-400">
-            Level
-          </label>
-        </div>
+                    <Select
+                        showSearch
+                        style={{ width: 200 }}
+                        placeholder="Select Level"
+                        filterOption={(input, option) =>
+                            (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+                        }
+                        onChange={(value) => setLevel(value)}
+                        value={level}
+                        options={[
+                            { value: "boards", label: "Boards" },
+                            { value: "neet", label: "Neet" },
+                            { value: "jeemains_easy", label: "JeeMains_Easy" },
+                            { value: "jeemains", label: "JeeMains" },
+                            { value: "jeeadvance", label: "JeeAdvance" },
+                        ]}
+                    />
+                    <label className="text-white-500 text-sm dark:text-white-400">
+                        Level
+                    </label>
+                </div>
 
                 <div className="mt-4 flex justify-end">
                     <button

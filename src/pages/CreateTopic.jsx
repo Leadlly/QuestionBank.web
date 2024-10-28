@@ -13,6 +13,8 @@ const CreateTopic = () => {
     const [chapter, setChapter] = useState("");
     const [topics, setTopics] = useState([{ name: "", subtopics: [] }]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [chapterId, setChapterId] = useState(""); // Store selected chapter ID
+
 
     const dispatch = useDispatch();
     const { isLoading } = useSelector((state) => state.topic);
@@ -21,77 +23,90 @@ const CreateTopic = () => {
 
     useEffect(() => {
         if (standard) {
-            dispatch(getSubjects(standard));
+            dispatch(getSubjects(standard)); // Fetch subjects based on selected standard
         }
         if (standard && subject) {
-            dispatch(getChapters(subject, standard));
+            dispatch(getChapters(subject, standard)); // Fetch chapters based on selected subject and standard
         }
     }, [standard, subject, dispatch]);
 
     const handleFormSubmit = async (event) => {
         event.preventDefault();
-
-        if (isSubmitting) return;
-
+    
+        if (isSubmitting) return; // Prevent multiple submissions
         setIsSubmitting(true);
-
+    
+        // Validate the data (ensure chapterId is present)
+        if (!chapterId) {
+            toast.error("Please select a valid chapter.");
+            setIsSubmitting(false);
+            return;
+        }
+    
+        // Format topics before submitting
         const formattedTopics = topics
             .map((topic) => {
                 if (typeof topic.name !== 'string' || topic.name.trim() === '') {
-                    console.error(`Invalid topic name: ${topic.name}`);
-                    return null;
+                    return null; // Invalid topic names
                 }
                 return {
                     name: topic.name.trim(),
-                    subtopics: Array.isArray(topic.subtopics) ? topic.subtopics : [],
+                    subtopics: Array.isArray(topic.subtopics) ? topic.subtopics : [], // Ensure subtopics are an array
                 };
             })
-            .filter(topic => topic !== null);
-
+            .filter(topic => topic !== null); // Filter out invalid topics
+    
         if (formattedTopics.length === 0) {
             toast.error("Please provide at least one valid topic.");
             setIsSubmitting(false);
             return;
         }
-
+    
+        // Prepare data to submit including chapterId
         const formattedData = {
-            standard: standard,
+            standard,
             subjectName: subject,
             chapterName: chapter,
+            chapterId,  // Add the chapterId for backend validation
             topics: formattedTopics,
         };
-
+    
         try {
-            const result = await dispatch(createTopic(formattedData));
-
+            const result = await dispatch(createTopic(formattedData)); // Dispatch the create topic action
+    
             if (result && result.success) {
                 toast.success("Topics added successfully!");
-                setTopics([{ name: "" }]);
+                setTopics([{ name: "", subtopics: [] }]); // Reset topics
             } else {
                 const errorMessage = result?.message || "Failed to add topics. Please try again.";
                 toast.error(errorMessage);
             }
         } catch (error) {
-            toast.error(error);
+            toast.error("An error occurred. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
     };
+    
+    
 
+    // Handle topic name change
     const handleTopicChange = (index, newName) => {
         const updatedTopics = [...topics];
         updatedTopics[index].name = newName;
-        setTopics(updatedTopics);
+        setTopics(updatedTopics); // Update topics array
     };
 
+    // Add new topic input field
     const handleAddTopic = () => {
-        setTopics([...topics, { name: "", subtopics: [] }]);
+        setTopics([...topics, { name: "", subtopics: [] }]); // Add a new topic to the list
     };
 
     return (
         <main className="p-4">
             <h1 className="text-center m-10 text-white-600">Create Topic</h1>
             <form className="max-w-md mx-auto" onSubmit={handleFormSubmit}>
+                {/* Standard Selection */}
                 <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
                     <Select
                         showSearch
@@ -109,6 +124,7 @@ const CreateTopic = () => {
                     </label>
                 </div>
 
+                {/* Subject Selection */}
                 <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
                     <Select
                         showSearch
@@ -127,28 +143,34 @@ const CreateTopic = () => {
                     </label>
                 </div>
 
+                {/* Chapter Selection */}
                 <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-                    <Select
-                        showSearch
-                        style={{ width: 200 }}
-                        placeholder="Select Chapter"
-                        optionFilterProp="children"
-                        filterOption={(input, option) =>
-                            option.label.toLowerCase().includes(input.toLowerCase())
-                        }
-                        onChange={(value) => setChapter(value)}
-                        value={chapter}
-                        options={chapterList?.map((chapter) => ({
-                            value: chapter.name,
-                            label: chapter.name,
-                            key: chapter._id,
-                        }))}
-                    />
-                    <label className="text-white-500 text-sm dark:text-white-400">
-                        Chapter
-                    </label>
-                </div>
+    <Select
+        showSearch
+        style={{ width: 200 }}
+        placeholder="Select Chapter"
+        optionFilterProp="children"
+        filterOption={(input, option) =>
+            option.label.toLowerCase().includes(input.toLowerCase())
+        }
+        onChange={(value, option) => {
+            setChapter(option.label); // Set the chapter name
+            setChapterId(option.key); // Set the chapter ID
+        }}
+        value={chapter}
+        options={chapterList?.map((chapter) => ({
+            value: chapter.name, // Chapter name for the dropdown
+            label: chapter.name, // Display label
+            key: chapter._id, // Use chapter._id to store chapter ID
+        }))}
+    />
+    <label className="text-white-500 text-sm dark:text-white-400">
+        Chapter
+    </label>
+</div>
 
+
+                {/* Topics Section */}
                 <div className="relative z-0 w-full mb-5 group">
                     {topics.map((topic, index) => (
                         <div key={`topic-${index}`} className="relative z-0 w-full mb-5 group flex flex-col-reverse">
@@ -172,6 +194,7 @@ const CreateTopic = () => {
                     ))}
                 </div>
 
+                {/* Add More Topics Button */}
                 <div
                     className="border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
                     onClick={handleAddTopic}
@@ -179,6 +202,7 @@ const CreateTopic = () => {
                     Add more topics
                 </div>
 
+                {/* Submit Button */}
                 <button
                     type="submit"
                     disabled={isSubmitting || isLoading}

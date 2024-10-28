@@ -45,12 +45,12 @@ export const createSubtopic = (subtopicData) => async (dispatch) => {
 };
 
 
-export const getSubtopics = (subject, standard, chapter, topic) => async (dispatch) => {
+export const getSubtopics = (subject, standard, chapterId, topicId) => async (dispatch) => {
     try {
         dispatch({ type: GET_SUBTOPICS_REQUEST });
 
         const { data } = await axios.get(
-            `${server}/api/get/subtopic?subjectName=${subject}&standard=${standard}&chapterName=${chapter}&topicName=${topic}`,
+            `${server}/api/get/subtopic?subjectName=${subject}&standard=${standard}&chapterId=${chapterId}&topicId=${topicId}`,
             {
                 withCredentials: true,
             }
@@ -107,6 +107,19 @@ export const getNestedSubtopicsByName = (subjectName, standard, chapterName, top
     }
 };
 
+
+export const getSubtopicsByIds = async(subtopicIds) => {
+    try {
+
+        const { data } = await axios.post(`${server}/api/get/subtopics`, {subtopicIds}, {
+            withCredentials: true,
+        });
+
+        return data
+    } catch (error) {
+        console.log(error)
+    }
+};
 
 export const clearErrors = () => (dispatch) => {
     dispatch({ type: CLEAR_ERRORS });

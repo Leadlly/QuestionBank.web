@@ -41,12 +41,12 @@ export const createTopic = (topicData) => async (dispatch) => {
     }
 };
 
-export const getTopics = (subjectName, standard, chapterNames) => async (dispatch) => {
+export const getTopics = (subjectName, standard, chapterId) => async (dispatch) => {
     try {
         dispatch({ type: GET_TOPICS_REQUEST });
 
         const { data } = await axios.get(
-            `${server}/api/get/topic?subjectName=${subjectName}&standard=${standard}&chapterName=${chapterNames}`,
+            `${server}/api/get/topic?subjectName=${subjectName}&standard=${standard}&chapterId=${chapterId}`,
             {
                 withCredentials: true,
             }
@@ -61,6 +61,19 @@ export const getTopics = (subjectName, standard, chapterNames) => async (dispatc
             type: GET_TOPICS_FAIL,
             payload: error.response?.data?.message || error.message,
         });
+    }
+};
+
+export const getTopicsByIds = async(topicIds) => {
+    try {
+
+        const { data } = await axios.post(`${server}/api/get/topics`, {topicIds}, {
+            withCredentials: true,
+        });
+
+        return data
+    } catch (error) {
+        console.log(error)
     }
 };
 
