@@ -64,6 +64,19 @@ export const getTopics = (subjectName, standard, chapterId) => async (dispatch) 
     }
 };
 
+export const getTopicsByIds = async(topicIds) => {
+    try {
+
+        const { data } = await axios.post(`${server}/api/get/topics`, {topicIds}, {
+            withCredentials: true,
+        });
+
+        return data
+    } catch (error) {
+        console.log(error)
+    }
+};
+
 export const clearErrors = () => (dispatch) => {
     dispatch({ type: CLEAR_ERRORS });
 };

@@ -108,6 +108,19 @@ export const getNestedSubtopicsByName = (subjectName, standard, chapterName, top
 };
 
 
+export const getSubtopicsByIds = async(subtopicIds) => {
+    try {
+
+        const { data } = await axios.post(`${server}/api/get/subtopics`, {subtopicIds}, {
+            withCredentials: true,
+        });
+
+        return data
+    } catch (error) {
+        console.log(error)
+    }
+};
+
 export const clearErrors = () => (dispatch) => {
     dispatch({ type: CLEAR_ERRORS });
 };

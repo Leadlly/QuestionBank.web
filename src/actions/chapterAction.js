@@ -61,6 +61,23 @@ export const getChapters = (subjectName, standard) => async (dispatch) => {
     }
 };
 
+
+export const getChaptersByIds = async(chapterIds) => {
+    try {
+
+        console.log(chapterIds, "====> here")
+
+        const { data } = await axios.post(`${server}/api/get/chapters`, {chapterIds}, {
+            withCredentials: true,
+        });
+
+        return data
+    } catch (error) {
+        console.log(error)
+    }
+};
+
+
 export const clearErrors = () => (dispatch) => {
     dispatch({ type: CLEAR_ERRORS });
 };

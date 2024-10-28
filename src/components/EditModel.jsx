@@ -4,9 +4,9 @@
 import { Select } from 'antd';
 import { useEffect, useState } from 'react';
 import { getSubjects } from "../actions/subjectAction";
-import { getChapters } from "../actions/chapterAction";
-import { getTopics } from "../actions/topicAction";
-import { getSubtopics } from "../actions/subtopicAction";
+import { getChapters, getChaptersByIds } from "../actions/chapterAction";
+import { getTopics, getTopicsByIds } from "../actions/topicAction";
+import { getSubtopics, getSubtopicsByIds } from "../actions/subtopicAction";
 import { standards } from "./Options";
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
@@ -21,21 +21,53 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
     const { subtopics } = useSelector((state) => state.getSubtopic);
     const [standard, setStandard] = useState(selectedQuestion.standard || '');
     const [subject, setSubject] = useState(selectedQuestion.subject || '');
-    const [chapter, setChapter] = useState(selectedQuestion?.chapter || []);
-    const [topic, setTopic] = useState(selectedQuestion?.topics || []);
+    const [chapter, setChapter] = useState([]);
+    const [topic, setTopic] = useState([]);
     const [subtopic, setSubtopic] = useState(selectedQuestion?.subtopics || []);
     const dispatch = useDispatch();
     const [error, setError] = useState('');
     const [level, setLevel] = useState(null);
 
 
-    // const chapter = await getchpaterbyId(chapterId)
-    // const selectedchapter = {
-    //     name: chapter.name
-    //     _id: chapater._id
-    // }
+    // console.log(selectedQuestion.chaptersId, selectedQuestion.topicsId, selectedQuestion.subtopicsId, "here is the quesitons")
 
-    // setChapter(selectedchapter)
+    useEffect(() => {
+        (async () => {
+            if (selectedQuestion && selectedQuestion.chaptersId) {
+                const { chapters } = await getChaptersByIds(selectedQuestion.chaptersId);
+                const selectedchapter = chapters.map((chapter) => ({
+                    name: chapter.name,
+                    _id: chapter._id
+                }));
+                setChapter(selectedchapter);
+            }
+        })();
+    
+        (async () => {
+            if (selectedQuestion && selectedQuestion.topicsId) {
+                const { topics } = await getTopicsByIds(selectedQuestion.topicsId);
+                console.log(topics, "Fetched topics");
+                const selectedTopics = topics.map((topic) => ({
+                    name: topic.name,
+                    _id: topic._id
+                }));
+                setTopic(selectedTopics);
+            }
+        })();
+
+        (async () => {
+            if (selectedQuestion && selectedQuestion.subtopicsId) {
+                const { subtopics } = await getSubtopicsByIds(selectedQuestion.subtopicsId);
+                console.log(subtopics, "Fetched topics");
+                const selectedSubTopics = subtopics.map((subtopic) => ({
+                    name: subtopic.name,
+                    _id: subtopic._id
+                }));
+                setSubtopic(selectedSubTopics);
+            }
+        })();
+    }, [selectedQuestion]);
+    
 
     if (!isOpen) return null;
     useEffect(() => {
@@ -72,12 +104,12 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                     if (response && response.success) {
                         allTopics = [...allTopics, ...response.topics];
                     } else {
-                        console.error('Failed to fetch topics:', response?.message);
-                        setError('Failed to fetch topics.');
+                        // console.error('Failed to fetch topics:', response?.message);
+                        // setError('Failed to fetch topics.');
                     }
                 }
 
-                setTopic(allTopics); 
+                // setTopic(allTopics); 
             } else if (subject && standard && chapter.length === 0) {
                 setError('Chapter selection is required.');
             }
@@ -101,10 +133,10 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
                 console.log('Response from getSubtopics:', subtopicsResponse);
 
                 if (subtopicsResponse && subtopicsResponse.success) {
-                    setSubtopic(subtopicsResponse.subtopics);
+                    // setSubtopic(subtopicsResponse.subtopics);
                 } else {
-                    console.error('Failed to fetch subtopics:', subtopicsResponse?.message);
-                    setError('Failed to fetch subtopics.');
+                    // console.error('Failed to fetch subtopics:', subtopicsResponse?.message);
+                    // setError('Failed to fetch subtopics.');
                 }
             }
         };
