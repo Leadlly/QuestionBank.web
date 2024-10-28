@@ -147,51 +147,59 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
 
 
     const handleSaveChanges = async () => {
+        // Check if there’s at least one chapter selected
         if (!chapter || chapter.length === 0) {
-            setError('Chapter selection is required.');
+            setError('At least one chapter selection is required.');
             return;
         }
-
+    
         try {
-            const chapterId = chapter[0]?._id;
-            const response = await axios.get(`${server}/api/get/chapter/${chapterId}`);
-
-            if (response.data.success) {
-                const fetchedChapter = response.data.chapter;
-                const selectedChapter = {
-                    name: fetchedChapter.name,
-                    _id: fetchedChapter._id
-                };
-
-                const updatedQuestion = {
-                    standard,
-                    subject,
-                    chapter: [selectedChapter],
-                    topics: topic,
-                    subtopics: subtopic,
-                    level
-                };
-
-                const updateResponse = await axios.put(`${server}/api/updatequestion/${selectedQuestion._id}`, updatedQuestion);
-                const data = updateResponse.data;
-
-                if (updateResponse.status === 200) {
-                    onSave(data.question);
-                    toast.success("Updated successfully");
-                    setIsModalOpen(false);
-                } else {
-                    console.error('Failed to update question:', data.message);
-                    toast.error('Failed to update question: ' + data.message);
-                }
+            // Map over chapters, topics, and subtopics to ensure they have the required structure
+            const updatedChapters = (chapter || []).map((ch) => ({
+                name: ch.name,
+                _id: ch._id
+            }));
+    
+            const updatedTopics = (topic || []).map((t) => ({
+                name: t.name,
+                _id: t._id
+            }));
+    
+            const updatedSubtopics = (subtopic || []).map((s) => ({
+                name: s.name,
+                _id: s._id
+            }));
+    
+            // Prepare the updated question payload
+            const updatedQuestion = {
+                standard,
+                subject,
+                chapter: updatedChapters,        // Array of chapters
+                topics: updatedTopics,           // Array of topics
+                subtopics: updatedSubtopics,     // Array of subtopics
+                level
+            };
+    
+            // Send update request to the backend
+            const updateResponse = await axios.put(`${server}/api/updatequestion/${selectedQuestion._id}`, updatedQuestion);
+            const data = updateResponse.data;
+    
+            if (updateResponse.status === 200) {
+                onSave(data.question);  
+                toast.success("Updated successfully");
+                setIsModalOpen(false);
             } else {
-                console.error('Failed to fetch chapter:', response.data.message);
-                toast.error('Failed to fetch chapter: ' + response.data.message);
+                console.error('Failed to update question:', data.message);
+                toast.error('Failed to update question: ' + data.message);
             }
         } catch (error) {
             console.error('Error updating question:', error);
             toast.error('Error updating question: ' + error.message);
         }
     };
+    
+    
+    
 
 
 
