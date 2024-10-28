@@ -106,13 +106,14 @@ const EditDetails = () => {
     subjectName,
     chapterName,
     topicId,
+    chapterId,
     topicName
   ) => {
     try {
       setLoadingSubtopics((prev) => ({ ...prev, [topicId]: true }));
 
       const response = await axios.get(
-        `${server}/api/get/subtopic?subjectName=${subjectName}&standard=${standard}&chapterName=${chapterName}&topicName=${topicName}`
+        `${server}/api/get/subtopic?subjectName=${subjectName}&standard=${standard}&chapterId=${chapterId}&topicId=${topicId}`
       );
 
       setSubTopicByTopics((prev) => ({
@@ -126,9 +127,9 @@ const EditDetails = () => {
     }
   };
 
-  const handleTopicClick = (subjectName, chapterName, topicId, topicName) => {
+  const handleTopicClick = (subjectName, chapterName, topicId, chapterId, topicName) => {
     if (!subTopicByTopics[topicId]) {
-      fetchSubTopics(subjectName, chapterName, topicId, topicName);
+      fetchSubTopics(subjectName, chapterName, topicId, chapterId, topicName);
     }
     setVisibleTopics((prev) => ({
       ...prev,
@@ -480,6 +481,7 @@ const EditDetails = () => {
                                                   subject,
                                                   chapter.name,
                                                   topic._id,
+                                                  chapter._id,
                                                   topic.name
                                                 )
                                               }
