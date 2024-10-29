@@ -68,56 +68,58 @@ const EditDetails = () => {
     fetchData();
   }, [standard]);
 
-  const fetchTopics = async (subjectName, chapterName) => {
+  const fetchTopics = async (subjectName, chapterId) => {
     try {
-      setLoadingTopics((prev) => ({ ...prev, [chapterName]: true }));
-
+      setLoadingTopics((prev) => ({ ...prev, [chapterId]: true }));
+  
       const response = await axios.get(
-        `${server}/api/get/topic?subjectName=${subjectName}&standard=${standard}&chapterName=${chapterName}`
+        `${server}/api/get/topic?subjectName=${subjectName}&standard=${standard}&chapterId=${chapterId}` 
       );
-
+  
       setTopicsByChapter((prev) => ({
         ...prev,
-        [chapterName]: response.data.topics || [],
+        [chapterId]: response.data.topics || [], 
       }));
     } catch (error) {
       console.error("Error fetching topics:", error.message);
     } finally {
-      setLoadingTopics((prev) => ({ ...prev, [chapterName]: false }));
+      setLoadingTopics((prev) => ({ ...prev, [chapterId]: false }));
     }
   };
-
-  const handleChapterClick = (subjectName, chapterName) => {
-    if (!topicsByChapter[chapterName]) {
-      fetchTopics(subjectName, chapterName);
+  
+  
+  const handleChapterClick = (subjectName, chapterId) => {
+    if (!topicsByChapter[chapterId]) {
+      fetchTopics(subjectName, chapterId);
     }
-
+  
     setVisibleChapters((prev) => {
       const updatedChapters = {
         ...prev,
-        [chapterName]: !prev[chapterName],
+        [chapterId]: !prev[chapterId],
       };
       console.log("Updated visibleChapters:", updatedChapters);
       return updatedChapters;
     });
   };
+  
 
   const fetchSubTopics = async (
     subjectName,
-    chapterName,
-    topicId,
+    chapterId, // Change to chapterId
+    topicId,    // Keep topicId
     topicName
   ) => {
     try {
       setLoadingSubtopics((prev) => ({ ...prev, [topicId]: true }));
-
+  
       const response = await axios.get(
-        `${server}/api/get/subtopic?subjectName=${subjectName}&standard=${standard}&chapterName=${chapterName}&topicName=${topicName}`
+        `${server}/api/get/subtopic?subjectName=${subjectName}&standard=${standard}&chapterId=${chapterId}&topicId=${topicId}` // Use chapterId and topicId
       );
-
+  
       setSubTopicByTopics((prev) => ({
         ...prev,
-        [topicId]: response.data.subtopics || [],
+        [topicId]: response.data.subtopics || [], // Store subtopics using topicId
       }));
     } catch (error) {
       console.error("Error fetching subtopics:", error.message);
@@ -125,16 +127,19 @@ const EditDetails = () => {
       setLoadingSubtopics((prev) => ({ ...prev, [topicId]: false }));
     }
   };
+  
 
-  const handleTopicClick = (subjectName, chapterName, topicId, topicName) => {
+  const handleTopicClick = (subjectName, chapterId, topicId, topicName) => {
     if (!subTopicByTopics[topicId]) {
-      fetchSubTopics(subjectName, chapterName, topicId, topicName);
+      fetchSubTopics(subjectName, chapterId, topicId, topicName);
     }
+  
     setVisibleTopics((prev) => ({
       ...prev,
       [topicId]: !prev[topicId],
     }));
   };
+  
 
   const handleUpdateTopic = async () => {
     try {
@@ -423,162 +428,122 @@ const EditDetails = () => {
               />
               <hr />
               {Array.isArray(chaptersBySubject[subject]) &&
-              chaptersBySubject[subject].length > 0 ? (
-                <ul className="mt-2">
-                  {chaptersBySubject[subject].map((chapter) => (
-                    <li key={chapter._id} className="chapter-item">
-                      <div className="flex justify-between items-center">
-                        <span className="text-left flex-grow">
-                          {chapter.name}
-                        </span>
-                        <div className="flex items-center space-x-2 text-right">
-                          <a
-                            className="ml-2 cursor-pointer text-blue-500 custom-underline"
-                            onClick={() =>
-                              handleChapterClick(subject, chapter.name)
-                            }
-                          >
-                            {visibleChapters[chapter.name] ? (
-                              <FaChevronUp />
-                            ) : (
-                              <FaChevronDown />
-                            )}
-                          </a>
+  chaptersBySubject[subject].length > 0 ? (
+  <ul className="mt-2">
+    {chaptersBySubject[subject].map((chapter) => (
+      <li key={chapter._id} className="chapter-item">
+        <div className="flex justify-between items-center">
+          <span className="text-left flex-grow">{chapter.name}</span>
+          <div className="flex items-center space-x-2 text-right">
+            <a
+              className="ml-2 cursor-pointer text-blue-500 custom-underline"
+              onClick={() =>
+                handleChapterClick(subject, chapter._id) 
+              }
+            >
+              {visibleChapters[chapter._id] ? ( 
+                <FaChevronUp />
+              ) : (
+                <FaChevronDown />
+              )}
+            </a>
+            <FaEdit
+              className="cursor-pointer text-green-500"
+              onClick={() =>
+                openEditChapterModal(chapter._id, chapter.name)
+              }
+            />
+            <FaTrashAlt
+              className="text-red-500 cursor-pointer"
+              onClick={() => handleDeleteChapter(chapter._id)}
+            />
+          </div>
+        </div>
+        {visibleChapters[chapter._id] && ( // Use chapter._id here as well
+          <div className="mt-2">
+            {loadingTopics[chapter._id] ? ( // Loading state using chapter._id
+              <Loading />
+            ) : (
+              <>
+              {Array.isArray(topicsByChapter[chapter._id]) && topicsByChapter[chapter._id].length > 0 ? (
+  <ul>
+    {topicsByChapter[chapter._id].map((topic) => ( 
+      <li key={topic._id} className="text-sm">
+        <div className="flex justify-between items-center">
+          <span className="text-left flex-grow">{topic.name}</span>
+          <div className="flex items-center space-x-2 text-right">
+            <a
+              className="ml-2 cursor-pointer text-blue-500 custom-underline"
+              onClick={() =>
+                handleTopicClick(
+                  subject,
+                  chapter._id, 
+                  topic._id,
+                  topic.name
+                )
+              }
+            >
+              {visibleTopics[topic._id] ? <FaChevronUp /> : <FaChevronDown />}
+            </a>
+            <FaEdit
+              className="cursor-pointer text-green-500"
+              onClick={() => openEditModal(topic._id, topic.name)}
+            />
+            <FaTrashAlt
+              className="text-red-500 cursor-pointer"
+              onClick={() => handleDeleteTopic(topic._id)}
+            />
+          </div>
+        </div>
+        {visibleTopics[topic._id] && (
+          <div className="mt-2 mb-2 ml-4">
+            {loadingSubtopics[topic._id] ? (
+              <Loading />
+            ) : (
+              <>
+                {subTopicByTopics[topic._id] && subTopicByTopics[topic._id].length > 0 ? (
+                  <ul>
+                    {subTopicByTopics[topic._id].map((subtopic) => (
+                      <li key={subtopic._id} className="text-xs flex justify-between items-center">
+                        <span>{subtopic.name}</span>
+                        <div className="flex space-x-2">
                           <FaEdit
                             className="cursor-pointer text-green-500"
-                            onClick={() =>
-                              openEditChapterModal(chapter._id, chapter.name)
-                            }
+                            onClick={() => openEditSubtopicModal(subtopic._id, subtopic.name)}
                           />
                           <FaTrashAlt
                             className="text-red-500 cursor-pointer"
-                            onClick={() => handleDeleteChapter(chapter._id)}
+                            onClick={() => handleDeleteSubtopic(subtopic._id)}
                           />
                         </div>
-                      </div>
-                      {visibleChapters[chapter.name] && (
-                        <div className="mt-2">
-                          {loadingTopics[chapter.name] ? (
-                            <Loading />
-                          ) : (
-                            <>
-                              {Array.isArray(topicsByChapter[chapter.name]) &&
-                              topicsByChapter[chapter.name].length > 0 ? (
-                                <ul>
-                                  {topicsByChapter[chapter.name].map(
-                                    (topic) => (
-                                      <li key={topic._id} className="text-sm">
-                                        <div className="flex justify-between items-center">
-                                          <span className="text-left flex-grow">
-                                            {topic.name}
-                                          </span>
-                                          <div className="flex items-center space-x-2 text-right">
-                                            <a
-                                              className="ml-2 cursor-pointer text-blue-500 custom-underline"
-                                              onClick={() =>
-                                                handleTopicClick(
-                                                  subject,
-                                                  chapter.name,
-                                                  topic._id,
-                                                  topic.name
-                                                )
-                                              }
-                                            >
-                                              {visibleTopics[topic._id] ? (
-                                                <>
-                                                  <FaChevronUp />
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <FaChevronDown />
-                                                </>
-                                              )}
-                                            </a>
-                                            <FaEdit
-                                              className="cursor-pointer text-green-500"
-                                              onClick={() =>
-                                                openEditModal(
-                                                  topic._id,
-                                                  topic.name
-                                                )
-                                              }
-                                            />
-                                            <FaTrashAlt
-                                              className="text-red-500 cursor-pointer"
-                                              onClick={() =>
-                                                handleDeleteTopic(topic._id)
-                                              }
-                                            />
-                                          </div>
-                                        </div>
-                                        {visibleTopics[topic._id] && (
-                                          <div className="mt-2 mb-2 ml-4">
-                                            {loadingSubtopics[topic._id] ? (
-                                              <Loading />
-                                            ) : (
-                                              <>
-                                                {subTopicByTopics[topic._id] &&
-                                                subTopicByTopics[topic._id]
-                                                  .length > 0 ? (
-                                                  <ul>
-                                                    {subTopicByTopics[
-                                                      topic._id
-                                                    ].map((subtopic) => (
-                                                      <li
-                                                        key={subtopic._id}
-                                                        className="text-xs flex justify-between items-center"
-                                                      >
-                                                        <span>
-                                                          {subtopic.name}
-                                                        </span>
-                                                        <div className="flex space-x-2">
-                                                          <FaEdit
-                                                            className="cursor-pointer text-green-500"
-                                                            onClick={() =>
-                                                              openEditSubtopicModal(
-                                                                subtopic._id,
-                                                                subtopic.name
-                                                              )
-                                                            }
-                                                          />
-                                                          <FaTrashAlt
-                                                            className="text-red-500 cursor-pointer"
-                                                            onClick={() =>
-                                                              handleDeleteSubtopic(
-                                                                subtopic._id
-                                                              )
-                                                            }
-                                                          />
-                                                        </div>
-                                                      </li>
-                                                    ))}
-                                                  </ul>
-                                                ) : (
-                                                  <div className="text-xs">
-                                                    No subtopics available
-                                                  </div>
-                                                )}
-                                              </>
-                                            )}
-                                          </div>
-                                        )}
-                                      </li>
-                                    )
-                                  )}
-                                </ul>
-                              ) : (
-                                <div>No topics available</div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div>No chapters available</div>
-              )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-xs">No subtopics available</div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </li>
+    ))}
+  </ul>
+) : (
+  <div>No topics available</div>
+)}
+
+              </>
+            )}
+          </div>
+        )}
+      </li>
+    ))}
+  </ul>
+) : (
+  <div>No chapters available</div>
+)}
+
             </div>
           ))
         ) : (
