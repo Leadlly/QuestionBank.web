@@ -32,6 +32,7 @@ const CreateQuestion = () => {
   const [correctOptions, setCorrectOptions] = useState([""]);
   const [isSubtopicsLoading, setIsSubtopicsLoading] = useState(false);
   const [showSymbols, setShowSymbols] = useState(false);
+  // const [topicList, setTopicList] =useState([])
   const { subjectList } = useSelector((state) => state.getSubject);
   const { chapterList } = useSelector((state) => state.getChapter);
   const { topicList } = useSelector((state) => state.getTopic);
@@ -201,25 +202,29 @@ const CreateQuestion = () => {
     }
   
     const fetchTopics = async () => {
-      if (subject && standard && chapter) {
-        let allTopics = []; // To store all topics from selected chapters
-  
-        // Fetch topics using chapter._id instead of chapter.name
-        for (const chap of chapter) {
-          const response = await dispatch(getTopics(subject, standard, chap._id)); // Pass chap._id
-          allTopics = [...allTopics, ...response.topic]; // Combine topics from all chapters
+      if (subject && standard && chapter && chapter.length > 0) {
+        try {
+          const chapterIds = chapter.map(chap => chap._id).join(',');
+    
+          dispatch(getTopics(subject, standard, chapterIds));
+          
+        } catch (error) {
+          console.error("Error fetching topics:", error);
         }
-        // Use allTopics here (e.g., set it in state if needed)
       }
     };
-  
+    
+    
     fetchTopics();
+    
   
     if (subject && standard && chapter && topic) {
       setIsSubtopicsLoading(true);
-  
-      // Fetch subtopics using chapter._id and topic._id instead of names
-      dispatch(getSubtopics(subject, standard, chapter.map(el => el._id), topic.map(el => el._id)))
+    
+      const chapterIds = chapter.map(el => el._id).join(',');
+      const topicIds = topic.map(el => el._id).join(',');
+    
+      dispatch(getSubtopics(subject, standard, chapterIds, topicIds))
         .then(() => {
           setIsSubtopicsLoading(false);
         })
@@ -229,6 +234,7 @@ const CreateQuestion = () => {
     } else {
       setIsSubtopicsLoading(false);
     }
+    
   }, [dispatch, standard, subject, chapter, topic]);
   
 
@@ -494,61 +500,64 @@ const CreateQuestion = () => {
   </div>
 
   <div className="relative z-0 w-full md:w-auto flex flex-col-reverse group">
-    <Select
-      mode="multiple"
-      showSearch
-      style={{ width: 200 }}
-      placeholder="Select Chapter"
-      filterOption={(input, option) =>
-        (option.label ?? "").toLowerCase().includes(input.toLowerCase())
-      }
-      onChange={((values, options) => {
-        const selectedChapters = options.map(option => ({
-          _id: option.value, // this is the topic _id
-          name: option.label, // this is the topic name
-        }));
-        setChapter(selectedChapters);
-        setTopic(null);
-        setSelectedSubtopics([]);
-        setIsSubtopicsLoading(false);
-      })}
-      options={chapterList?.map((chapter) => ({
-        value: chapter._id,
-        label: chapter.name,
-      }))}
-      value={chapter?.map(el => ({ value: el._id, label: el.name }))}
-    />
+  <Select
+  mode="multiple"
+  showSearch
+  style={{ width: 200 }}
+  placeholder="Select Chapter"
+  filterOption={(input, option) =>
+    (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+  }
+  onChange={async (values, options) => {
+    const selectedChapters = options.map(option => ({
+      _id: option.value,
+      name: option.label,
+    }));
+    setChapter(selectedChapters);
+    setTopic(null);
+    setSelectedSubtopics([]);
+    setIsSubtopicsLoading(true);
+    await fetchTopics(); // Fetch topics after setting chapters
+    setIsSubtopicsLoading(false);
+  }}
+  options={chapterList?.map(chapter => ({
+    value: chapter._id,
+    label: chapter.name,
+  }))}
+  value={chapter?.map(el => el._id)}
+  labelInValue
+/>
+
     <label className="text-white-500 text-sm dark:text-white-400 mt-1">
       Chapter
     </label>
   </div>
 
   <div className="relative z-0 w-full md:w-auto flex flex-col-reverse group">
-    <Select
-      mode="multiple"
-      showSearch
-      style={{ width: 200 }}
-      placeholder="Select Topics"
-      filterOption={(input, option) =>
-        (option.label ?? "").toLowerCase().includes(input.toLowerCase())
-      }
-      onChange={(values, options) => {
-        // Set topics with both _id and name
-        const selectedTopics = options.map(option => ({
-          _id: option.value, // this is the topic _id
-          name: option.label, // this is the topic name
-        }));
-        setTopic(selectedTopics);
-        setSelectedSubtopics([]);
-      }}
-      options={topicList?.map((el) => ({
-        value: el._id, // topic _id
-        label: el.name, // topic name
-      }))}
-      // Map over topic array to display names in the value
-      value={topic?.map(el => ({ value: el._id, label: el.name }))}
-      labelInValue
-    />
+  <Select
+  mode="multiple"
+  showSearch
+  style={{ width: 200 }}
+  placeholder="Select Topics"
+  filterOption={(input, option) =>
+    (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+  }
+  onChange={(values, options) => {
+    const selectedTopics = options.map(option => ({
+      _id: option.value,
+      name: option.label,
+    }));
+    setTopic(selectedTopics);
+    setSelectedSubtopics([]);
+  }}
+  options={topicList?.map(el => ({
+    value: el._id,
+    label: el.name,
+  }))}
+  value={topic?.map(el => el._id)}
+  labelInValue
+/>
+
     <label className="text-white-500 text-sm dark:text-white-400">
       Topic
     </label>
