@@ -68,12 +68,12 @@ const EditDetails = () => {
     fetchData();
   }, [standard]);
 
-  const fetchTopics = async (subjectName, chapterName) => {
+  const fetchTopics = async (subjectName, chapterName, chapterId) => {
     try {
       setLoadingTopics((prev) => ({ ...prev, [chapterName]: true }));
 
       const response = await axios.get(
-        `${server}/api/get/topic?subjectName=${subjectName}&standard=${standard}&chapterName=${chapterName}`
+        `${server}/api/get/topic?subjectName=${subjectName}&standard=${standard}&chapterId=${chapterId}`
       );
 
       setTopicsByChapter((prev) => ({
@@ -87,9 +87,9 @@ const EditDetails = () => {
     }
   };
 
-  const handleChapterClick = (subjectName, chapterName) => {
+  const handleChapterClick = (subjectName, chapterName, chapterId) => {
     if (!topicsByChapter[chapterName]) {
-      fetchTopics(subjectName, chapterName);
+      fetchTopics(subjectName, chapterName, chapterId);
     }
 
     setVisibleChapters((prev) => {
@@ -436,7 +436,7 @@ const EditDetails = () => {
                           <a
                             className="ml-2 cursor-pointer text-blue-500 custom-underline"
                             onClick={() =>
-                              handleChapterClick(subject, chapter.name)
+                              handleChapterClick(subject, chapter.name, chapter._id)
                             }
                           >
                             {visibleChapters[chapter.name] ? (
