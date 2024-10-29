@@ -69,6 +69,7 @@ const EditDetails = () => {
   }, [standard]);
 
   const fetchTopics = async (subjectName, chapterId) => {
+
     try {
       setLoadingTopics((prev) => ({ ...prev, [chapterId]: true }));
   
@@ -86,8 +87,7 @@ const EditDetails = () => {
       setLoadingTopics((prev) => ({ ...prev, [chapterId]: false }));
     }
   };
-  
-  
+    
   const handleChapterClick = (subjectName, chapterId) => {
     if (!topicsByChapter[chapterId]) {
       fetchTopics(subjectName, chapterId);
@@ -543,7 +543,6 @@ const EditDetails = () => {
 ) : (
   <div>No chapters available</div>
 )}
-
             </div>
           ))
         ) : (
