@@ -26,9 +26,17 @@ const Login = () => {
       navigate("/");
     }
     if (error) {
-        toast.error(error.response ? error.response.data.message : "Something went wrong");
-        dispatch(clearErrors());
+      const errorMessage = typeof error === "string"
+        ? error 
+        : error.response && error.response.data && error.response.data.message
+          ? error.response.data.message
+          : "Something went wrong";
+      
+      toast.error(errorMessage);
+      dispatch(clearErrors());
     }
+    
+    
 }, [error, isAuthenticated, navigate, dispatch]);
 
   
