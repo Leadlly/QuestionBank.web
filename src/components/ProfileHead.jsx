@@ -72,7 +72,7 @@ const ProfileHead = () => {
   const [myCurrentPage, setMyCurrentPage] = useState(1);
   const [myTotalPages, setMyTotalPages] = useState(1);
   const [totalQuestions, setTotalQuestions] = useState(0);
-  // const [MyTotalQuestions, setMyTotalQuestions] = useState(0);
+  const [totalMyQuestions, setTotalMyQuestions] = useState(0);
   const [questionsLength, setQuestionsLength] = useState(0);
   const [fixedTotalQuestions, setFixedTotalQuestions] = useState(0);
   const [fixedMyTotalQuestions, setFixedTotalMyQuestions] = useState(0);
@@ -101,6 +101,12 @@ const ProfileHead = () => {
   const { success: editSuccess, error: editError } = useSelector((state) => state.editQuestion);
   const quillRef = useRef(null);
   const [isTagged, setIsTagged] = useState('');
+  const [totalTagged, setTotalTagged] = useState(0);
+  const [totalUntagged, setTotalUntagged] = useState(0);
+const [myQuestionsLength, setMyQuestionsLength] = useState(0);
+const [totalMyTagged, setTotalMyTagged] = useState(0);
+const [totalMyUntagged, setTotalMyUntagged] = useState(0);
+
 
 
   const mathSymbols = [
@@ -202,7 +208,7 @@ const ProfileHead = () => {
       dispatch(getChapters(selectedSubject, selectedStandard));
     }
   
-    const chapterId = selectedChapter?._id || selectedChapter; // Ensure chapterId is an ID, not name
+    const chapterId = selectedChapter?._id || selectedChapter; 
   
     if (selectedSubject && selectedStandard && chapterId) {
       console.log("Dispatching getTopics with chapterId:", chapterId);
@@ -227,7 +233,7 @@ const ProfileHead = () => {
     createdBy,
     limit,
     page,
-    isTagged 
+    isTagged
   ) => {
     setLoading(true);
     try {
@@ -235,13 +241,13 @@ const ProfileHead = () => {
         params: {
           standard,
           subject,
-          chapterId, 
+          chapterId,
           topicId,
           createdBy,
           limit,
           page,
-          search: searchKeyword, 
-          isTagged, 
+          search: searchKeyword,
+          isTagged,
         },
         withCredentials: true,
       });
@@ -249,22 +255,37 @@ const ProfileHead = () => {
       if (response.data.success) {
         const questions = response.data.questions || [];
         setQuestions(questions);
+  
         setUserTodayQuestions(response.data?.todaysQuestionsCount);
         setUserRank(response.data?.userRank);
         setTopperUser(response.data?.topperUser);
+  
         const totalQuestions = response.data.totalQuestions || 0;
         setTotalQuestions(totalQuestions);
+  
         setTotalPages(Math.ceil(totalQuestions / limit));
+  
+        if (isTagged === 'tagged') {
+          setTotalTagged(totalQuestions);
+        } else if (isTagged === 'untagged') {
+          setTotalUntagged(totalQuestions);
+        }
       } else {
         setQuestions([]);
       }
     } catch (error) {
       console.error(error);
-      toast.error(error.message);
+  
+      if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
+  
   
   
   const fetchTotalQuestions = async (
@@ -275,7 +296,7 @@ const ProfileHead = () => {
     createdBy,
     search,
     mySearch,
-    isTagged 
+    isTagged
   ) => {
     try {
       const response = await axios.get(`${server}/api/get/totalquestion`, {
@@ -287,85 +308,124 @@ const ProfileHead = () => {
           createdBy,
           search,
           mySearch,
-          isTagged, 
+          isTagged,
         },
         withCredentials: true,
       });
   
       if (response.data.success) {
-        const fixedMyTotalQuestions = response.data.totalMyQuestions || 0;
-        setFixedTotalMyQuestions(fixedMyTotalQuestions);
+        const totalMyQuestions = response.data.totalMyQuestions || 0;
+        setTotalMyQuestions(totalMyQuestions);
   
-        const fixedTotalQuestions = response.data.fixedTotalQuestions || 0;
-        setFixedTotalQuestions(fixedTotalQuestions);
+        const totalQuestions = response.data.totalQuestions || 0;
+        setTotalQuestions(totalQuestions);
   
-        setTotalQuestions(response.data.totalQuestions || 0);
+        if (mySearch) {
+          setTotalQuestions(totalMyQuestions); 
+        }
   
-        setQuestionsLength(response.data.questionsLength || 0);
+        const totalTagged = response.data.totalTagged || 0;
+        setTotalTagged(totalTagged);
   
-        setTotalPages(
-          Math.ceil(response.data.totalQuestions / questionsPerPage)
-        );
+        const totalUntagged = response.data.totalUntagged || 0;
+        setTotalUntagged(totalUntagged);
   
-        setMyTotalPages(
-          Math.ceil(response.data.questionsLength / questionsPerPage)
-        );
+        const totalMyTagged = response.data.totalMyTagged || 0;
+        setTotalMyTagged(totalMyTagged);
+  
+        const totalMyUntagged = response.data.totalMyUntagged || 0;
+        setTotalMyUntagged(totalMyUntagged);
+  
+        if (isTagged === 'tagged') {
+          setQuestionsLength(totalTagged);
+          setMyQuestionsLength(totalMyTagged);
+        } else if (isTagged === 'untagged') {
+          setQuestionsLength(totalUntagged);
+          setMyQuestionsLength(totalMyUntagged);
+        } else {
+          setQuestionsLength(totalQuestions); 
+          setMyQuestionsLength(totalMyQuestions); 
+        }
+  
+        setTotalPages(Math.ceil(totalQuestions / questionsPerPage));
+        setMyTotalPages(Math.ceil(totalMyQuestions / questionsPerPage));
       }
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch total questions count");
-    }
-  };
-  
-  
-  
+    const errorMessage =
+      error.response && error.response.data && error.response.data.message
+        ? error.response.data.message
+        : "An unexpected error occurred";
 
-  const fetchUserQuestions = async (standard, subject, chapterId, topicId, limit, page, isTagged) => {
-    setLoading(true);
-    try {
-      console.log('Fetching user questions with params:', {
-        standard,
-        subject,
-        chapterId,
-        topicId,
-        limit,
-        page,
-        isTagged,
-        search: searchMyQuery,
-      });
-  
-      const response = await axios.get(`${server}/api/get/myquestion`, {
-        params: {
-          standard: standard || undefined, 
-          subject: subject || undefined,
-          chapterId: chapterId || undefined,
-          topicId: topicId || undefined, 
-          limit: limit || 50,
-          page: page || 1,
-          isTagged: isTagged,
-          search: searchMyQuery || undefined,
-        },
-        withCredentials: true,
-      });
-      
-  
-      if (response.data.success) {
-        const { questions, todaysQuestionsCount, userRank } = response.data;
-        setMyQuestions(questions.reverse());
-        setTodayMyQuestions(todaysQuestionsCount);
-        setMyRank(userRank);
-        const questionsLength = response.data.totalQuestions || 0; 
-        setQuestionsLength(questionsLength);
-        setMyTotalPages(Math.ceil(questionsLength / limit));
-      } else {
-        setMyQuestions([]);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+    toast.error(errorMessage);
     }
   };
+  
+const fetchUserQuestions = async (
+  standard,
+  subject,
+  chapterId,
+  topicId,
+  limit,
+  page,
+  isTagged
+) => {
+  setLoading(true);
+  try {
+    const validStandard = typeof standard === 'number' ? standard : undefined;
+
+    const response = await axios.get(`${server}/api/get/myquestion`, {
+      params: {
+        standard: validStandard, 
+        subject: subject || undefined,
+        chapterId: chapterId || undefined,
+        topicId: topicId || undefined,
+        limit: limit || 50,
+        page: page || 1,
+        isTagged: isTagged,
+        search: searchMyQuery || undefined,
+      },
+      withCredentials: true,
+    });
+
+    if (response.data.success) {
+      const {
+        questions,
+        todaysQuestionsCount,
+        userRank,
+        totalMyTagged,
+        totalMyUntagged,
+      } = response.data;
+
+      setMyQuestions(questions.reverse());
+      setTodayMyQuestions(todaysQuestionsCount);
+      setMyRank(userRank);
+
+      const totalMyQuestions = response.data.totalMyQuestions || 0;
+      setTotalMyQuestions(totalMyQuestions);
+
+      if (isTagged === 'tagged') {
+        setTotalMyTagged(totalMyTagged);
+      } else if (isTagged === 'untagged') {
+        setTotalMyUntagged(totalMyUntagged);
+      }
+
+      setMyTotalPages(Math.ceil(totalMyQuestions / limit));
+    } else {
+      setMyQuestions([]);
+    }
+  } catch (error) {
+    const errorMessage =
+      error.response && error.response.data && error.response.data.message
+        ? error.response.data.message
+        : "An unexpected error occurred";
+
+    toast.error(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
   
   useEffect(() => {
     if (activeTabIndex === 0) {
@@ -542,9 +602,7 @@ const ProfileHead = () => {
   useEffect(() => {
     fetchTotalQuestions(selectedStandard, selectedSubject, selectedChapter, selectedTopic, selectedUser, searchKeyword, searchMyQuery, isTagged);
   });
-// useEffect(() => {
-//   fetchQuestions(isTagged)
-// })
+
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
     toBottom();
@@ -960,15 +1018,32 @@ const ProfileHead = () => {
             </div>
           </div>
           <div className="mt-4">
-        <select
-          className="border-blue-600 border-2 p-2 bg-blue-900 text-white rounded-lg"
-          value={isTagged}
-          onChange={(e) => setIsTagged(e.target.value)}
-        >
-          <option value="">All Questions</option>
-          <option value="tagged">Tagged</option>
-          <option value="untagged">Untagged</option>
-        </select>
+         <select
+  className="border-blue-600 border-2 p-2 bg-blue-900 text-white rounded-lg"
+  value={isTagged}
+  tabIndex={1} 
+  onChange={(e) => {
+    const value = e.target.value;
+    setIsTagged(value);
+
+    if (document.activeElement.tabIndex === 1) {
+      if (value === "tagged") {
+        fetchUserQuestions("tagged");
+      } else if (value === "untagged") {
+        fetchUserQuestions("untagged");
+      } else {
+        fetchQuestions("");
+      }
+    }
+  }}
+>
+  <option value="">All Questions</option>
+  <option value="tagged">Tagged</option>
+  <option value="untagged">Untagged</option>
+</select>
+
+
+
       </div>
 
           <div className="flex space-x-4 mb-4">
@@ -1214,9 +1289,9 @@ const ProfileHead = () => {
                         <Loading />
                       ) : (
                         <>
-                          <h3 className="text-lg font-medium text-gray-900 mb-4">
-                            Total Questions: {totalQuestions}
-                          </h3>
+                         <h3 className="text-lg font-medium text-gray-900 mb-4">
+  Total Questions: {isTagged === "tagged" ? totalTagged : isTagged === "untagged" ? totalUntagged : totalQuestions}
+</h3>
 
                           {totalQuestions === 0 ? (
                             <div className="text-center text-gray-500">
@@ -1284,41 +1359,42 @@ const ProfileHead = () => {
                 ) : null}
 
                 <Tab.Panel key="my-questions" className="rounded-xl bg-white p-3">
-                  <div className="max-h-64 overflow-y-auto">
-                    {loading ? (
-                      <Loading />
-                    ) : (
-                      <>
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">
-                          Total Questions: {questionsLength}
-                        </h3>
+                <div className="max-h-64 overflow-y-auto">
+  {loading ? (
+    <Loading />
+  ) : (
+    <>
+     <h3 className="text-lg font-medium text-gray-900 mb-4">
+  Total Questions: {isTagged === 'tagged' ? totalMyTagged : isTagged === 'untagged' ? totalMyUntagged : totalMyQuestions}
+</h3>
 
-                        {questionsLength === 0 ? (
-                          <div className="text-center text-gray-500">
-                            No questions found.
-                          </div>
-                        ) : (
-                          filteredMyQuestions.map((question, index) => (
-                            <div
-                              key={question._id}
-                              onClick={() => handleQuestionClick(question)}
-                              className="cursor-pointer text-gray-900 p-2"
-                            >
-                              <b>
-                                Q.{" "}
-                                {(myCurrentPage - 1) * questionsPerPage + index + 1}
-                              </b>
-                              <span
-                                dangerouslySetInnerHTML={{
-                                  __html: question.question,
-                                }}
-                              />
-                            </div>
-                          ))
-                        )}
-                      </>
-                    )}
-                  </div>
+
+
+      {totalMyQuestions === 0 ? (
+        <div className="text-center text-gray-500">No questions found.</div>
+      ) : (
+        myQuestions.map((question, index) => (
+          <div
+            key={question._id}
+            onClick={() => handleQuestionClick(question)}
+            className="cursor-pointer text-gray-900 p-2"
+          >
+            <b>
+              Q.{" "}
+              {(myCurrentPage - 1) * questionsPerPage + index + 1}
+            </b>
+            <span
+              dangerouslySetInnerHTML={{
+                __html: question.question,
+              }}
+            />
+          </div>
+        ))
+      )}
+    </>
+  )}
+</div>
+
                   <div className="flex justify-between mt-4">
                     <button
                       className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded"
@@ -1329,10 +1405,10 @@ const ProfileHead = () => {
                     </button>
                     <p>
                       <span className="text-gray-900">
-                        {questionsLength === 0 ? "0 / " : `${myCurrentPage} / `}
+                        {totalMyQuestions === 0 ? "0 / " : `${myCurrentPage} / `}
                       </span>
                       <span className="text-gray-900">
-                        {questionsLength === 0 ? "0" : myTotalPages}
+                        {totalMyQuestions === 0 ? "0" : myTotalPages}
                       </span>
                     </p>
 

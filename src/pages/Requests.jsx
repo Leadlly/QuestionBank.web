@@ -15,20 +15,33 @@ const Profile = () => {
 
     useEffect(() => {
         if (error) {
-            toast.error(error);
-            dispatch(clearErrors());
+          const errorMessage = typeof error === "string"
+            ? error
+            : error.response && error.response.data && error.response.data.message
+              ? error.response.data.message
+              : "Something went wrong";
+          
+          toast.error(errorMessage);
+          dispatch(clearErrors());
         }
-
+      
         if (verifyError) {
-            toast.error(verifyError);
-            dispatch(clearErrors());
+          const verifyErrorMessage = typeof verifyError === "string"
+            ? verifyError
+            : verifyError.response && verifyError.response.data && verifyError.response.data.message
+              ? verifyError.response.data.message
+              : "Something went wrong";
+      
+          toast.error(verifyErrorMessage);
+          dispatch(clearErrors());
         }
-
+      
         if (verifySuccess) {
-            toast.success('User status updated successfully.');
-            dispatch(fetchProfile()); 
+          toast.success("User status updated successfully.");
+          dispatch(fetchProfile());
         }
-    }, [error, verifyError, verifySuccess, dispatch]);
+      }, [error, verifyError, verifySuccess, dispatch]);
+      
 
     const handleVerification = (id) => {
         dispatch(verifyUser(id));

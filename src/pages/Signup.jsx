@@ -24,7 +24,17 @@ const SignUp = () => {
         setPassword("");
       })
       .catch((error) => {
-        toast.error(error.response.data.message || "Something went wrong");
+        if (error) {
+          const errorMessage = typeof error === "string"
+            ? error 
+            : error.response && error.response.data && error.response.data.message
+              ? error.response.data.message
+              : "Something went wrong";
+          
+          toast.error(errorMessage);
+          dispatch(clearErrors());
+        }
+        
       });
   };
 

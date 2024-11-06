@@ -26,27 +26,34 @@ import toast from "react-hot-toast";
 
 
 export const login = (email, password) => async (dispatch) => {
-    try {
-        dispatch({type: LOGIN_REQUEST});
-        
-      const { data } = await axios.post(
-        `${server}/api/user/login`,
-        {
-          email,
-          password,
+  try {
+    dispatch({ type: LOGIN_REQUEST });
+
+    const { data } = await axios.post(
+      `${server}/api/user/login`,
+      {
+        email,
+        password,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        }
-      );
-      dispatch({type: LOGIN_SUCCESS, payload: data.user});
-    } catch (error) {
-      dispatch({type: LOGIN_FAIL, payload: error.response.data.message})
-    }
-  };
+        withCredentials: true,
+      }
+    );
+
+    dispatch({ type: LOGIN_SUCCESS, payload: data.user });
+  } catch (error) {
+    const errorMessage =
+      error.response && error.response.data && error.response.data.message
+        ? error.response.data.message
+        : "An unexpected error occurred";
+
+    dispatch({ type: LOGIN_FAIL, payload: errorMessage });
+  }
+};
+
   export const verifyUser = (id) => async (dispatch) => {
     try {
       dispatch({ type: VERIFY_USER_REQUEST });
@@ -75,20 +82,26 @@ export const login = (email, password) => async (dispatch) => {
 
   export const profile = () => async (dispatch) => {
     try {
-      dispatch({type: PROFILE_REQUEST});
-      const {data} = await axios.get(`${server}/api/user/profile`,
-      {
+      dispatch({ type: PROFILE_REQUEST });
+  
+      const { data } = await axios.get(`${server}/api/user/profile`, {
         headers: {
           "Content-Type": "application/json",
         },
         withCredentials: true,
-      }
-    );
-      dispatch({type: PROFILE_SUCCESS, payload: data.user});
+      });
+  
+      dispatch({ type: PROFILE_SUCCESS, payload: data.user });
     } catch (error) {
-      dispatch({ type: PROFILE_FAIL, payload: error.response.data.message})
+      const errorMessage = error.response?.data?.json || 
+                           error.response?.data?.message 
+      dispatch({ type: PROFILE_FAIL, payload: errorMessage });
+  
+      toast.error(errorMessage);
     }
-  }
+  };
+  
+  
 
   export const logout = () => async (dispatch) => {
     try {
