@@ -418,8 +418,7 @@ const fetchUserQuestions = async (
       error.response && error.response.data && error.response.data.message
         ? error.response.data.message
         : "An unexpected error occurred";
-
-    toast.error(errorMessage);
+console.log(errorMessage)
   } finally {
     setLoading(false);
   }
