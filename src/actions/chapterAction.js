@@ -29,8 +29,8 @@ export const createChapter = (chapterData) => async (dispatch) => {
         return response.data;
     } catch (error) {
         const errorResponseData = error.response?.data;
-
         const errorMessage = errorResponseData?.message || error.message;
+
         dispatch({
             type: CREATE_CHAPTER_FAIL,
             payload: errorMessage,
@@ -39,6 +39,7 @@ export const createChapter = (chapterData) => async (dispatch) => {
         return Promise.reject(errorMessage);
     }
 };
+
 
 
 export const getChapters = (subjectName, standard) => async (dispatch) => {
