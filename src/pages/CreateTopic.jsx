@@ -11,10 +11,9 @@ const CreateTopic = () => {
     const [standard, setStandard] = useState("");
     const [subject, setSubject] = useState("");
     const [chapter, setChapter] = useState("");
-    const [topics, setTopics] = useState([{ name: "", subtopics: [] }]);
+    const [topics, setTopics] = useState([{ name: "", topicNumber: "", subtopics: [] }]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [chapterId, setChapterId] = useState(""); // Store selected chapter ID
-
+    const [chapterId, setChapterId] = useState("");
 
     const dispatch = useDispatch();
     const { isLoading } = useSelector((state) => state.topic);
@@ -23,83 +22,69 @@ const CreateTopic = () => {
 
     useEffect(() => {
         if (standard) {
-            dispatch(getSubjects(standard)); // Fetch subjects based on selected standard
+            dispatch(getSubjects(standard));
         }
         if (standard && subject) {
-            dispatch(getChapters(subject, standard)); // Fetch chapters based on selected subject and standard
+            dispatch(getChapters(subject, standard));
         }
     }, [standard, subject, dispatch]);
 
     const handleFormSubmit = async (event) => {
         event.preventDefault();
-    
-        if (isSubmitting) return; // Prevent multiple submissions
+
+        if (isSubmitting) return;
         setIsSubmitting(true);
-    
-        // Validate the data (ensure chapterId is present)
+
         if (!chapterId) {
             toast.error("Please select a valid chapter.");
             setIsSubmitting(false);
             return;
         }
-    
-        // Format topics before submitting
-        const formattedTopics = topics
-            .map((topic) => {
-                if (typeof topic.name !== 'string' || topic.name.trim() === '') {
-                    return null; // Invalid topic names
-                }
-                return {
-                    name: topic.name.trim(),
-                    subtopics: Array.isArray(topic.subtopics) ? topic.subtopics : [], // Ensure subtopics are an array
-                };
-            })
-            .filter(topic => topic !== null); // Filter out invalid topics
-    
-        if (formattedTopics.length === 0) {
-            toast.error("Please provide at least one valid topic.");
+
+        const topicNumbers = topics.map((topic, index) => topic.topicNumber || index + 1);
+        const duplicateNumbers = topicNumbers.filter((num, index, self) => self.indexOf(num) !== index);
+
+        if (duplicateNumbers.length > 0) {
+            toast.error(`Duplicate topic numbers found: ${duplicateNumbers.join(", ")}`);
             setIsSubmitting(false);
             return;
         }
-    
-        // Prepare data to submit including chapterId
-        const formattedData = {
-            standard,
-            subjectName: subject,
-            chapterName: chapter,
-            chapterId,  // Add the chapterId for backend validation
-            topics: formattedTopics,
-        };
-    
+
+        const formattedTopics = topics.map((topic, index) => ({
+            ...topic,
+            topicNumber: topic.topicNumber || index + 1,
+        }));
+
+        const data = { standard, subjectName: subject, chapterName: chapter, chapterId, topics: formattedTopics };
+
         try {
-            const result = await dispatch(createTopic(formattedData)); // Dispatch the create topic action
-    
-            if (result && result.success) {
+            const result = await dispatch(createTopic(data));
+
+            if (result.success) {
                 toast.success("Topics added successfully!");
-                setTopics([{ name: "", subtopics: [] }]); // Reset topics
-            } else {
-                const errorMessage = result?.message || "Failed to add topics. Please try again.";
-                toast.error(errorMessage);
+                setTopics([{ name: "", subtopics: [] }]);
             }
         } catch (error) {
-            toast.error("An error occurred. Please try again.");
+            if (error?.message) {
+                toast.error(error.message);
+            } else {
+                toast.error("An unexpected error occurred.");
+            }
         } finally {
             setIsSubmitting(false);
         }
-    };
-    
-    
 
-    // Handle topic name change
-    const handleTopicChange = (index, newName) => {
+    };
+
+
+    const handleTopicChange = (index, key, value) => {
         const updatedTopics = [...topics];
-        updatedTopics[index].name = newName;
-        setTopics(updatedTopics); // Update topics array
+        updatedTopics[index][key] = value;
+        setTopics(updatedTopics);
     };
 
-    // Add new topic input field
     const handleAddTopic = () => {
-        setTopics([...topics, { name: "", subtopics: [] }]); // Add a new topic to the list
+        setTopics([...topics, { name: "", topicNumber: "", subtopics: [] }]);
     };
 
     return (
@@ -111,7 +96,6 @@ const CreateTopic = () => {
                     <Select
                         showSearch
                         style={{ width: 200 }}
-                        placeholder="Select Standard"
                         optionFilterProp="children"
                         filterOption={(input, option) =>
                             (option.label ?? "").toLowerCase().includes(input.toLowerCase())
@@ -119,12 +103,9 @@ const CreateTopic = () => {
                         onChange={(value) => setStandard(value)}
                         options={standards}
                     />
-                    <label className="text-white-500 text-sm dark:text-white-400">
-                        Standard
-                    </label>
+                    <label className="text-white-500 text-sm dark:text-white-400">Standard</label>
                 </div>
 
-                {/* Subject Selection */}
                 <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
                     <Select
                         showSearch
@@ -138,63 +119,74 @@ const CreateTopic = () => {
                         value={subject}
                         options={subjectList?.map((name) => ({ value: name, label: name }))}
                     />
-                    <label className="text-white-500 text-sm dark:text-white-400">
-                        Subject
-                    </label>
+                    <label className="text-white-500 text-sm dark:text-white-400">Subject</label>
                 </div>
 
-                {/* Chapter Selection */}
                 <div className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-    <Select
-        showSearch
-        style={{ width: 200 }}
-        placeholder="Select Chapter"
-        optionFilterProp="children"
-        filterOption={(input, option) =>
-            option.label.toLowerCase().includes(input.toLowerCase())
-        }
-        onChange={(value, option) => {
-            setChapter(option.label); // Set the chapter name
-            setChapterId(option.key); // Set the chapter ID
-        }}
-        value={chapter}
-        options={chapterList?.map((chapter) => ({
-            value: chapter.name, // Chapter name for the dropdown
-            label: chapter.name, // Display label
-            key: chapter._id, // Use chapter._id to store chapter ID
-        }))}
-    />
-    <label className="text-white-500 text-sm dark:text-white-400">
-        Chapter
-    </label>
-</div>
+                    <Select
+                        showSearch
+                        style={{ width: 200 }}
+                        optionFilterProp="children"
+                        filterOption={(input, option) =>
+                            option.label.toLowerCase().includes(input.toLowerCase())
+                        }
+                        onChange={(value, option) => {
+                            setChapter(option.label); 
+                            setChapterId(option.key); 
+                        }}
+                        value={chapter}
+                        options={chapterList?.map((chapter) => ({
+                            value: chapter.name,
+                            label: chapter.name,
+                            key: chapter._id,
+                        }))}
+                    />
+                    <label className="text-white-500 text-sm dark:text-white-400">Chapter</label>
+                </div>
 
-
-                {/* Topics Section */}
                 <div className="relative z-0 w-full mb-5 group">
                     {topics.map((topic, index) => (
-                        <div key={`topic-${index}`} className="relative z-0 w-full mb-5 group flex flex-col-reverse">
-                            <input
-                                type="text"
-                                name={`topic-${index}`}
-                                id={`topic-${index}`}
-                                className="block py-2.5 px-0 w-full text-sm text-white-900 bg-transparent border-0 border-b-2 border-white-300 appearance-none dark:text-white dark:border-white-600 dark:focus:border-white-500 focus:outline-none focus:ring-0 focus:border-white-600 peer"
-                                placeholder=" "
-                                value={topic.name}
-                                onChange={(e) => handleTopicChange(index, e.target.value)}
-                                required
-                            />
-                            <label
-                                htmlFor={`topic-${index}`}
-                                className="peer-focus:font-medium absolute text-sm text-white-500 dark:text-white-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-white-600 peer-focus:dark:text-white-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
-                            >
-                                Add Topic
-                            </label>
+                        <div key={`topic-${index}`} className="relative z-0 w-full mb-5 group">
+                            <div className="flex gap-4">
+                                <input
+                                    type="number"
+                                    name={`topicNumber-${index}`}
+                                    id={`topicNumber-${index}`}
+                                    className="block py-2.5 px-2 w-20 text-sm bg-transparent border border-gray-300 rounded-lg"
+                                    placeholder="Number"
+                                    value={topic.topicNumber || 0}
+                                    onChange={(e) =>
+                                        setTopics((prevTopics) =>
+                                            prevTopics.map((t, i) =>
+                                                i === index ? { ...t, topicNumber: Math.max(0, Number(e.target.value)) } : t
+                                            )
+                                        )
+                                    }
+                                    min="0"
+                                    required
+                                />
+
+                                <input
+                                    type="text"
+                                    name={`topicName-${index}`}
+                                    id={`topicName-${index}`}
+                                    className="block py-2.5 px-2 w-full text-sm bg-transparent border border-gray-300 rounded-lg"
+                                    placeholder="Topic Name"
+                                    value={topic.name}
+                                    onChange={(e) =>
+                                        setTopics((prevTopics) =>
+                                            prevTopics.map((t, i) => (i === index ? { ...t, name: e.target.value } : t))
+                                        )
+                                    }
+                                    required
+                                />
+                            </div>
                         </div>
                     ))}
+
+
                 </div>
 
-                {/* Add More Topics Button */}
                 <div
                     className="border mb-10 rounded-xl h-10 text-sm flex items-center justify-center cursor-pointer"
                     onClick={handleAddTopic}
@@ -202,11 +194,11 @@ const CreateTopic = () => {
                     Add more topics
                 </div>
 
-                {/* Submit Button */}
                 <button
                     type="submit"
                     disabled={isSubmitting || isLoading}
-                    className={`text-white bg-blue-${isSubmitting || isLoading ? '400' : '700'} hover:bg-blue-${isSubmitting || isLoading ? '500' : '800'} focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800`}
+                    className={`text-white bg-blue-${isSubmitting || isLoading ? "400" : "700"} hover:bg-blue-${isSubmitting || isLoading ? "500" : "800"
+                        } focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800`}
                 >
                     {isSubmitting || isLoading ? "Submitting..." : "Submit"}
                 </button>

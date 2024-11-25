@@ -28,18 +28,19 @@ export const createTopic = (topicData) => async (dispatch) => {
             payload: data,
         });
 
-        return data;
+        return data; 
     } catch (error) {
-        const errorMessage = error.response?.data?.message || error.message;
+        const errorMessage = error.response?.data?.message || error.message || "An error occurred";
 
         dispatch({
             type: CREATE_TOPIC_FAIL,
             payload: errorMessage,
         });
 
-        return Promise.reject(errorMessage);
+        return Promise.reject({ message: errorMessage, status: error.response?.status });
     }
 };
+
 
 export const getTopics = (subjectName, standard, chapterId) => async (dispatch) => {
     try {
