@@ -592,12 +592,9 @@ const EditDetails = () => {
                 <ul className="mt-2">
                   {chaptersBySubject[subject].map((chapter) => (
                     <li key={chapter._id} className="chapter-item">
-                      <div className="flex justify-between items-center">
-                        <span className="text-left flex-grow">{chapter.name}</span>
-
-                        {/* Add gap between the name and chapter number */}
-                        <span className="text-right flex-grow mx-2">{chapter.chapterNumber || "N/A"}</span>
-
+                      <div className="flex items-center space-x-4">
+  <span className="text-white-200 font-medium">{chapter.chapterNumber || "N/A"}.</span>
+  <span className="flex-grow text-white-800 font-semibold">{chapter.name}</span>
                         <div className="flex items-center space-x-2 text-right">
                           <a
                             className="ml-2 cursor-pointer text-blue-500 custom-underline"
@@ -637,9 +634,9 @@ const EditDetails = () => {
                                 <ul>
                                   {topicsByChapter[chapter._id].map((topic) => (
                                     <li key={topic._id} className="text-sm">
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-left flex-grow">{topic.name}</span>
-                                        <span className="text-right flex-grow">{topic.topicNumber || "N/A"}</span>
+                                      <div className="flex items-center space-x-4">
+                                        <span className="text-white-200 font-medium">{topic.topicNumber || "N/A"}.</span>
+                                        <span className="flex-grow text-white-800 font-semibold">{topic.name}</span>
                                         <div className="flex items-center space-x-2 text-right">
                                           <a
                                             className="ml-2 cursor-pointer text-blue-500 custom-underline"
