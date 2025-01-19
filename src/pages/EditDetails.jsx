@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import "./EditDetails.css";
-import { Input, Modal, Select } from "antd";
+import { Input, Modal, Select, InputNumber, Form, message } from "antd";
 import { server } from "../main";
 import Loader from "../components/Loader";
 import toast from "react-hot-toast";
@@ -29,33 +29,40 @@ const EditDetails = () => {
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
   const [newChapterName, setNewChapterName] = useState("");
   const [currentChapterId, setCurrentChapterId] = useState(null);
+  const [newChapterNumber, setNewChapterNumber] = useState(null);
+  const [newTopicNumber, setNewTopicNumber] = useState(null);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-
+  
         const subjectsResponse = await axios.get(
           `${server}/api/get/subject?standard=${standard}`
         );
-
+  
         const subjects = subjectsResponse.data.subjectList || [];
-
         setSubjectList(subjects);
-
+  
         const chaptersPromises = subjects.map((subject) =>
           axios.get(
             `${server}/api/get/chapter?subjectName=${subject}&standard=${standard}`
           )
         );
-
+  
         const chaptersResponses = await Promise.all(chaptersPromises);
-
+  
         const chaptersData = {};
         chaptersResponses.forEach((response, index) => {
           const subject = subjects[index];
-          chaptersData[subject] = response.data.chapters || [];
+          const chapters = response.data.chapters || [];
+  
+          // Sort chapters by chapterNumber
+          chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
+  
+          chaptersData[subject] = chapters;
         });
-
+  
         setChaptersBySubject(chaptersData);
       } catch (error) {
         setError(error.message);
@@ -64,22 +71,23 @@ const EditDetails = () => {
         setLoading(false);
       }
     };
-
+  
     fetchData();
   }, [standard]);
+  
 
   const fetchTopics = async (subjectName, chapterId) => {
 
     try {
       setLoadingTopics((prev) => ({ ...prev, [chapterId]: true }));
-  
+
       const response = await axios.get(
-        `${server}/api/get/topic?subjectName=${subjectName}&standard=${standard}&chapterId=${chapterId}` 
+        `${server}/api/get/topic?subjectName=${subjectName}&standard=${standard}&chapterId=${chapterId}`
       );
-  
+
       setTopicsByChapter((prev) => ({
         ...prev,
-        [chapterId]: response.data.topics || [], 
+        [chapterId]: response.data.topics || [],
       }));
     } catch (error) {
       console.error("Error fetching topics:", error.message);
@@ -87,22 +95,21 @@ const EditDetails = () => {
       setLoadingTopics((prev) => ({ ...prev, [chapterId]: false }));
     }
   };
-    
+
   const handleChapterClick = (subjectName, chapterId) => {
     if (!topicsByChapter[chapterId]) {
       fetchTopics(subjectName, chapterId);
     }
-  
+
     setVisibleChapters((prev) => {
       const updatedChapters = {
         ...prev,
         [chapterId]: !prev[chapterId],
       };
-      console.log("Updated visibleChapters:", updatedChapters);
       return updatedChapters;
     });
   };
-  
+
 
   const fetchSubTopics = async (
     subjectName,
@@ -112,11 +119,11 @@ const EditDetails = () => {
   ) => {
     try {
       setLoadingSubtopics((prev) => ({ ...prev, [topicId]: true }));
-  
+
       const response = await axios.get(
         `${server}/api/get/subtopic?subjectName=${subjectName}&standard=${standard}&chapterId=${chapterId}&topicId=${topicId}` // Use chapterId and topicId
       );
-  
+
       setSubTopicByTopics((prev) => ({
         ...prev,
         [topicId]: response.data.subtopics || [], // Store subtopics using topicId
@@ -127,19 +134,19 @@ const EditDetails = () => {
       setLoadingSubtopics((prev) => ({ ...prev, [topicId]: false }));
     }
   };
-  
+
 
   const handleTopicClick = (subjectName, chapterId, topicId, topicName) => {
     if (!subTopicByTopics[topicId]) {
       fetchSubTopics(subjectName, chapterId, topicId, topicName);
     }
-  
+
     setVisibleTopics((prev) => ({
       ...prev,
       [topicId]: !prev[topicId],
     }));
   };
-  
+
 
   const handleUpdateTopic = async () => {
     try {
@@ -179,10 +186,89 @@ const EditDetails = () => {
       setIsModalOpen(false); // Close the modal after the update
     }
   };
+  const handleTopicNumber = async () => {
+    try {
+      console.log("Current Topic ID:", currentTopicId);
+      console.log("New Topic Number:", newTopicNumber);
+  
+      if (!currentTopicId || newTopicNumber === null) {
+        message.error("Topic ID and Topic Number must be provided.");
+        return;
+      }
+  
+      let derivedChapterId = null;
+  
+      Object.keys(topicsByChapter).forEach((chapterKey) => {
+        const topic = topicsByChapter[chapterKey].find(
+          (t) => t._id === currentTopicId
+        );
+        if (topic) {
+          derivedChapterId = chapterKey;
+        }
+      });
+  
+      console.log("Derived Chapter ID:", derivedChapterId);
+  
+      if (!derivedChapterId) {
+        message.error("Failed to determine the Chapter ID from topics.");
+        return;
+      }
+  
+      const payload = {
+        topicId: currentTopicId,
+        newTopicNumber: newTopicNumber,
+        chapterId: derivedChapterId,
+      };
+  
+      console.log("Payload:", payload);
+  
+      const response = await axios.post(`${server}/api/update/topicnumber`, payload);
+  
+      if (response.status === 200) {
+        message.success("Topic number updated successfully!");
+  
+        setTopicsByChapter((prev) => {
+          const updatedChapters = { ...prev };
+        
+          // Update the specific topic and sort by topicNumber
+          updatedChapters[derivedChapterId] = updatedChapters[derivedChapterId]
+            .map((topic) =>
+              topic._id === currentTopicId
+                ? { ...topic, topicNumber: newTopicNumber }
+                : topic
+            )
+            .sort((a, b) => {
+              // If topicNumber is null, treat it as greater than any number
+              if (a.topicNumber === null) return 1;
+              if (b.topicNumber === null) return -1;
+              return a.topicNumber - b.topicNumber; // Normal ascending order
+            });
+        
+          return updatedChapters;
+        });
+        
+      } else {
+        message.error(response.data.message || "Failed to update topic number.");
+      }
+    } catch (error) {
+      console.error("Error in handleTopicNumber:", error);
+      const errorMessage = error.response?.data?.message || "An unexpected error occurred.";
+      message.error(errorMessage);
+    }
+  };
+  
+  
+  
+  
+  const handleTopicUpdate = () => {
+    if (newTopicName) handleUpdateTopic();
+    if (newTopicNumber !== null) handleTopicNumber();
+  };
 
-  const openEditModal = (topicId, topicName) => {
+  const openEditModal = (topicId, topicName, topicNumber) => {
     setCurrentTopicId(topicId);
     setNewTopicName(topicName);
+    setNewTopicNumber(topicNumber)
     setIsModalOpen(true);
   };
   const handleDeleteTopic = (topicId) => {
@@ -256,7 +342,7 @@ const EditDetails = () => {
       console.error("Error in handleUpdateSubtopic:", error);
       toast.error("An unexpected error occurred. Please try again later.");
     } finally {
-      setIsSubtopicModalOpen(false); 
+      setIsSubtopicModalOpen(false);
     }
   };
 
@@ -306,24 +392,23 @@ const EditDetails = () => {
     });
   };
 
-  const handleUpdateChapter = async () => {
+  const handleUpdateChapterName = async () => {
     try {
-      if (!currentChapterId || !newChapterName) {
-        toast.error("Chapter ID and new name must be provided");
+      if (!newChapterName) {
+        message.error("Please provide a chapter name.");
         return;
       }
 
-      const response = await axios.put(
-        `${server}/api/update/chapter/${currentChapterId}`,
-        { name: newChapterName }
-      );
+      const response = await axios.put(`${server}/api/update/chapter/${currentChapterId}`, {
+        name: newChapterName,
+      });
 
       if (response.data.success) {
-        toast.success("Topic name updated successfully");
+        message.success("Chapter name updated successfully!");
         setChaptersBySubject((prev) => {
           const updatedChapters = { ...prev };
-          Object.keys(updatedChapters).forEach((chapter) => {
-            updatedChapters[chapter] = updatedChapters[chapter].map((chapter) =>
+          Object.keys(updatedChapters).forEach((subject) => {
+            updatedChapters[subject] = updatedChapters[subject].map((chapter) =>
               chapter._id === currentChapterId
                 ? { ...chapter, name: newChapterName }
                 : chapter
@@ -331,21 +416,93 @@ const EditDetails = () => {
           });
           return updatedChapters;
         });
+        setIsChapterModalOpen(false);
       } else {
-        toast.error(response.data.message || "Failed to update chapter name");
+        message.error(response.data.message || "Failed to update chapter name.");
       }
     } catch (error) {
-      console.error("Error in handleUpdateChapter:", error);
-      toast.error("An unexpected error occurred. Please try again later.");
-    } finally {
-      setIsChapterModalOpen(false);
+      const errorMessage = error.response?.data?.message || "An error occurred.";
+      message.error(errorMessage);
     }
   };
-  const openEditChapterModal = (chapterId, chapterName) => {
+
+  const handleChapterNumberUpdate = async () => {
+    try {
+      if (!currentChapterId || newChapterNumber === null) {
+        message.error("Chapter ID and Chapter Number must be provided.");
+        return;
+      }
+  
+      let derivedSubjectName = null;
+      Object.keys(chaptersBySubject).forEach((subjectKey) => {
+        const chapter = chaptersBySubject[subjectKey].find(
+          (chapter) => chapter._id === currentChapterId
+        );
+        if (chapter) {
+          derivedSubjectName = subjectKey;
+        }
+      });
+  
+      if (!derivedSubjectName) {
+        message.error("Failed to determine the subject name.");
+        return;
+      }
+  
+      const payload = {
+        chapterId: currentChapterId,
+        subjectName: derivedSubjectName,
+        chapterNumber: newChapterNumber || null,
+      };
+  
+      const response = await axios.post(`${server}/api/update/chapternumber`, payload);
+  
+      if (response.status === 200) {
+        message.success("Chapter number updated successfully!");
+  
+        setChaptersBySubject((prev) => {
+          const updatedChapters = { ...prev };
+  
+          updatedChapters[derivedSubjectName] = updatedChapters[
+            derivedSubjectName
+          ]
+            .map((chapter) =>
+              chapter._id === currentChapterId
+                ? { ...chapter, chapterNumber: newChapterNumber }
+                : chapter
+            )
+            .sort((a, b) => a.chapterNumber - b.chapterNumber); // Sort chapters by chapterNumber
+  
+          return updatedChapters;
+        });
+  
+        setIsChapterModalOpen(false);
+      } else {
+        message.error(response.data.message || "Failed to update chapter number.");
+      }
+    } catch (error) {
+      console.error("Error in handleChapterNumberUpdate:", error);
+      const errorMessage = error.response?.data?.message || "An unexpected error occurred.";
+      message.error(errorMessage);
+    }
+  };
+  
+
+
+  const handleUpdate = () => {
+    if (newChapterName) handleUpdateChapterName();
+    if (newChapterNumber !== null) handleChapterNumberUpdate();
+  };
+
+  const openEditChapterModal = (chapterId, chapterName, chapterNumber) => {
+
     setCurrentChapterId(chapterId);
     setNewChapterName(chapterName);
+    setNewChapterNumber(chapterNumber || "");
     setIsChapterModalOpen(true);
   };
+
+
+
 
   const handleDeleteChapter = (chapterId) => {
     Modal.confirm({
@@ -363,7 +520,7 @@ const EditDetails = () => {
 
           if (response.data.success) {
             toast.success("Subtopic deleted successfully");
-            
+
             setSubTopicByTopics((prev) => {
               const updatedTopics = { ...prev };
               Object.keys(updatedTopics).forEach((chapter) => {
@@ -386,6 +543,9 @@ const EditDetails = () => {
       },
     });
   };
+
+
+
   if (loading) {
     return <Loader />;
   }
@@ -428,121 +588,130 @@ const EditDetails = () => {
               />
               <hr />
               {Array.isArray(chaptersBySubject[subject]) &&
-  chaptersBySubject[subject].length > 0 ? (
-  <ul className="mt-2">
-    {chaptersBySubject[subject].map((chapter) => (
-      <li key={chapter._id} className="chapter-item">
-        <div className="flex justify-between items-center">
-          <span className="text-left flex-grow">{chapter.name}</span>
-          <div className="flex items-center space-x-2 text-right">
-            <a
-              className="ml-2 cursor-pointer text-blue-500 custom-underline"
-              onClick={() =>
-                handleChapterClick(subject, chapter._id) 
-              }
-            >
-              {visibleChapters[chapter._id] ? ( 
-                <FaChevronUp />
-              ) : (
-                <FaChevronDown />
-              )}
-            </a>
-            <FaEdit
-              className="cursor-pointer text-green-500"
-              onClick={() =>
-                openEditChapterModal(chapter._id, chapter.name)
-              }
-            />
-            <FaTrashAlt
-              className="text-red-500 cursor-pointer"
-              onClick={() => handleDeleteChapter(chapter._id)}
-            />
-          </div>
-        </div>
-        {visibleChapters[chapter._id] && ( // Use chapter._id here as well
-          <div className="mt-2">
-            {loadingTopics[chapter._id] ? ( // Loading state using chapter._id
-              <Loading />
-            ) : (
-              <>
-              {Array.isArray(topicsByChapter[chapter._id]) && topicsByChapter[chapter._id].length > 0 ? (
-  <ul>
-    {topicsByChapter[chapter._id].map((topic) => ( 
-      <li key={topic._id} className="text-sm">
-        <div className="flex justify-between items-center">
-          <span className="text-left flex-grow">{topic.name}</span>
-          <div className="flex items-center space-x-2 text-right">
-            <a
-              className="ml-2 cursor-pointer text-blue-500 custom-underline"
-              onClick={() =>
-                handleTopicClick(
-                  subject,
-                  chapter._id, 
-                  topic._id,
-                  topic.name
-                )
-              }
-            >
-              {visibleTopics[topic._id] ? <FaChevronUp /> : <FaChevronDown />}
-            </a>
-            <FaEdit
-              className="cursor-pointer text-green-500"
-              onClick={() => openEditModal(topic._id, topic.name)}
-            />
-            <FaTrashAlt
-              className="text-red-500 cursor-pointer"
-              onClick={() => handleDeleteTopic(topic._id)}
-            />
-          </div>
-        </div>
-        {visibleTopics[topic._id] && (
-          <div className="mt-2 mb-2 ml-4">
-            {loadingSubtopics[topic._id] ? (
-              <Loading />
-            ) : (
-              <>
-                {subTopicByTopics[topic._id] && subTopicByTopics[topic._id].length > 0 ? (
-                  <ul>
-                    {subTopicByTopics[topic._id].map((subtopic) => (
-                      <li key={subtopic._id} className="text-xs flex justify-between items-center">
-                        <span>{subtopic.name}</span>
-                        <div className="flex space-x-2">
+                chaptersBySubject[subject].length > 0 ? (
+                <ul className="mt-2">
+                  {chaptersBySubject[subject].map((chapter) => (
+                    <li key={chapter._id} className="chapter-item">
+                      <div className="flex justify-between items-center">
+                        <span className="text-left flex-grow">{chapter.name}</span>
+
+                        {/* Add gap between the name and chapter number */}
+                        <span className="text-right flex-grow mx-2">{chapter.chapterNumber || "N/A"}</span>
+
+                        <div className="flex items-center space-x-2 text-right">
+                          <a
+                            className="ml-2 cursor-pointer text-blue-500 custom-underline"
+                            onClick={() =>
+                              handleChapterClick(subject, chapter._id)
+                            }
+                          >
+                            {visibleChapters[chapter._id] ? (
+                              <FaChevronUp />
+                            ) : (
+                              <FaChevronDown />
+                            )}
+                          </a>
                           <FaEdit
                             className="cursor-pointer text-green-500"
-                            onClick={() => openEditSubtopicModal(subtopic._id, subtopic.name)}
+                            onClick={() =>
+                              openEditChapterModal(
+                                chapter._id,
+                                chapter.name,
+                                chapter.chapterNumber || "N/A"
+                              )
+                            }
                           />
                           <FaTrashAlt
                             className="text-red-500 cursor-pointer"
-                            onClick={() => handleDeleteSubtopic(subtopic._id)}
+                            onClick={() => handleDeleteChapter(chapter._id)}
                           />
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-xs">No subtopics available</div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-      </li>
-    ))}
-  </ul>
-) : (
-  <div>No topics available</div>
-)}
+                      </div>
+                      {visibleChapters[chapter._id] && ( // Use chapter._id here as well
+                        <div className="mt-2">
+                          {loadingTopics[chapter._id] ? ( // Loading state using chapter._id
+                            <Loading />
+                          ) : (
+                            <>
+                              {Array.isArray(topicsByChapter[chapter._id]) && topicsByChapter[chapter._id].length > 0 ? (
+                                <ul>
+                                  {topicsByChapter[chapter._id].map((topic) => (
+                                    <li key={topic._id} className="text-sm">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-left flex-grow">{topic.name}</span>
+                                        <span className="text-right flex-grow">{topic.topicNumber || "N/A"}</span>
+                                        <div className="flex items-center space-x-2 text-right">
+                                          <a
+                                            className="ml-2 cursor-pointer text-blue-500 custom-underline"
+                                            onClick={() =>
+                                              handleTopicClick(
+                                                subject,
+                                                chapter._id,
+                                                topic._id,
+                                                topic.name
+                                              )
+                                            }
+                                          >
+                                            {visibleTopics[topic._id] ? <FaChevronUp /> : <FaChevronDown />}
+                                          </a>
+                                          <FaEdit
+                                            className="cursor-pointer text-green-500"
+                                            onClick={() => openEditModal(topic._id, topic.name, topic.topicNumber || "N/A")}
+                                          />
+                                          <FaTrashAlt
+                                            className="text-red-500 cursor-pointer"
+                                            onClick={() => handleDeleteTopic(topic._id)}
+                                          />
+                                        </div>
+                                      </div>
+                                      {visibleTopics[topic._id] && (
+                                        <div className="mt-2 mb-2 ml-4">
+                                          {loadingSubtopics[topic._id] ? (
+                                            <Loading />
+                                          ) : (
+                                            <>
+                                              {subTopicByTopics[topic._id] && subTopicByTopics[topic._id].length > 0 ? (
+                                                <ul>
+                                                  {subTopicByTopics[topic._id].map((subtopic) => (
+                                                    <li key={subtopic._id} className="text-xs flex justify-between items-center">
+                                                      <span>{subtopic.name}</span>
+                                                      <div className="flex space-x-2">
+                                                        <FaEdit
+                                                          className="cursor-pointer text-green-500"
+                                                          onClick={() => openEditSubtopicModal(subtopic._id, subtopic.name)}
+                                                        />
+                                                        <FaTrashAlt
+                                                          className="text-red-500 cursor-pointer"
+                                                          onClick={() => handleDeleteSubtopic(subtopic._id)}
+                                                        />
+                                                      </div>
+                                                    </li>
+                                                  ))}
+                                                </ul>
+                                              ) : (
+                                                <div className="text-xs">No subtopics available</div>
+                                              )}
+                                            </>
+                                          )}
+                                        </div>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div>No topics available</div>
+                              )}
 
-              </>
-            )}
-          </div>
-        )}
-      </li>
-    ))}
-  </ul>
-) : (
-  <div>No chapters available</div>
-)}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div>No chapters available</div>
+              )}
             </div>
           ))
         ) : (
@@ -550,40 +719,122 @@ const EditDetails = () => {
         )}
       </div>
       <Modal
-        title="Edit Topic Name"
-        open={isModalOpen}
-        onOk={handleUpdateTopic}
-        onCancel={() => setIsModalOpen(false)}
+      title="Edit Topic Name"
+      open={isSubtopicModalOpen}
+      onOk={handleUpdateSubtopic}
+      onCancel={() => setIsSubtopicModalOpen(false)}
+      centered
+        
       >
         <Input
           value={newTopicName}
-          onChange={(e) => setNewTopicName(e.target.value)}
+          onChange={(e) => setNewSubtopicName(e.target.value)}
           placeholder="Enter new topic name"
         />
       </Modal>
       <Modal
+        centered
         title="Edit Topic Name"
-        open={isSubtopicModalOpen}
-        onOk={handleUpdateSubtopic}
-        onCancel={() => setIsSubtopicModalOpen(false)}
+        open={isModalOpen}
+        onOk={handleTopicUpdate}
+        onCancel={() => setIsModalOpen(false)}
       >
-        <Input
-          value={newSubtopicName}
-          onChange={(e) => setNewSubtopicName(e.target.value)}
-          placeholder="Enter new Subtopic name"
-        />
+        <Form layout="vertical"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem",
+          }}>
+          <Form.Item label="Topic Name"
+            required
+            rules={[{ required: true, message: "Topic name is required" }]}>
+            <Input
+              value={newTopicName}
+              onChange={(e) => setNewTopicName(e.target.value)}
+              placeholder="Enter new Topic name"
+              maxLength={50} />
+          </Form.Item>
+          <Form.Item
+            label="Topic Number"
+            required
+            rules={[
+              {
+                required: true,
+                message: "Topic number is required",
+              },
+              {
+                type: "number",
+                min: 1,
+                max: 35,
+                message: "Topic number must be between 1 and 35",
+              },
+            ]}
+          >
+            <InputNumber
+              value={newTopicNumber} // Use newChapterNumber here
+              onChange={(value) => setNewTopicNumber(value)} // Update newChapterNumber state
+              placeholder="Enter topic number"
+              min={1}
+              max={35}
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
+        </Form>
       </Modal>
       <Modal
-        title="Edit Chapter Name"
+        title="Edit Chapter Details"
         open={isChapterModalOpen}
-        onOk={handleUpdateChapter}
+        onOk={handleUpdate}
         onCancel={() => setIsChapterModalOpen(false)}
+        centered
       >
-        <Input
-          value={newChapterName}
-          onChange={(e) => setNewChapterName(e.target.value)}
-          placeholder="Enter new Chapter name"
-        />
+        <Form
+          layout="vertical"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem",
+          }}
+        >
+          <Form.Item
+            label="Chapter Name"
+            required
+            rules={[{ required: true, message: "Chapter name is required" }]}
+          >
+            <Input
+              value={newChapterName}
+              onChange={(e) => setNewChapterName(e.target.value)}
+              placeholder="Enter new chapter name"
+              maxLength={50}
+            />
+          </Form.Item>
+          <Form.Item
+            label="Chapter Number"
+            required
+            rules={[
+              {
+                required: true,
+                message: "Chapter number is required",
+              },
+              {
+                type: "number",
+                min: 1,
+                max: 35,
+                message: "Chapter number must be between 1 and 35",
+              },
+            ]}
+          >
+            <InputNumber
+              value={newChapterNumber} // Use newChapterNumber here
+              onChange={(value) => setNewChapterNumber(value)} // Update newChapterNumber state
+              placeholder="Enter chapter number"
+              min={1}
+              max={35}
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
+
+        </Form>
       </Modal>
     </div>
   );
