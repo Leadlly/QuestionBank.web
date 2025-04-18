@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import CreateQuestion from "./pages/CreateQuestion";
 import toast, { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import SignUp from "./pages/Signup";
@@ -15,6 +14,7 @@ import Requests from "./pages/Requests";
 import { clearErrors, profile } from "./actions/userAction";
 import EditDetails from "./pages/EditDetails";
 import ProfileHead from "./components/ProfileHead";
+import HomePage from "./components/HomePage";
 
 function App() {
   const dispatch = useDispatch();
@@ -40,7 +40,7 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={isAuthenticated ? <CreateQuestion /> : <Login />}
+          element={isAuthenticated ? <HomePage /> : <Login />}
         />
         <Route
           path="/profile"
