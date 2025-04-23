@@ -186,6 +186,7 @@ const EditDetails = () => {
       setIsModalOpen(false); // Close the modal after the update
     }
   };
+
   const handleTopicNumber = async () => {
     try {
       console.log("Current Topic ID:", currentTopicId);
@@ -594,7 +595,7 @@ const EditDetails = () => {
                     <li key={chapter._id} className="chapter-item">
                       <div className="flex items-center space-x-4">
   <span className="text-white-200 font-medium">{chapter.chapterNumber || "N/A"}.</span>
-  <span className="flex-grow text-white-800 font-semibold">{chapter.name}</span>
+  <span className="flex-grow text-white-800 font-semibold">{chapter.name} - {chapter.questionCount}</span>
                         <div className="flex items-center space-x-2 text-right">
                           <a
                             className="ml-2 cursor-pointer text-blue-500 custom-underline"
@@ -636,7 +637,7 @@ const EditDetails = () => {
                                     <li key={topic._id} className="text-sm">
                                       <div className="flex items-center space-x-4">
                                         <span className="text-white-200 font-medium">{topic.topicNumber || "N/A"}.</span>
-                                        <span className="flex-grow text-white-800 font-semibold">{topic.name}</span>
+                                        <span className="flex-grow text-white-800 font-semibold">{topic.name} - {topic.questionCount}</span>
                                         <div className="flex items-center space-x-2 text-right">
                                           <a
                                             className="ml-2 cursor-pointer text-blue-500 custom-underline"
@@ -671,7 +672,7 @@ const EditDetails = () => {
                                                 <ul>
                                                   {subTopicByTopics[topic._id].map((subtopic) => (
                                                     <li key={subtopic._id} className="text-xs flex justify-between items-center">
-                                                      <span>{subtopic.name}</span>
+                                                      <span>{subtopic.name} - {subtopic.questionCount}</span>
                                                       <div className="flex space-x-2">
                                                         <FaEdit
                                                           className="cursor-pointer text-green-500"

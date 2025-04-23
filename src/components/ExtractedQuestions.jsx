@@ -7,12 +7,13 @@ import { getChapters } from "../actions/chapterAction";
 import { getTopics } from "../actions/topicAction";
 import { getSubtopics } from "../actions/subtopicAction";
 import { standards } from "./Options";
-import { FaImage, FaTrash, FaUndo } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaImage, FaTrash, FaUndo } from "react-icons/fa";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { server } from "../main";
+import "react-quill/dist/quill.snow.css";
 
-const ExtractedQuestions = ({ questions, setQuestions, setFile, selectedStandard, selectedSubject, selectedChapter, selectedTopic }) => {
+const ExtractedQuestions = ({ questions, setQuestions, selectedStandard, selectedSubject, selectedChapter, selectedTopic }) => {
   const dispatch = useDispatch();
   const { subjectList } = useSelector((state) => state.getSubject);
   const { chapterList } = useSelector((state) => state.getChapter);
@@ -26,8 +27,8 @@ const ExtractedQuestions = ({ questions, setQuestions, setFile, selectedStandard
   const [bulkSubtopics, setBulkSubtopics] = useState([]);
   const [bulkLevel, setBulkLevel] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   useEffect(() => {
     // Initialize metadata for each question if not already present
     const updatedQuestions = questions.map(question => ({
@@ -312,33 +313,78 @@ const ExtractedQuestions = ({ questions, setQuestions, setFile, selectedStandard
   };
 
   // Handle batch submission
-  const handleBatchSubmit = async () => {
-    const startIndex = (currentPage - 1) * questionsPerPage;
-    const endIndex = startIndex + questionsPerPage;
-    const batchQuestions = questions.slice(startIndex, endIndex);
+  // ... existing code ...
 
-    // Submit current batch
-    if (!batchQuestions || batchQuestions.length === 0) {
-      toast.error("No questions to submit");
-      return;
-    }
-
-    // Transform options for each question
-    const formattedBatchQuestions = batchQuestions.map(q => ({
-      ...q,
-      options: q.options.map(opt => ({
-        name: opt,
-        isCorrect: q.correctAnswer === opt
-      }))
-    }));
-
+  // Upload image to S3 using pre-signed URL
+  const uploadImageToS3 = async (file, signedUrl) => {
     try {
-      // Send the batch questions to your API
-      const response = await axios.post(`${server}/api/multiple/question`, {
-        questions: formattedBatchQuestions.map(q => ({
-          ...q,
-          options: q.options,
+      const response = await fetch(signedUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type,
+        },
+        body: file,
+      });
+
+      if (!response.ok) {
+        toast.error(`Image upload failed: ${file.name}`);
+        throw new Error("Failed to upload image to S3");
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error uploading to S3:", error);
+      return false;
+    }
+  };
+
+  const handleBatchSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      
+      // Get selected questions or current page questions if none selected
+      const startIndex = (currentPage - 1) * questionsPerPage;
+      const endIndex = Math.min(startIndex + questionsPerPage, questions.length);
+      const selectedQuestionsData = selectedQuestions.length > 0 
+        ? selectedQuestions.map(idx => questions[idx])
+        : questions.slice(startIndex, endIndex);
+      
+      if (selectedQuestionsData.length === 0) {
+        toast.error("No questions selected for submission");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Validate questions before submission
+      const invalidQuestions = selectedQuestionsData.filter(q => 
+        !q.standard || !q.subject || !q.level || !q.questionText
+      );
+      
+      if (invalidQuestions.length > 0) {
+        toast.error(`${invalidQuestions.length} questions are missing required fields`);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Step 1: Generate pre-signed URLs
+      const preUploadResponse = await axios.post(`${server}/api/questions/preupload`, {
+        questions: selectedQuestionsData.map(q => ({
           question: q.questionText,
+          standard: q.standard,
+          subject: q.subject,
+          chapter: q.chapter || [],
+          topics: q.topics || [],
+          subtopics: q.subtopics || [],
+          level: q.level,
+          options: q.options.map(opt => ({
+            name: opt,
+            isCorrect: q.correctAnswer === opt,
+            image: []
+          })),
+          images: q.image ? [{ 
+            name: `question_${Date.now()}.jpg`, 
+            type: 'image/jpeg' 
+          }] : []
         }))
       }, {
         headers: {
@@ -346,45 +392,97 @@ const ExtractedQuestions = ({ questions, setQuestions, setFile, selectedStandard
         },
         withCredentials: true
       });
-
-      if (response.data.success) {
-        toast.success(`Successfully saved ${response.data.successfulSaves} questions`);
+      
+      if (!preUploadResponse.data.success) {
+        toast.error(preUploadResponse.data.message || "Failed to prepare questions");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Step 2: Upload images to S3 using pre-signed URLs
+      const { preparedQuestions } = preUploadResponse.data;
+      const uploadPromises = [];
+      const questionsWithImageUrls = [];
+      
+      for (const preparedQuestion of preparedQuestions) {
+        if (!preparedQuestion.success) continue;
         
-        // Reset form and state if needed
-        setFile(null);
-        if (document.getElementById("pdf-upload")) {
-          document.getElementById("pdf-upload").value = "";
+        // Create a copy of the question data to add image URLs
+        const questionWithUrls = { ...preparedQuestion.questionData };
+        
+        // Upload question images and store URLs
+        if (preparedQuestion.imageUrls && preparedQuestion.imageUrls.length > 0) {
+          const questionIndex = selectedQuestionsData.findIndex(q => 
+            q.questionText === preparedQuestion.questionData.question
+          );
+          
+          if (questionIndex !== -1 && selectedQuestionsData[questionIndex].image) {
+            // Convert base64 to blob for upload
+            const base64Response = await fetch(selectedQuestionsData[questionIndex].image);
+            const imageBlob = await base64Response.blob();
+            
+            // Add the upload promise
+            uploadPromises.push(
+              uploadImageToS3(imageBlob, preparedQuestion.imageUrls[0].putUrl)
+            );
+            
+            // Store the image URLs in the question data for finalization
+            questionWithUrls.images = [{
+              name: preparedQuestion.imageUrls[0].name,
+              url: preparedQuestion.imageUrls[0].getUrl,
+              putUrl: preparedQuestion.imageUrls[0].putUrl,
+              key: preparedQuestion.imageUrls[0].key
+            }];
+          }
         }
-
-        const remainingQuestions = [
-          ...questions.slice(0, startIndex),
-          ...questions.slice(endIndex)
-        ];
+        
+        questionsWithImageUrls.push(questionWithUrls);
+      }
+      
+      // Wait for all uploads to complete
+      await Promise.all(uploadPromises);
+      
+      // Step 3: Finalize questions with image URLs
+      const finalizeResponse = await axios.post(`${server}/api/questions/finalize`, {
+        questions: questionsWithImageUrls
+      }, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        withCredentials: true
+      });
+      
+      if (finalizeResponse.data.success) {
+        toast.success(`Successfully saved ${finalizeResponse.data.stats?.successfulSaves || 0} questions`);
+        
+        // Remove saved questions from state
+        const savedIndices = preparedQuestions
+          .filter(q => q.success)
+          .map(q => q.index);
+        
+        const remainingQuestions = questions.filter((_, idx) => 
+          !savedIndices.includes(idx)
+        );
         
         // Update questions state
         setQuestions(remainingQuestions);
         
         // Remove from localStorage
-        const storedQuestions = JSON.parse(localStorage.getItem('extractedQuestions') || '[]');
-        const updatedStoredQuestions = storedQuestions.filter((_, index) => 
-          index < startIndex || index >= endIndex
-        );
-        localStorage.setItem('extractedQuestions', JSON.stringify(updatedStoredQuestions));
+        localStorage.setItem('extractedQuestions', JSON.stringify(remainingQuestions));
         
         // Adjust current page if necessary
         if (remainingQuestions.length <= (currentPage - 1) * questionsPerPage) {
           setCurrentPage(prev => Math.max(1, prev - 1));
         }
-
       } else {
-        toast.error(response.data.message || "Failed to save questions");
+        toast.error(finalizeResponse.data.message || "Failed to save questions");
       }
     } catch (error) {
       console.error("Error submitting questions:", error);
       toast.error(error.response?.data?.message || "Failed to submit questions");
-    }    
-    // Remove submitted questions from questions array
-   
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleNextPage = () => {
@@ -405,33 +503,10 @@ const ExtractedQuestions = ({ questions, setQuestions, setFile, selectedStandard
         <h2 className="text-xl font-bold">
           Extracted Questions 
           <span className="text-sm font-normal ml-2">
-            (Page {currentPage} of {Math.ceil(totalQuestions / questionsPerPage)})
+            (Total Ques- {totalQuestions})
           </span>
         </h2>
-        <div className="flex gap-2">
-          <button
-            onClick={handlePreviousPage}
-            disabled={currentPage === 1}
-            className={`px-4 py-2 rounded-lg ${
-              currentPage === 1
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
-          >
-            Previous
-          </button>
-          <button
-            onClick={handleNextPage}
-            disabled={currentPage === Math.ceil(totalQuestions / questionsPerPage)}
-            className={`px-4 py-2 rounded-lg ${
-              currentPage === Math.ceil(totalQuestions / questionsPerPage)
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
-          >
-            Next
-          </button>
-        </div>
+        
       </div>
 
       {/* Bulk metadata section */}
@@ -795,10 +870,10 @@ const ExtractedQuestions = ({ questions, setQuestions, setFile, selectedStandard
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   {question.options.map((option, optIndex) => (
                     <div key={optIndex} className="flex items-center">
-                      <input
-                        type="text"
-                        value={option}
-                        onChange={(e) => updateOption(actualIndex, optIndex, e.target.value)}
+                      <div
+                        contentEditable
+                        dangerouslySetInnerHTML={{ __html: option }}
+                        onBlur={(e) => updateOption(actualIndex, optIndex, e.target.innerHTML)}
                         className="block py-2 px-3 w-full bg-black text-sm border border-gray-300 rounded-lg mr-2"
                       />
                       <input
@@ -808,12 +883,66 @@ const ExtractedQuestions = ({ questions, setQuestions, setFile, selectedStandard
                         onChange={() => setCorrectAnswer(actualIndex, option)}
                         className="h-4 w-4"
                       />
+                      <button
+                        onClick={() => {
+                          const updatedQuestions = [...questions];
+                          updatedQuestions[actualIndex].options.splice(optIndex, 1);
+                          // If we removed the correct answer, reset it
+                          if (updatedQuestions[actualIndex].correctAnswer === option) {
+                            updatedQuestions[actualIndex].correctAnswer = null;
+                          }
+                          setQuestions(updatedQuestions);
+                        }}
+                        className="ml-2 text-red-500 hover:text-red-700"
+                        title="Remove option"
+                      >
+                        <FaTrash size={12} />
+                      </button>
                     </div>
                   ))}
+                  
+                  {/* Add option button */}
+                  <div className="col-span-2 mt-2 flex justify-between">
+                    <button
+                      onClick={() => {
+                        const updatedQuestions = [...questions];
+                        updatedQuestions[actualIndex].options.push("");
+                        setQuestions(updatedQuestions);
+                      }}
+                      className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded-lg text-sm"
+                    >
+                      + Add Option
+                    </button>
+                    {question.options.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const updatedQuestions = [...questions];
+                          updatedQuestions[actualIndex].options = [];
+                          updatedQuestions[actualIndex].correctAnswer = null;
+                          setQuestions(updatedQuestions);
+                        }}
+                        className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded-lg text-sm"
+                      >
+                        Remove All Options
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <div className="mt-3 italic text-gray-500">
-                  No multiple choice options for this question
+                <div className="mt-3">
+                  <div className="italic text-gray-500 mb-2">
+                    No multiple choice options for this question
+                  </div>
+                  <button
+                    onClick={() => {
+                      const updatedQuestions = [...questions];
+                      updatedQuestions[actualIndex].options = ["", "", "", ""];
+                      setQuestions(updatedQuestions);
+                    }}
+                    className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded-lg text-sm"
+                  >
+                    Add Multiple Choice Options
+                  </button>
                 </div>
               )}
             </div>
@@ -821,13 +950,49 @@ const ExtractedQuestions = ({ questions, setQuestions, setFile, selectedStandard
         })}
       </div>
       
-      <div className="flex justify-center mt-6">
-        <button
+    
+
+      <div className="flex justify-between mt-6 fixed bottom-0 shadow-slate-300 shadow-inner rounded-xl bg-[#131a1b] p-4 w-full max-w-2xl ">
+          <button
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1}
+            className={`px-4 py-2 rounded-lg ${
+              currentPage === 1
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
+          >
+            <FaArrowLeft />
+          </button>
+          <div className="flex items-center ">
+          <button
           onClick={handleBatchSubmit}
-          className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-6 rounded-lg"
+          disabled={isSubmitting}
+          className={`${
+            isSubmitting 
+              ? 'bg-purple-400 cursor-not-allowed' 
+              : 'bg-purple-600 hover:bg-purple-700'
+          } text-white py-2 px-6 rounded-lg flex items-center gap-2`}
         >
-          Submit
+          {isSubmitting ? 'Submitting...' : 'Submit'}
         </button>
+        <span className="text-sm font-normal ml-2">
+        (Page {currentPage} of {Math.ceil(totalQuestions / questionsPerPage)})
+        </span>
+          </div>
+
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage === Math.ceil(totalQuestions / questionsPerPage)}
+            className={`px-4 py-2 rounded-lg ${
+              currentPage === Math.ceil(totalQuestions / questionsPerPage)
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
+          >
+            <FaArrowRight />
+          </button>
+      
       </div>
     </div>
   );
