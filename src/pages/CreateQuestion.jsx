@@ -191,6 +191,19 @@ const CreateQuestion = () => {
   
   
   
+  const fetchTopics = async () => {
+    if (subject && standard && chapter && chapter.length > 0) {
+      try {
+        const chapterIds = chapter.map(chap => chap._id).join(',');
+  
+        dispatch(getTopics(subject, standard, chapterIds));
+        
+      } catch (error) {
+        console.error("Error fetching topics:", error);
+      }
+    }
+  };
+  
   
   useEffect(() => {
     if (standard) {
@@ -201,19 +214,7 @@ const CreateQuestion = () => {
       dispatch(getChapters(subject, standard)); // Fetch chapters based on subject and standard
     }
   
-    const fetchTopics = async () => {
-      if (subject && standard && chapter && chapter.length > 0) {
-        try {
-          const chapterIds = chapter.map(chap => chap._id).join(',');
-    
-          dispatch(getTopics(subject, standard, chapterIds));
-          
-        } catch (error) {
-          console.error("Error fetching topics:", error);
-        }
-      }
-    };
-    
+
     
     fetchTopics();
     
@@ -374,25 +375,25 @@ const CreateQuestion = () => {
     setOptionImages([]); 
   };
 
-  const handleSubtopicChange = (value, options, level) => {
-    const updatedSubtopics = [...selectedSubtopics];
+  // const handleSubtopicChange = (value, options, level) => {
+  //   const updatedSubtopics = [...selectedSubtopics];
   
-    // If at the root level, use the subtopics array directly; otherwise, access the nested subtopics
-    const parentSubtopics = level === 0 ? subtopics : updatedSubtopics[level - 1]?.subtopics;
+  //   // If at the root level, use the subtopics array directly; otherwise, access the nested subtopics
+  //   const parentSubtopics = level === 0 ? subtopics : updatedSubtopics[level - 1]?.subtopics;
   
-    // Find the selected subtopics by matching _id with value
-    const selectedSubtopicsAtLevel = options.map((option) => {
-      return parentSubtopics.find((sub) => sub._id === option.value);
-    }).filter(Boolean); // Filter out any null or undefined results
+  //   // Find the selected subtopics by matching _id with value
+  //   const selectedSubtopicsAtLevel = options.map((option) => {
+  //     return parentSubtopics.find((sub) => sub._id === option.value);
+  //   }).filter(Boolean); // Filter out any null or undefined results
   
-    // Set the selected subtopics at the current level
-    updatedSubtopics[level] = selectedSubtopicsAtLevel.map((subtopic) => ({
-      _id: subtopic._id,
-      name: subtopic.name,
-    }));
+  //   // Set the selected subtopics at the current level
+  //   updatedSubtopics[level] = selectedSubtopicsAtLevel.map((subtopic) => ({
+  //     _id: subtopic._id,
+  //     name: subtopic.name,
+  //   }));
   
-    setSelectedSubtopics(updatedSubtopics);
-  };
+  //   setSelectedSubtopics(updatedSubtopics);
+  // };
 
   const handleRemoveOptionImage = (indexToRemove) => {
     setOptionImages((prevOptionImages) => {
@@ -406,45 +407,45 @@ const CreateQuestion = () => {
     setImages(images.filter((_, index) => index !== indexToRemove));
   };
 
-  const renderSubtopicSelectors = (currentSubtopics, level) => {
-    if (!currentSubtopics || currentSubtopics.length === 0) {
-        return null;
-    }
+  // const renderSubtopicSelectors = (currentSubtopics, level) => {
+  //   if (!currentSubtopics || currentSubtopics.length === 0) {
+  //       return null;
+  //   }
 
 
-    return (
-        <div key={level} className="relative z-0 w-full mb-5 group flex flex-col">
-            <label
-                htmlFor={`subtopic-select-${level}`}
-                className="block text-sm dark:text-white-400"
-            >
-                {level === 0 ? "Subtopic" : `Nested Subtopic`}
-            </label>
+  //   return (
+  //       <div key={level} className="relative z-0 w-full mb-5 group flex flex-col">
+  //           <label
+  //               htmlFor={`subtopic-select-${level}`}
+  //               className="block text-sm dark:text-white-400"
+  //           >
+  //               {level === 0 ? "Subtopic" : `Nested Subtopic`}
+  //           </label>
 
-            <Select
-                mode="multiple"
-                id={`subtopic-select-${level}`}
-                showSearch
-                style={{ width: 200 }}
-                placeholder={`Select ${level === 0 ? "Subtopic" : `Nested Subtopic`}`}
-                filterOption={(input, option) =>
-                  (option.label ?? "").toLowerCase().includes(input.toLowerCase())
-               }
-                options={currentSubtopics.map((subtopic) => ({
-                    value: subtopic._id,
-                    label: subtopic.name,
-                }))}
-                onChange={(value) => handleSubtopicChange(value, level)}
-            />
+  //           <Select
+  //               mode="multiple"
+  //               id={`subtopic-select-${level}`}
+  //               showSearch
+  //               style={{ width: 200 }}
+  //               placeholder={`Select ${level === 0 ? "Subtopic" : `Nested Subtopic`}`}
+  //               filterOption={(input, option) =>
+  //                 (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+  //              }
+  //               options={currentSubtopics.map((subtopic) => ({
+  //                   value: subtopic._id,
+  //                   label: subtopic.name,
+  //               }))}
+  //               onChange={(value) => handleSubtopicChange(value, level)}
+  //           />
 
-            {currentSubtopics.map((subtopic) => (
-                <div key={`${subtopic._id}-${level}`} className="mt-3 ml-6">
-                    {renderSubtopicSelectors(subtopic.subtopics, level + 1)}
-                </div>
-            ))}
-        </div>
-    );
-  }
+  //           {currentSubtopics.map((subtopic) => (
+  //               <div key={`${subtopic._id}-${level}`} className="mt-3 ml-6">
+  //                   {renderSubtopicSelectors(subtopic.subtopics, level + 1)}
+  //               </div>
+  //           ))}
+  //       </div>
+  //   );
+  // }
 
   return (
     <main className="p-4">
