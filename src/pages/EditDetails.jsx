@@ -115,7 +115,6 @@ const EditDetails = () => {
     subjectName,
     chapterId, // Change to chapterId
     topicId,    // Keep topicId
-    topicName
   ) => {
     try {
       setLoadingSubtopics((prev) => ({ ...prev, [topicId]: true }));
