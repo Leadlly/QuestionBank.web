@@ -103,6 +103,7 @@ const ProfileHead = () => {
   const [isTagged, setIsTagged] = useState('');
   const [totalTagged, setTotalTagged] = useState(0);
   const [totalUntagged, setTotalUntagged] = useState(0);
+  const [totalNew, setTotalNew] = useState(0);
 const [myQuestionsLength, setMyQuestionsLength] = useState(0);
 const [totalMyTagged, setTotalMyTagged] = useState(0);
 const [totalMyUntagged, setTotalMyUntagged] = useState(0);
@@ -233,7 +234,7 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
     createdBy,
     limit,
     page,
-    isTagged
+    isTagged,
   ) => {
     setLoading(true);
     try {
@@ -269,6 +270,8 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
           setTotalTagged(totalQuestions);
         } else if (isTagged === 'untagged') {
           setTotalUntagged(totalQuestions);
+        } else if (isTagged === 'new') {
+          setTotalNew(totalQuestions);
         }
       } else {
         setQuestions([]);
@@ -407,11 +410,15 @@ const fetchUserQuestions = async (
         setTotalMyTagged(totalMyTagged);
       } else if (isTagged === 'untagged') {
         setTotalMyUntagged(totalMyUntagged);
+      }  else if (isTagged === 'new') {
+        setTotalNew(totalQuestions);
       }
 
       setMyTotalPages(Math.ceil(totalMyQuestions / limit));
     } else {
       setMyQuestions([]);
+      setTotalMyQuestions([])
+      setTotalQuestions([])
     }
   } catch (error) {
     const errorMessage =
@@ -1018,7 +1025,8 @@ const fetchUserQuestions = async (
             </div>
           </div>
           <div className="mt-4">
-         <select
+         
+<select
   className="border-blue-600 border-2 p-2 bg-blue-900 text-white rounded-lg"
   value={isTagged}
   tabIndex={1} 
@@ -1031,6 +1039,8 @@ const fetchUserQuestions = async (
         fetchUserQuestions("tagged");
       } else if (value === "untagged") {
         fetchUserQuestions("untagged");
+      } else if (value === "new") {
+        fetchUserQuestions("new");
       } else {
         fetchQuestions("");
       }
@@ -1040,6 +1050,7 @@ const fetchUserQuestions = async (
   <option value="">All Questions</option>
   <option value="tagged">Tagged</option>
   <option value="untagged">Untagged</option>
+  <option value="new">New</option>
 </select>
 
 
@@ -1290,8 +1301,15 @@ const fetchUserQuestions = async (
                       ) : (
                         <>
                          <h3 className="text-lg font-medium text-gray-900 mb-4">
-  Total Questions: {isTagged === "tagged" ? totalTagged : isTagged === "untagged" ? totalUntagged : totalQuestions}
-</h3>
+                         Total Questions: {
+    isTagged === "tagged"
+      ? totalTagged
+      : isTagged === "untagged"
+      ? totalUntagged
+      : isTagged === "new"
+      ? totalNew
+      : totalQuestions
+  }</h3>
 
                           {totalQuestions === 0 ? (
                             <div className="text-center text-gray-500">
@@ -1313,6 +1331,12 @@ const fetchUserQuestions = async (
                                     __html: question.question,
                                   }}
                                 />
+
+{question.mode === "live" && (
+  <span className="ml-2 px-2 py-1 text-xs font-semibold text-white bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 rounded-full animate-pulse shadow-md">
+    NEW
+  </span>
+)}
                               </div>
                             ))
                           )}
