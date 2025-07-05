@@ -101,6 +101,7 @@ const ProfileHead = () => {
   const { success: editSuccess, error: editError } = useSelector((state) => state.editQuestion);
   const quillRef = useRef(null);
   const [isTagged, setIsTagged] = useState('');
+  const [isNew, setIsNew] = useState(false);
   const [totalTagged, setTotalTagged] = useState(0);
   const [totalUntagged, setTotalUntagged] = useState(0);
   const [totalNew, setTotalNew] = useState(0);
@@ -249,6 +250,7 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
           page,
           search: searchKeyword,
           isTagged,
+          isNew: isNew ? "true" : "false",
         },
         withCredentials: true,
       });
@@ -270,7 +272,7 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
           setTotalTagged(totalQuestions);
         } else if (isTagged === 'untagged') {
           setTotalUntagged(totalQuestions);
-        } else if (isTagged === 'new') {
+        } else if (isNew) {
           setTotalNew(totalQuestions);
         }
       } else {
@@ -312,6 +314,7 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
           search,
           mySearch,
           isTagged,
+          isNew: isNew ? "true" : "false",
         },
         withCredentials: true,
       });
@@ -332,6 +335,9 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
   
         const totalUntagged = response.data.totalUntagged || 0;
         setTotalUntagged(totalUntagged);
+        
+        const totalNewCount = response.data.totalNew || 0;
+        setTotalNew(totalNewCount);
   
         const totalMyTagged = response.data.totalMyTagged || 0;
         setTotalMyTagged(totalMyTagged);
@@ -345,6 +351,8 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
         } else if (isTagged === 'untagged') {
           setQuestionsLength(totalUntagged);
           setMyQuestionsLength(totalMyUntagged);
+        } else if (isNew) {
+          setQuestionsLength(totalNewCount);
         } else {
           setQuestionsLength(totalQuestions); 
           setMyQuestionsLength(totalMyQuestions); 
@@ -385,6 +393,7 @@ const fetchUserQuestions = async (
         limit: limit || 50,
         page: page || 1,
         isTagged: isTagged,
+        isNew: isNew ? "true" : "false",
         search: searchMyQuery || undefined,
       },
       withCredentials: true,
@@ -410,8 +419,8 @@ const fetchUserQuestions = async (
         setTotalMyTagged(totalMyTagged);
       } else if (isTagged === 'untagged') {
         setTotalMyUntagged(totalMyUntagged);
-      }  else if (isTagged === 'new') {
-        setTotalNew(totalQuestions);
+      } else if (isNew) {
+        setTotalNew(response.data.totalMyNew || 0);
       }
 
       setMyTotalPages(Math.ceil(totalMyQuestions / limit));
@@ -467,6 +476,7 @@ const fetchUserQuestions = async (
     searchKeyword,
     searchMyQuery,
     isTagged,
+    isNew,
     currentPage,
   ]);
   
@@ -532,6 +542,7 @@ const fetchUserQuestions = async (
     setCurrentPage(1);
     setMyCurrentPage(1)
     setIsTagged("")
+    setIsNew(false);
   };
 
   const handleTabChange = (index) => {
@@ -560,6 +571,7 @@ const fetchUserQuestions = async (
     setSearchKeyword("");
     setInputValue("");
     setMyInputValue("")
+    setIsNew(false);
   };
   useEffect(() => {
     if (!isAdmin) {
@@ -608,7 +620,7 @@ const fetchUserQuestions = async (
 
   useEffect(() => {
     fetchTotalQuestions(selectedStandard, selectedSubject, selectedChapter, selectedTopic, selectedUser, searchKeyword, searchMyQuery, isTagged);
-  });
+  }, [selectedStandard, selectedSubject, selectedChapter, selectedTopic, selectedUser, searchKeyword, searchMyQuery, isTagged, isNew]);
 
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
@@ -1024,7 +1036,7 @@ const fetchUserQuestions = async (
               </button>
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 flex items-center space-x-4">
          
 <select
   className="border-blue-600 border-2 p-2 bg-blue-900 text-white rounded-lg"
@@ -1039,8 +1051,6 @@ const fetchUserQuestions = async (
         fetchUserQuestions("tagged");
       } else if (value === "untagged") {
         fetchUserQuestions("untagged");
-      } else if (value === "new") {
-        fetchUserQuestions("new");
       } else {
         fetchQuestions("");
       }
@@ -1050,10 +1060,20 @@ const fetchUserQuestions = async (
   <option value="">All Questions</option>
   <option value="tagged">Tagged</option>
   <option value="untagged">Untagged</option>
-  <option value="new">New</option>
 </select>
 
-
+<div className="flex items-center">
+  <label className="inline-flex items-center cursor-pointer">
+    <input 
+      type="checkbox" 
+      className="sr-only peer" 
+      checked={isNew} 
+      onChange={() => setIsNew(!isNew)}
+    />
+    <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+    <span className="ms-3 text-sm font-medium text-gray-900 dark:text-white">New</span>
+  </label>
+</div>
 
       </div>
 
@@ -1306,7 +1326,7 @@ const fetchUserQuestions = async (
       ? totalTagged
       : isTagged === "untagged"
       ? totalUntagged
-      : isTagged === "new"
+      : isNew
       ? totalNew
       : totalQuestions
   }</h3>
@@ -1389,7 +1409,7 @@ const fetchUserQuestions = async (
   ) : (
     <>
      <h3 className="text-lg font-medium text-gray-900 mb-4">
-  Total Questions: {isTagged === 'tagged' ? totalMyTagged : isTagged === 'untagged' ? totalMyUntagged : totalMyQuestions}
+  Total Questions: {isTagged === 'tagged' ? totalMyTagged : isTagged === 'untagged' ? totalMyUntagged : isNew ? totalNew : totalMyQuestions}
 </h3>
 
 

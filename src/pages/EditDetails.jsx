@@ -716,7 +716,7 @@ const EditDetails = () => {
         )}
       </div>
       <Modal
-      title="Edit Topic Name"
+      title="Edit Subtopic Name"
       open={isSubtopicModalOpen}
       onOk={handleUpdateSubtopic}
       onCancel={() => setIsSubtopicModalOpen(false)}
@@ -724,9 +724,9 @@ const EditDetails = () => {
         
       >
         <Input
-          value={newTopicName}
+          value={newSubtopicName}
           onChange={(e) => setNewSubtopicName(e.target.value)}
-          placeholder="Enter new topic name"
+          placeholder="Enter new subtopic name"
         />
       </Modal>
       <Modal
