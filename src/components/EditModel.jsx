@@ -92,24 +92,14 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
 
     useEffect(() => {
         const fetchTopics = async () => {
-            if (subject && standard && chapter.length > 0) {
+            if (subject && standard && chapter && chapter.length > 0) {
                 setError('');
-                let allTopics = [];
-
-                for (const chap of chapter) {
-                    const response = await dispatch(getTopics(subject, standard, chap._id));
-
-                    console.log('Response from getTopics:', response);
-
-                    if (response && response.success) {
-                        allTopics = [...allTopics, ...response.topics];
-                    } else {
-                        // console.error('Failed to fetch topics:', response?.message);
-                        // setError('Failed to fetch topics.');
-                    }
+                try {
+                    const chapterIds = chapter.map(chap => chap._id).join(',');
+                    await dispatch(getTopics(subject, standard, chapterIds));
+                } catch (error) {
+                    console.error("Error fetching topics:", error);
                 }
-
-                // setTopic(allTopics); 
             } else if (subject && standard && chapter.length === 0) {
                 setError('Chapter selection is required.');
             }
@@ -120,23 +110,14 @@ const EditModel = ({ isOpen, onClose, selectedQuestion, onSave, setIsModalOpen }
 
     useEffect(() => {
         const fetchSubtopics = async () => {
-            if (subject && standard && chapter.length > 0 && topic.length > 0) {
-                const subtopicsResponse = await dispatch(
-                    getSubtopics(
-                        subject,
-                        standard,
-                        chapter.map(el => el._id), 
-                        topic.map(el => el._id) 
-                    )
-                );
-
-                console.log('Response from getSubtopics:', subtopicsResponse);
-
-                if (subtopicsResponse && subtopicsResponse.success) {
-                    // setSubtopic(subtopicsResponse.subtopics);
-                } else {
-                    // console.error('Failed to fetch subtopics:', subtopicsResponse?.message);
-                    // setError('Failed to fetch subtopics.');
+            if (subject && standard && chapter && chapter.length > 0 && topic && topic.length > 0) {
+                try {
+                    const chapterIds = chapter.map(el => el._id).join(',');
+                    const topicIds = topic.map(el => el._id).join(',');
+                    
+                    await dispatch(getSubtopics(subject, standard, chapterIds, topicIds));
+                } catch (error) {
+                    console.error("Error fetching subtopics:", error);
                 }
             }
         };
