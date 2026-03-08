@@ -7,6 +7,7 @@ import Loader from "../components/Loader";
 import toast from "react-hot-toast";
 import Loading from "./Loading";
 import { FaEdit, FaTrashAlt, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { standards } from "../components/Options";
 
 const EditDetails = () => {
   const [standard, setStandard] = useState("11");
@@ -566,10 +567,7 @@ const EditDetails = () => {
             (option?.label ?? "").includes(input)
           }
           onChange={(value) => setStandard(value)}
-          options={[
-            { label: "11", value: "11" },
-            { label: "12", value: "12" },
-          ]}
+          options={standards}
           value={standard}
         />
       </div>
