@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Select } from "antd";
 import toast from "react-hot-toast";
+import axios from "axios";
 import { createQuestion } from "../actions/questionAction";
 import { getSubjects } from "../actions/subjectAction";
 import { getChapters } from "../actions/chapterAction";
@@ -12,9 +13,11 @@ import Loading from "./Loading";
 import { FaImage } from "react-icons/fa6";
 import { ImCross } from "react-icons/im";
 import { FaCheck } from "react-icons/fa";
+import { FaRobot } from "react-icons/fa";
 import ReactQuill from "react-quill";
 import "./CreateQuestion.css"
 import "react-quill/dist/quill.snow.css";
+import { server } from "../main.jsx";
 
 const CreateQuestion = () => {
   const dispatch = useDispatch();
@@ -32,6 +35,18 @@ const CreateQuestion = () => {
   const [correctOptions, setCorrectOptions] = useState([""]);
   const [isSubtopicsLoading, setIsSubtopicsLoading] = useState(false);
   const [showSymbols, setShowSymbols] = useState(false);
+
+  // AI generation state
+  const [aiCount, setAiCount] = useState(5);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiGeneratedQuestions, setAiGeneratedQuestions] = useState([]);
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [isPromptCustomized, setIsPromptCustomized] = useState(false);
+  const [insertingSet, setInsertingSet] = useState(new Set());
+  const [insertedSet, setInsertedSet] = useState(new Set());
+  const [insertAllLoading, setInsertAllLoading] = useState(false);
+
   // const [topicList, setTopicList] =useState([])
   const { subjectList } = useSelector((state) => state.getSubject);
   const { chapterList } = useSelector((state) => state.getChapter);
@@ -237,6 +252,37 @@ const CreateQuestion = () => {
     }
     
   }, [dispatch, standard, subject, chapter, topic]);
+
+  // ── Build the default AI prompt whenever scope fields change ────────────────
+  const buildDefaultPrompt = (count = aiCount) => {
+    const chapterNames = (chapter || []).filter((c) => c && c.name).map((c) => c.name).join(", ") || "";
+    const topicNames   = topic && topic.length > 0
+      ? topic.filter(Boolean).map((t) => t.name).join(", ")
+      : null;
+    const subtopicNames = selectedSubtopics && selectedSubtopics.length > 0
+      ? selectedSubtopics.filter(Boolean).map((s) => s.name).join(", ")
+      : null;
+
+    const parts = [
+      `Generate ${count} high-quality MCQ questions for Class ${standard || "__"} ${subject || "__"},`,
+      `Chapter: ${chapterNames || "__"}.`,
+      topicNames   ? `Topics: ${topicNames}.`    : "",
+      subtopicNames ? `Subtopics: ${subtopicNames}.` : "",
+      level        ? `Exam level: ${level}.`     : "",
+      "Ensure questions are curriculum-aligned, unambiguous, and have exactly 4 options with one correct answer.",
+    ].filter(Boolean).join(" ");
+
+    return parts;
+  };
+
+  // Keep the textarea in sync with dropdown selections — only if the user
+  // hasn't manually edited the prompt yet.
+  useEffect(() => {
+    if (!isPromptCustomized) {
+      setCustomPrompt(buildDefaultPrompt());
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [standard, subject, chapter, topic, selectedSubtopics, level, aiCount, isPromptCustomized]);
   
 
   const uploadImageToS3 = async (file, signedUrl) => {
@@ -447,6 +493,171 @@ const CreateQuestion = () => {
   //   );
   // }
 
+  // ── AI insert helpers ────────────────────────────────────────────────────────
+
+  /** Map an AI-generated question object to the format expected by POST /api/create/question */
+  const buildQuestionPayload = (q) => {
+    // Match AI topic/subtopic names against Redux lists to get {_id, name} objects.
+    // Fall back to the form-selected arrays if no match.
+    const resolvedTopics = (() => {
+      if (q.topics && q.topics.length > 0 && topicList?.length > 0) {
+        const matched = q.topics
+          .map((name) => topicList.find((t) => t?.name?.toLowerCase() === name?.toLowerCase()))
+          .filter(Boolean)
+          .map((t) => ({ _id: t._id, name: t.name }));
+        if (matched.length > 0) return matched;
+      }
+      return (topic || []).filter(Boolean);
+    })();
+
+    const resolvedSubtopics = (() => {
+      if (q.subtopics && q.subtopics.length > 0 && subtopics?.length > 0) {
+        const matched = q.subtopics
+          .map((name) => subtopics.find((s) => s?.name?.toLowerCase() === name?.toLowerCase()))
+          .filter(Boolean)
+          .map((s) => ({ _id: s._id, name: s.name }));
+        if (matched.length > 0) return matched;
+      }
+      return (selectedSubtopics || []).filter(Boolean);
+    })();
+
+    // Sanitise chapter: remove any null/undefined entries and ensure _id exists
+    const safeChapter = (chapter || []).filter((c) => c && c._id);
+
+    return {
+      question: q.question,
+      options: q.options.map((opt) => ({
+        name: opt.name,
+        isCorrect: opt.isCorrect,
+        image: [],
+      })),
+      images: [],
+      standard,
+      subject,
+      chapter: safeChapter,
+      topics: resolvedTopics,
+      subtopics: resolvedSubtopics,
+      level: level || q.level || "",
+    };
+  };
+
+  const handleInsertOne = async (qi) => {
+    const q = aiGeneratedQuestions[qi];
+    if (!q) return;
+
+    setInsertingSet((prev) => new Set(prev).add(qi));
+    try {
+      await axios.post(`${server}/api/create/question`, buildQuestionPayload(q), {
+        withCredentials: true,
+        headers: { "Content-Type": "application/json" },
+      });
+      setInsertedSet((prev) => new Set(prev).add(qi));
+      toast.success("Question saved to database!");
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to save question.";
+      toast.error(msg);
+    } finally {
+      setInsertingSet((prev) => { const s = new Set(prev); s.delete(qi); return s; });
+    }
+  };
+
+  const handleDiscardOne = (qi) => {
+    setAiGeneratedQuestions((prev) => prev.filter((_, i) => i !== qi));
+    setInsertedSet((prev) => {
+      // Re-index: remove qi and shift all higher indices down by 1
+      const next = new Set();
+      prev.forEach((idx) => { if (idx < qi) next.add(idx); else if (idx > qi) next.add(idx - 1); });
+      return next;
+    });
+  };
+
+  const handleInsertAll = async () => {
+    const pending = aiGeneratedQuestions
+      .map((_, i) => i)
+      .filter((i) => !insertedSet.has(i));
+
+    if (pending.length === 0) {
+      toast("All questions already inserted.");
+      return;
+    }
+
+    setInsertAllLoading(true);
+    let successCount = 0;
+
+    await Promise.allSettled(
+      pending.map(async (qi) => {
+        const q = aiGeneratedQuestions[qi];
+        setInsertingSet((prev) => new Set(prev).add(qi));
+        try {
+          await axios.post(`${server}/api/create/question`, buildQuestionPayload(q), {
+            withCredentials: true,
+            headers: { "Content-Type": "application/json" },
+          });
+          setInsertedSet((prev) => new Set(prev).add(qi));
+          successCount++;
+        } catch {
+          // individual failures are silently tracked; overall toast shown below
+        } finally {
+          setInsertingSet((prev) => { const s = new Set(prev); s.delete(qi); return s; });
+        }
+      })
+    );
+
+    setInsertAllLoading(false);
+    if (successCount > 0) toast.success(`${successCount} question${successCount !== 1 ? "s" : ""} saved!`);
+    if (successCount < pending.length) toast.error(`${pending.length - successCount} question(s) failed to save.`);
+  };
+
+  const handleGenerateWithAI = async () => {
+    if (!standard || !subject || !chapter || chapter.length === 0) {
+      toast.error("Please select at least Standard, Subject, and Chapter before generating.");
+      return;
+    }
+
+    const count = Math.max(1, Math.min(20, Number(aiCount) || 5));
+    const safeChapter   = (chapter || []).filter((c) => c && c._id);
+    const chapterNames  = safeChapter.map((c) => c.name).join(", ");
+    const topicNames    = topic && topic.length > 0 ? topic.filter(Boolean).map((t) => t.name).join(", ") : null;
+    const subtopicNames = selectedSubtopics && selectedSubtopics.length > 0
+      ? selectedSubtopics.filter(Boolean).map((s) => s.name).join(", ")
+      : null;
+
+    // Use the (possibly customized) prompt from the textarea
+    const message = customPrompt.trim() || buildDefaultPrompt(count);
+
+    setAiLoading(true);
+    setAiGeneratedQuestions([]);
+    setInsertedSet(new Set());
+    setInsertingSet(new Set());
+    setShowAiPanel(true);
+
+    try {
+      const { data } = await axios.post(
+        `${server}/api/agent/run`,
+        {
+          agentType: "question",
+          message,
+          standard,
+          subject,
+          chapter: chapterNames,
+          ...(topicNames    && { topic: topicNames }),
+          ...(subtopicNames && { subtopic: subtopicNames }),
+          ...(level         && { level }),
+        },
+        { withCredentials: true }
+      );
+
+      const questions = Array.isArray(data?.questions) ? data.questions : [];
+      setAiGeneratedQuestions(questions);
+      toast.success(`${questions.length} question${questions.length !== 1 ? "s" : ""} generated!`);
+    } catch (err) {
+      console.error("[AI Generate]", err);
+      toast.error(err?.response?.data?.message || "AI generation failed. Please try again.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return (
     <main className="p-4">
       <h1 className="text-center m-10 text-white-600">Create Questions</h1>
@@ -622,6 +833,260 @@ const CreateQuestion = () => {
             Level
           </label>
         </div>
+
+        {/* ── AI Question Generator Panel ─────────────────────────────── */}
+        <div className="w-full mb-6 rounded-xl border border-dashed border-purple-500 bg-purple-950/30 p-4">
+          {/* Header row */}
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <FaRobot className="text-purple-400 text-xl flex-shrink-0" />
+            <span className="text-purple-300 font-semibold text-sm">Generate Questions with AI</span>
+            <div className="flex items-center gap-2 ml-auto flex-wrap">
+              <label className="text-purple-300 text-xs">Questions:</label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={aiCount}
+                onChange={(e) => setAiCount(e.target.value)}
+                className="w-16 rounded-md border border-purple-500 bg-transparent text-white text-center text-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400"
+              />
+              <button
+                type="button"
+                disabled={aiLoading || !standard || !subject || !chapter || chapter.length === 0}
+                onClick={handleGenerateWithAI}
+                className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
+              >
+                {aiLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <FaRobot className="text-sm" /> Generate
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Prompt textarea */}
+          <div className="mt-1">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-purple-300 text-xs font-medium">
+                Prompt
+                {isPromptCustomized && (
+                  <span className="ml-2 text-yellow-400 text-xs">(customized)</span>
+                )}
+              </label>
+              {isPromptCustomized && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPromptCustomized(false);
+                    setCustomPrompt(buildDefaultPrompt());
+                  }}
+                  className="text-purple-400 hover:text-purple-200 text-xs underline underline-offset-2"
+                >
+                  Reset to default
+                </button>
+              )}
+            </div>
+            <textarea
+              rows={3}
+              value={customPrompt}
+              onChange={(e) => {
+                setCustomPrompt(e.target.value);
+                setIsPromptCustomized(true);
+              }}
+              placeholder={
+                !standard || !subject || !chapter || chapter.length === 0
+                  ? "Select Standard, Subject, and Chapter to see the default prompt…"
+                  : ""
+              }
+              className="w-full rounded-lg border border-purple-500/60 bg-purple-950/40 text-purple-100 text-xs px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-purple-400 placeholder-purple-600"
+            />
+          </div>
+
+          {(!standard || !subject || !chapter || chapter.length === 0) && (
+            <p className="text-purple-400/70 text-xs mt-2">
+              Select Standard, Subject, and Chapter above to enable AI generation.
+            </p>
+          )}
+        </div>
+
+        {/* ── AI Generated Questions Preview ─────────────────────────── */}
+        {showAiPanel && (
+          <div className="w-full mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-purple-300 font-semibold text-base flex items-center gap-2">
+                <FaRobot /> AI Generated Questions
+                {!aiLoading && aiGeneratedQuestions.length > 0 && (
+                  <span className="text-xs text-gray-400 font-normal">
+                    ({insertedSet.size}/{aiGeneratedQuestions.length} saved)
+                  </span>
+                )}
+              </h2>
+              <div className="flex items-center gap-2">
+                {!aiLoading && aiGeneratedQuestions.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={insertAllLoading || insertedSet.size === aiGeneratedQuestions.length}
+                    onClick={handleInsertAll}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
+                  >
+                    {insertAllLoading ? (
+                      <>
+                        <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                        Inserting…
+                      </>
+                    ) : insertedSet.size === aiGeneratedQuestions.length ? (
+                      <><FaCheck className="text-xs" /> All Inserted</>
+                    ) : (
+                      "Insert All"
+                    )}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setShowAiPanel(false); setAiGeneratedQuestions([]); setInsertedSet(new Set()); }}
+                  className="text-gray-400 hover:text-white text-xs"
+                >
+                  ✕ Close
+                </button>
+              </div>
+            </div>
+
+            {aiLoading && (
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <svg className="animate-spin h-8 w-8 text-purple-400" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                <p className="text-purple-300 text-sm animate-pulse">AI is generating questions…</p>
+                <p className="text-gray-500 text-xs">This may take 30–60 seconds</p>
+              </div>
+            )}
+
+            {!aiLoading && aiGeneratedQuestions.length === 0 && (
+              <p className="text-gray-400 text-sm text-center py-6">No questions to display yet.</p>
+            )}
+
+            {!aiLoading && aiGeneratedQuestions.length > 0 && (
+              <div className="flex flex-col gap-4">
+                {aiGeneratedQuestions.map((q, qi) => {
+                  const isInserting = insertingSet.has(qi);
+                  const isInserted  = insertedSet.has(qi);
+
+                  return (
+                    <div
+                      key={qi}
+                      className={`rounded-xl border p-4 transition-colors ${
+                        isInserted
+                          ? "border-green-700 bg-green-950/30"
+                          : "border-gray-700 bg-gray-800/60"
+                      }`}
+                    >
+                      {/* Question text */}
+                      <div className="flex items-start gap-2 mb-3">
+                        <span className="text-purple-400 font-bold text-sm flex-shrink-0">Q{qi + 1}.</span>
+                        <div
+                          className="text-white text-sm leading-relaxed [&_*]:text-white"
+                          dangerouslySetInnerHTML={{ __html: q.question }}
+                        />
+                      </div>
+
+                      {/* Options */}
+                      {q.options && q.options.length > 0 && (
+                        <div className="flex flex-col gap-1.5 ml-5">
+                          {q.options.map((opt, oi) => (
+                            <div
+                              key={oi}
+                              className={`flex items-start gap-2 rounded-lg px-3 py-1.5 text-sm ${
+                                opt.isCorrect
+                                  ? "bg-green-900/50 border border-green-600 text-green-300"
+                                  : "bg-gray-700/40 border border-gray-600 text-gray-300"
+                              }`}
+                            >
+                              <span className="font-medium flex-shrink-0">
+                                {String.fromCharCode(65 + oi)}.
+                              </span>
+                              <span dangerouslySetInnerHTML={{ __html: opt.name }} />
+                              {opt.isCorrect && (
+                                <FaCheck className="text-green-400 ml-auto flex-shrink-0 mt-0.5" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Tags row + action buttons */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 mt-3 ml-5">
+                        {/* Tags */}
+                        <div className="flex flex-wrap gap-2">
+                          {q.level && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/50 text-blue-300 border border-blue-700">
+                              {q.level}
+                            </span>
+                          )}
+                          {q.topics && q.topics.map((t, ti) => (
+                            <span key={ti} className="text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">
+                              {t.name || t}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Insert / Discard buttons */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {isInserted ? (
+                            <span className="flex items-center gap-1 text-xs text-green-400 font-medium">
+                              <FaCheck /> Inserted
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={isInserting}
+                              onClick={() => handleInsertOne(qi)}
+                              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-green-700 hover:bg-green-600 disabled:opacity-60 text-white transition-colors"
+                            >
+                              {isInserting ? (
+                                <>
+                                  <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                  </svg>
+                                  Inserting…
+                                </>
+                              ) : (
+                                "Insert"
+                              )}
+                            </button>
+                          )}
+                          {!isInserted && (
+                            <button
+                              type="button"
+                              disabled={isInserting}
+                              onClick={() => handleDiscardOne(qi)}
+                              className="px-3 py-1 rounded-lg text-xs font-semibold bg-red-900/60 hover:bg-red-800 disabled:opacity-60 text-red-300 hover:text-white transition-colors"
+                            >
+                              Discard
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="relative z-0 w-full mb-5 group">
           <div className="relative flex items-center">
