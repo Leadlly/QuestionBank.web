@@ -14,6 +14,7 @@ import { FaImage } from "react-icons/fa6";
 import { ImCross } from "react-icons/im";
 import { FaCheck } from "react-icons/fa";
 import { FaRobot } from "react-icons/fa";
+import ReactMarkdown from "react-markdown";
 import ReactQuill from "react-quill";
 import "./CreateQuestion.css"
 import "react-quill/dist/quill.snow.css";
@@ -46,6 +47,9 @@ const CreateQuestion = () => {
   const [insertingSet, setInsertingSet] = useState(new Set());
   const [insertedSet, setInsertedSet] = useState(new Set());
   const [insertAllLoading, setInsertAllLoading] = useState(false);
+  const [includeSolutions, setIncludeSolutions] = useState(false);
+  // Tracks which question cards have their solution accordion open
+  const [openSolutions, setOpenSolutions] = useState(new Set());
 
   // const [topicList, setTopicList] =useState([])
   const { subjectList } = useSelector((state) => state.getSubject);
@@ -547,10 +551,22 @@ const CreateQuestion = () => {
 
     setInsertingSet((prev) => new Set(prev).add(qi));
     try {
-      await axios.post(`${server}/api/create/question`, buildQuestionPayload(q), {
+      // 1. Save the question first to get its _id
+      const qRes = await axios.post(`${server}/api/create/question`, buildQuestionPayload(q), {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       });
+      const questionId = qRes.data?.question?._id;
+
+      // 2. Save solution linked to the question (if present)
+      if (questionId && q.solution && q.solution.content) {
+        await axios.post(
+          `${server}/api/solution/create`,
+          { questionId, content: q.solution.content },
+          { withCredentials: true, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
       setInsertedSet((prev) => new Set(prev).add(qi));
       toast.success("Question saved to database!");
     } catch (err) {
@@ -589,10 +605,21 @@ const CreateQuestion = () => {
         const q = aiGeneratedQuestions[qi];
         setInsertingSet((prev) => new Set(prev).add(qi));
         try {
-          await axios.post(`${server}/api/create/question`, buildQuestionPayload(q), {
+          // Save question first, then link solution to it
+          const qRes = await axios.post(`${server}/api/create/question`, buildQuestionPayload(q), {
             withCredentials: true,
             headers: { "Content-Type": "application/json" },
           });
+          const questionId = qRes.data?.question?._id;
+
+          if (questionId && q.solution && q.solution.content) {
+            await axios.post(
+              `${server}/api/solution/create`,
+              { questionId, content: q.solution.content },
+              { withCredentials: true, headers: { "Content-Type": "application/json" } }
+            );
+          }
+
           setInsertedSet((prev) => new Set(prev).add(qi));
           successCount++;
         } catch {
@@ -629,6 +656,7 @@ const CreateQuestion = () => {
     setAiGeneratedQuestions([]);
     setInsertedSet(new Set());
     setInsertingSet(new Set());
+    setOpenSolutions(new Set());
     setShowAiPanel(true);
 
     try {
@@ -643,6 +671,7 @@ const CreateQuestion = () => {
           ...(topicNames    && { topic: topicNames }),
           ...(subtopicNames && { subtopic: subtopicNames }),
           ...(level         && { level }),
+          includeSolutions,
         },
         { withCredentials: true }
       );
@@ -850,6 +879,22 @@ const CreateQuestion = () => {
                 onChange={(e) => setAiCount(e.target.value)}
                 className="w-16 rounded-md border border-purple-500 bg-transparent text-white text-center text-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400"
               />
+
+              {/* Solutions toggle */}
+              <button
+                type="button"
+                onClick={() => setIncludeSolutions((prev) => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                  includeSolutions
+                    ? "bg-amber-500/20 border-amber-400 text-amber-300"
+                    : "bg-transparent border-gray-600 text-gray-400 hover:border-gray-400 hover:text-gray-300"
+                }`}
+                title="Toggle to generate a worked solution for each question"
+              >
+                <span className={`w-3 h-3 rounded-full inline-block flex-shrink-0 ${includeSolutions ? "bg-amber-400" : "bg-gray-600"}`} />
+                Solutions
+              </button>
+
               <button
                 type="button"
                 disabled={aiLoading || !standard || !subject || !chapter || chapter.length === 0}
@@ -1023,6 +1068,40 @@ const CreateQuestion = () => {
                               )}
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Solution accordion */}
+                      {q.solution && q.solution.content && (
+                        <div className="ml-5 mt-3">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenSolutions((prev) => {
+                                const next = new Set(prev);
+                                next.has(qi) ? next.delete(qi) : next.add(qi);
+                                return next;
+                              })
+                            }
+                            className="flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+                          >
+                            <span
+                              className={`transition-transform inline-block ${openSolutions.has(qi) ? "rotate-90" : ""}`}
+                            >
+                              ▶
+                            </span>
+                            Solution
+                          </button>
+
+                          {openSolutions.has(qi) && (
+                            <div className="mt-2 rounded-lg border border-amber-700/50 bg-amber-950/20 px-4 py-3 text-xs text-amber-100 prose prose-invert prose-xs max-w-none
+                              [&_h1]:text-amber-300 [&_h2]:text-amber-300 [&_h3]:text-amber-300
+                              [&_strong]:text-amber-200 [&_code]:bg-amber-900/40 [&_code]:px-1 [&_code]:rounded
+                              [&_pre]:bg-amber-900/40 [&_pre]:rounded [&_pre]:p-2
+                              [&_hr]:border-amber-700/40 [&_p]:leading-relaxed [&_li]:leading-relaxed">
+                              <ReactMarkdown>{q.solution.content}</ReactMarkdown>
+                            </div>
+                          )}
                         </div>
                       )}
 
