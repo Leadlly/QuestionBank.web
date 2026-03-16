@@ -4,7 +4,6 @@ import { Tab } from "@headlessui/react";
 import axios from "axios";
 import classNames from "classnames";
 import toast from "react-hot-toast";
-// import { useDispatch } from "react-redux";
 import { Select } from "antd";
 import { standards } from "../components/Options";
 import { server } from "../main";
@@ -18,7 +17,9 @@ import { animateScroll as scroll } from "react-scroll";
 import EditModel from "../components/EditModel"
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import ReactMarkdown from "react-markdown";
 import { LuPencilLine } from "react-icons/lu";
+import { FaRobot } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteQuestion, editQuestion } from "../actions/questionAction";
@@ -200,6 +201,22 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
     { symbol: '⊫', name: 'Triple Turnstile' },
   ];
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // ── Solution state ───────────────────────────────────────────────────────────
+  const [solution, setSolution] = useState(null);
+  const [solutionLoading, setSolutionLoading] = useState(false);
+  const [solutionGenerating, setSolutionGenerating] = useState(false);
+  const [showSolution, setShowSolution] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState(null);
+  const [solutionInserting, setSolutionInserting] = useState(false);
+  // map of { questionId: true } for questions that already have a solution
+  const [solutionStatusMap, setSolutionStatusMap] = useState({});
+  // inline accordion state per question in the list
+  const [inlineOpenId, setInlineOpenId]           = useState(null);   // which row is expanded
+  const [inlineGenerating, setInlineGenerating]   = useState({});     // { [id]: true }
+  const [inlineGenerated, setInlineGenerated]     = useState({});     // { [id]: content string }
+  const [inlineSolution, setInlineSolution]       = useState({});     // { [id]: solutionDoc }
+  const [inlineInserting, setInlineInserting]     = useState({});     // { [id]: true }
+  const [inlineBodyOpen, setInlineBodyOpen]       = useState({});     // { [id]: true } body visible
 
   useEffect(() => {
     if (selectedStandard) {
@@ -258,7 +275,7 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
       if (response.data.success) {
         const questions = response.data.questions || [];
         setQuestions(questions);
-  
+        fetchBulkSolutionStatus(questions);
         setUserTodayQuestions(response.data?.todaysQuestionsCount);
         setUserRank(response.data?.userRank);
         setTopperUser(response.data?.topperUser);
@@ -409,6 +426,7 @@ const fetchUserQuestions = async (
       } = response.data;
 
       setMyQuestions(questions.reverse());
+      fetchBulkSolutionStatus(questions);
       setTodayMyQuestions(todaysQuestionsCount);
       setMyRank(userRank);
 
@@ -625,6 +643,176 @@ const fetchUserQuestions = async (
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
     toBottom();
+  };
+
+  // Fetch any existing solution for the selected question
+  // Fetch solution status for a list of question docs and update the map
+  const fetchBulkSolutionStatus = async (questionDocs) => {
+    if (!questionDocs || questionDocs.length === 0) return;
+    const ids = questionDocs.map((q) => q._id).join(",");
+    try {
+      const res = await axios.get(`${server}/api/solution/bulk-status?ids=${ids}`, {
+        withCredentials: true,
+      });
+      if (res.data.success) {
+        setSolutionStatusMap((prev) => ({ ...prev, ...res.data.status }));
+      }
+    } catch {
+      // non-critical — list still works without icons
+    }
+  };
+
+  const fetchSolutionForQuestion = async (questionId) => {
+    setSolution(null);
+    setGeneratedContent(null);
+    setShowSolution(false);
+    setSolutionLoading(true);
+    try {
+      const res = await axios.get(`${server}/api/solution/question/${questionId}`, {
+        withCredentials: true,
+      });
+      if (res.data.success && res.data.solutions?.length > 0) {
+        setSolution(res.data.solutions[0]);
+      }
+    } catch {
+      // no solution yet — that's fine
+    } finally {
+      setSolutionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedQuestion?._id) {
+      fetchSolutionForQuestion(selectedQuestion._id);
+    }
+  }, [selectedQuestion?._id]);
+
+  const handleGenerateSolution = async () => {
+    if (!selectedQuestion?._id) return;
+    setSolutionGenerating(true);
+    try {
+      const res = await axios.post(
+        `${server}/api/solution/generate/${selectedQuestion._id}`,
+        {},
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        setGeneratedContent(res.data.content);
+        toast.success("Solution generated — review and insert.");
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to generate solution.";
+      toast.error(msg);
+    } finally {
+      setSolutionGenerating(false);
+    }
+  };
+
+  const handleInsertSolution = async () => {
+    if (!generatedContent || !selectedQuestion?._id) return;
+    setSolutionInserting(true);
+    try {
+      const res = await axios.post(
+        `${server}/api/solution/create`,
+        { questionId: selectedQuestion._id, content: generatedContent },
+        { withCredentials: true, headers: { "Content-Type": "application/json" } }
+      );
+      if (res.data.success) {
+        setSolution(res.data.solution);
+        setGeneratedContent(null);
+        setShowSolution(true);
+        setSolutionStatusMap((prev) => ({ ...prev, [selectedQuestion._id]: true }));
+        toast.success("Solution saved to database!");
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to save solution.";
+      toast.error(msg);
+    } finally {
+      setSolutionInserting(false);
+    }
+  };
+
+  const handleDiscardSolution = () => {
+    setGeneratedContent(null);
+    toast("Solution discarded.");
+  };
+
+  // ── Inline list solution handlers ──────────────────────────────────────────
+  const handleInlineSolutionClick = async (e, question) => {
+    e.stopPropagation(); // don't also select the question row
+    const id = question._id;
+
+    // toggle closed if already open
+    if (inlineOpenId === id) {
+      setInlineOpenId(null);
+      return;
+    }
+
+    setInlineOpenId(id);
+    // default to body expanded
+    setInlineBodyOpen((prev) => ({ ...prev, [id]: true }));
+
+    // if we already loaded/generated it, just open
+    if (inlineSolution[id] || inlineGenerated[id]) return;
+
+    if (solutionStatusMap[id]) {
+      // fetch existing solution
+      try {
+        const res = await axios.get(`${server}/api/solution/question/${id}`, { withCredentials: true });
+        if (res.data.success && res.data.solutions?.length > 0) {
+          setInlineSolution((prev) => ({ ...prev, [id]: res.data.solutions[0] }));
+        }
+      } catch { /* silent */ }
+    } else {
+      // generate
+      setInlineGenerating((prev) => ({ ...prev, [id]: true }));
+      try {
+        const res = await axios.post(`${server}/api/solution/generate/${id}`, {}, { withCredentials: true });
+        if (res.data.success) {
+          setInlineGenerated((prev) => ({ ...prev, [id]: res.data.content }));
+        }
+      } catch (err) {
+        toast.error(err?.response?.data?.message || "Failed to generate solution.");
+        setInlineOpenId(null);
+      } finally {
+        setInlineGenerating((prev) => ({ ...prev, [id]: false }));
+      }
+    }
+  };
+
+  const handleInlineInsert = async (id) => {
+    const content = inlineGenerated[id];
+    if (!content) return;
+    setInlineInserting((prev) => ({ ...prev, [id]: true }));
+    try {
+      const res = await axios.post(
+        `${server}/api/solution/create`,
+        { questionId: id, content },
+        { withCredentials: true, headers: { "Content-Type": "application/json" } }
+      );
+      if (res.data.success) {
+        setInlineSolution((prev) => ({ ...prev, [id]: res.data.solution }));
+        setInlineGenerated((prev) => { const n = { ...prev }; delete n[id]; return n; });
+        setSolutionStatusMap((prev) => ({ ...prev, [id]: true }));
+        // also update detail-view solution if this question is currently selected
+        if (selectedQuestion?._id === id) {
+          setSolution(res.data.solution);
+          setGeneratedContent(null);
+          setShowSolution(true);
+        }
+        toast.success("Solution saved!");
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to save solution.");
+    } finally {
+      setInlineInserting((prev) => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleInlineDiscard = (id) => {
+    setInlineGenerated((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    setInlineOpenId(null);
+    toast("Solution discarded.");
   };
 
   const handleNextPage = () => {
@@ -972,7 +1160,104 @@ const fetchUserQuestions = async (
     }
     return 0;
   };
- 
+
+  // ── Shared inline accordion renderer used in both question lists ──────────
+  const renderInlineAccordion = (id) => {
+    const bodyVisible = inlineBodyOpen[id] !== false; // default true
+    const hasSolution = !!inlineSolution[id];
+    const hasGenerated = !!inlineGenerated[id];
+    const isGenerating = inlineGenerating[id];
+
+    const headerLabel = hasSolution
+      ? "Solution"
+      : hasGenerated
+        ? "Generated Solution — Review before saving"
+        : isGenerating
+          ? "Generating solution…"
+          : "Loading…";
+
+    const headerColor = hasSolution
+      ? "bg-amber-50 border-amber-300 text-amber-800"
+      : "bg-purple-50 border-purple-300 text-purple-800";
+
+    return (
+      <div
+        className={`mx-2 mb-2 rounded-lg border overflow-hidden text-xs shadow-sm`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Accordion header — click to expand/collapse */}
+        <button
+          type="button"
+          onClick={() => setInlineBodyOpen((prev) => ({ ...prev, [id]: !bodyVisible }))}
+          className={`w-full flex items-center justify-between px-3 py-2 font-semibold ${headerColor} transition-colors`}
+        >
+          <span className="flex items-center gap-1.5">
+            {hasSolution && (
+              <svg className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            )}
+            {!hasSolution && hasGenerated && (
+              <svg className="w-3.5 h-3.5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            )}
+            {!hasSolution && !hasGenerated && (
+              <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+            )}
+            {headerLabel}
+          </span>
+          {/* Chevron */}
+          <svg
+            className={`w-4 h-4 transition-transform duration-200 ${bodyVisible ? "rotate-180" : "rotate-0"}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {/* Accordion body */}
+        {bodyVisible && (
+          <div>
+            {hasSolution ? (
+              <div className="px-3 py-2 bg-amber-50 text-gray-800 prose prose-xs max-w-none border-t border-amber-200">
+                <ReactMarkdown>{inlineSolution[id].content}</ReactMarkdown>
+              </div>
+            ) : hasGenerated ? (
+              <>
+                <div className="px-3 py-2 bg-purple-50 text-gray-800 prose prose-xs max-w-none border-t border-purple-200">
+                  <ReactMarkdown>{inlineGenerated[id]}</ReactMarkdown>
+                </div>
+                <div className="flex gap-2 px-3 py-2 bg-purple-50 border-t border-purple-200">
+                  <button
+                    type="button"
+                    disabled={inlineInserting[id]}
+                    onClick={() => handleInlineInsert(id)}
+                    className="flex items-center gap-1 px-3 py-1 rounded text-xs font-semibold bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white"
+                  >
+                    {inlineInserting[id] ? "Inserting…" : "✓ Insert"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInlineDiscard(id)}
+                    className="px-3 py-1 rounded text-xs font-semibold bg-red-100 hover:bg-red-200 text-red-600"
+                  >
+                    ✕ Discard
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="px-3 py-2 text-gray-400 animate-pulse border-t">Loading…</div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="flex justify-center items-center min-h-screen">
@@ -1337,26 +1622,44 @@ const fetchUserQuestions = async (
                             </div>
                           ) : (
                             filteredQuestions.map((question, index) => (
-                              <div
-                                key={question._id}
-                                onClick={() => handleQuestionClick(question)}
-                                className="cursor-pointer text-gray-900 p-2 "
-                              >
-                                <b>
-                                  Q.
-                                  {(currentPage - 1) * questionsPerPage + index + 1}
-                                </b>
-                                <span
-                                  dangerouslySetInnerHTML={{
-                                    __html: question.question,
-                                  }}
-                                />
-
-{question.mode === "live" && (
-  <span className="ml-2 px-2 py-1 text-xs font-semibold text-white bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 rounded-full animate-pulse shadow-md">
-    NEW
-  </span>
-)}
+                              <div key={question._id}>
+                                {/* ── Question row ── */}
+                                <div
+                                  onClick={() => handleQuestionClick(question)}
+                                  className="cursor-pointer text-gray-900 p-2 flex items-start gap-1"
+                                >
+                                  <span className="flex-shrink-0">
+                                    <b>Q.{(currentPage - 1) * questionsPerPage + index + 1}</b>
+                                  </span>
+                                  <span className="flex-1" dangerouslySetInnerHTML={{ __html: question.question }} />
+                                  {question.mode === "live" && (
+                                    <span className="ml-1 flex-shrink-0 px-2 py-1 text-xs font-semibold text-white bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 rounded-full animate-pulse shadow-md">
+                                      NEW
+                                    </span>
+                                  )}
+                                  {/* Solution icon button */}
+                                  <button
+                                    type="button"
+                                    title={solutionStatusMap[question._id] ? "View Solution" : "Generate Solution with AI"}
+                                    onClick={(e) => handleInlineSolutionClick(e, question)}
+                                    className={`ml-1 flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                                      inlineGenerating[question._id]
+                                        ? "bg-gray-200 text-gray-400 cursor-wait"
+                                        : solutionStatusMap[question._id]
+                                          ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
+                                          : "bg-purple-100 text-purple-600 hover:bg-purple-200"
+                                    }`}
+                                  >
+                                    {inlineGenerating[question._id] ? (
+                                      <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                      </svg>
+                                    ) : solutionStatusMap[question._id] ? "✓" : "⚡"}
+                                  </button>
+                                </div>
+                                {/* ── Inline solution accordion ── */}
+                                {inlineOpenId === question._id && renderInlineAccordion(question._id)}
                               </div>
                             ))
                           )}
@@ -1418,20 +1721,39 @@ const fetchUserQuestions = async (
         <div className="text-center text-gray-500">No questions found.</div>
       ) : (
         myQuestions.map((question, index) => (
-          <div
-            key={question._id}
-            onClick={() => handleQuestionClick(question)}
-            className="cursor-pointer text-gray-900 p-2"
-          >
-            <b>
-              Q.{" "}
-              {(myCurrentPage - 1) * questionsPerPage + index + 1}
-            </b>
-            <span
-              dangerouslySetInnerHTML={{
-                __html: question.question,
-              }}
-            />
+          <div key={question._id}>
+            {/* ── Question row ── */}
+            <div
+              onClick={() => handleQuestionClick(question)}
+              className="cursor-pointer text-gray-900 p-2 flex items-start gap-1"
+            >
+              <span className="flex-shrink-0">
+                <b>Q. {(myCurrentPage - 1) * questionsPerPage + index + 1}</b>
+              </span>
+              <span className="flex-1" dangerouslySetInnerHTML={{ __html: question.question }} />
+              {/* Solution icon button */}
+              <button
+                type="button"
+                title={solutionStatusMap[question._id] ? "View Solution" : "Generate Solution with AI"}
+                onClick={(e) => handleInlineSolutionClick(e, question)}
+                className={`ml-1 flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                  inlineGenerating[question._id]
+                    ? "bg-gray-200 text-gray-400 cursor-wait"
+                    : solutionStatusMap[question._id]
+                      ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
+                      : "bg-purple-100 text-purple-600 hover:bg-purple-200"
+                }`}
+              >
+                {inlineGenerating[question._id] ? (
+                  <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                ) : solutionStatusMap[question._id] ? "✓" : "⚡"}
+              </button>
+            </div>
+            {/* ── Inline solution accordion ── */}
+            {inlineOpenId === question._id && renderInlineAccordion(question._id)}
           </div>
         ))
       )}
@@ -1575,6 +1897,94 @@ const fetchUserQuestions = async (
                   : "N/A"}
               </p>
               <p>Nested Subtopic: {selectedQuestion.nestedSubTopic || "N/A"}</p>
+
+              {/* ── Solution Section ──────────────────────────────────────── */}
+              <div className="mt-4 border-t border-gray-600 pt-4">
+                {solutionLoading ? (
+                  <p className="text-gray-400 text-sm animate-pulse">Loading solution…</p>
+                ) : solution ? (
+                  // ── Saved solution: show View Solution accordion ──────────
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setShowSolution((prev) => !prev)}
+                      className="flex items-center gap-2 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+                    >
+                      <span className={`transition-transform inline-block ${showSolution ? "rotate-90" : ""}`}>▶</span>
+                      View Solution
+                    </button>
+                    {showSolution && (
+                      <div className="mt-3 rounded-lg border border-amber-700/50 bg-amber-950/20 px-4 py-3 text-sm text-amber-100 prose prose-invert prose-sm max-w-none
+                        [&_h1]:text-amber-300 [&_h2]:text-amber-300 [&_h3]:text-amber-300
+                        [&_strong]:text-amber-200 [&_code]:bg-amber-900/40 [&_code]:px-1 [&_code]:rounded
+                        [&_pre]:bg-amber-900/40 [&_pre]:rounded [&_pre]:p-2
+                        [&_hr]:border-amber-700/40 [&_p]:leading-relaxed [&_li]:leading-relaxed">
+                        <ReactMarkdown>{solution.content}</ReactMarkdown>
+                      </div>
+                    )}
+                  </div>
+                ) : generatedContent ? (
+                  // ── Generated preview: show Insert / Discard ─────────────
+                  <div>
+                    <p className="text-xs font-semibold text-purple-300 mb-2">AI Generated Solution — review before saving:</p>
+                    <div className="rounded-lg border border-purple-700/50 bg-purple-950/20 px-4 py-3 text-sm text-purple-100 prose prose-invert prose-sm max-w-none mb-3
+                      [&_h1]:text-purple-300 [&_h2]:text-purple-300 [&_h3]:text-purple-300
+                      [&_strong]:text-purple-200 [&_code]:bg-purple-900/40 [&_code]:px-1 [&_code]:rounded
+                      [&_pre]:bg-purple-900/40 [&_pre]:rounded [&_pre]:p-2
+                      [&_hr]:border-purple-700/40 [&_p]:leading-relaxed [&_li]:leading-relaxed">
+                      <ReactMarkdown>{generatedContent}</ReactMarkdown>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={solutionInserting}
+                        onClick={handleInsertSolution}
+                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
+                      >
+                        {solutionInserting ? (
+                          <>
+                            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                            Inserting…
+                          </>
+                        ) : "Insert"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={solutionInserting}
+                        onClick={handleDiscardSolution}
+                        className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-900/60 hover:bg-red-800 disabled:opacity-50 text-red-300 hover:text-white transition-colors"
+                      >
+                        Discard
+                      </button>
+                    </div>
+                  </div>
+                ) : (isAdmin || user?.aiAccess) ? (
+                  // ── No solution yet: show Generate button ─────────────────
+                  <button
+                    type="button"
+                    disabled={solutionGenerating}
+                    onClick={handleGenerateSolution}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-purple-700 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
+                  >
+                    {solutionGenerating ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                        Generating Solution…
+                      </>
+                    ) : (
+                      <><FaRobot /> Generate Solution with AI</>
+                    )}
+                  </button>
+                ) : (
+                  <p className="text-gray-500 text-xs italic">No solution available.</p>
+                )}
+              </div>
             </div>
             
             <div className="p-6 pt-0">
