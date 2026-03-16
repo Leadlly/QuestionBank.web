@@ -687,6 +687,7 @@ const CreateQuestion = () => {
       const reader  = res.body.getReader();
       const decoder = new TextDecoder();
       let   buffer  = "";
+      let   streamedQuestions = [];
 
       // Parse Server-Sent Events line by line from the stream
       while (true) {
@@ -704,14 +705,15 @@ const CreateQuestion = () => {
           } else if (line.startsWith("data: ")) {
             const payload = JSON.parse(line.slice(6));
 
-            if (currentEvent === "done") {
-              const questions = Array.isArray(payload.questions) ? payload.questions : [];
-              setAiGeneratedQuestions(questions);
-              toast.success(`${questions.length} question${questions.length !== 1 ? "s" : ""} generated!`);
+            if (currentEvent === "question") {
+              // Each question arrives individually as soon as it's parsed on the server
+              streamedQuestions = [...streamedQuestions, payload.question];
+              setAiGeneratedQuestions([...streamedQuestions]);
+            } else if (currentEvent === "done") {
+              toast.success(`${payload.total} question${payload.total !== 1 ? "s" : ""} generated!`);
             } else if (currentEvent === "error") {
               throw new Error(payload.message || "Stream error");
             }
-            // "token" events carry raw delta text — no UI update needed
             currentEvent = "";
           }
         }
