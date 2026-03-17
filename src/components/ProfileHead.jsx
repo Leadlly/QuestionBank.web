@@ -103,6 +103,7 @@ const ProfileHead = () => {
   const quillRef = useRef(null);
   const [isTagged, setIsTagged] = useState('');
   const [isNew, setIsNew] = useState(false);
+  const [hasSolution, setHasSolution] = useState(null);
   const [totalTagged, setTotalTagged] = useState(0);
   const [totalUntagged, setTotalUntagged] = useState(0);
   const [totalNew, setTotalNew] = useState(0);
@@ -268,6 +269,7 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
           search: searchKeyword,
           isTagged,
           isNew: isNew ? "true" : "false",
+          ...(hasSolution !== null && { hasSolution: hasSolution ? "true" : "false" }),
         },
         withCredentials: true,
       });
@@ -332,6 +334,7 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
           mySearch,
           isTagged,
           isNew: isNew ? "true" : "false",
+          ...(hasSolution !== null && { hasSolution: hasSolution ? "true" : "false" }),
         },
         withCredentials: true,
       });
@@ -411,6 +414,7 @@ const fetchUserQuestions = async (
         page: page || 1,
         isTagged: isTagged,
         isNew: isNew ? "true" : "false",
+        ...(hasSolution !== null && { hasSolution: hasSolution ? "true" : "false" }),
         search: searchMyQuery || undefined,
       },
       withCredentials: true,
@@ -495,6 +499,7 @@ const fetchUserQuestions = async (
     searchMyQuery,
     isTagged,
     isNew,
+    hasSolution,
     currentPage,
   ]);
   
@@ -638,7 +643,7 @@ const fetchUserQuestions = async (
 
   useEffect(() => {
     fetchTotalQuestions(selectedStandard, selectedSubject, selectedChapter, selectedTopic, selectedUser, searchKeyword, searchMyQuery, isTagged);
-  }, [selectedStandard, selectedSubject, selectedChapter, selectedTopic, selectedUser, searchKeyword, searchMyQuery, isTagged, isNew]);
+  }, [selectedStandard, selectedSubject, selectedChapter, selectedTopic, selectedUser, searchKeyword, searchMyQuery, isTagged, isNew, hasSolution]);
 
   const handleQuestionClick = (question) => {
     setSelectedQuestion(question);
@@ -1352,6 +1357,29 @@ const fetchUserQuestions = async (
                 <span className="text-sm text-gray-300">{isNew ? "On" : "Off"}</span>
               </label>
             </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Solution</label>
+              <div className="flex items-center gap-1 rounded-lg bg-gray-700/60 p-1">
+                {[
+                  { label: "All", value: null },
+                  { label: "With", value: true },
+                  { label: "Without", value: false },
+                ].map(({ label, value }) => (
+                  <button
+                    key={String(value)}
+                    onClick={() => setHasSolution(value)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                      hasSolution === value
+                        ? "bg-blue-600 text-white shadow"
+                        : "text-gray-400 hover:text-gray-200"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* ── Curriculum filters ────────────────────────────────────────── */}
@@ -1617,12 +1645,12 @@ const fetchUserQuestions = async (
                                     type="button"
                                     title={solutionStatusMap[question._id] ? "View Solution" : "Generate Solution with AI"}
                                     onClick={(e) => handleInlineSolutionClick(e, question)}
-                                    className={`ml-1 flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                                    className={`ml-1 flex-shrink-0 flex items-center justify-center rounded-full text-xs font-bold transition-colors ${
                                       inlineGenerating[question._id]
-                                        ? "bg-gray-200 text-gray-400 cursor-wait"
+                                        ? "w-6 h-6 bg-gray-200 text-gray-400 cursor-wait"
                                         : solutionStatusMap[question._id]
-                                          ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
-                                          : "bg-purple-100 text-purple-600 hover:bg-purple-200"
+                                          ? ""
+                                          : "w-6 h-6 bg-purple-100 text-purple-600 hover:bg-purple-200"
                                     }`}
                                   >
                                     {inlineGenerating[question._id] ? (
@@ -1630,7 +1658,11 @@ const fetchUserQuestions = async (
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                                       </svg>
-                                    ) : solutionStatusMap[question._id] ? "✓" : "⚡"}
+                                    ) : solutionStatusMap[question._id] ? (
+                                      <span className="px-2 py-0.5 text-xs font-semibold text-white bg-gradient-to-r from-purple-400 via-violet-400 to-indigo-400 rounded-full shadow-sm">
+                                        SOL
+                                      </span>
+                                    ) : "⚡"}
                                   </button>
                                 </div>
                                 {/* ── Inline solution accordion ── */}
@@ -1711,12 +1743,12 @@ const fetchUserQuestions = async (
                 type="button"
                 title={solutionStatusMap[question._id] ? "View Solution" : "Generate Solution with AI"}
                 onClick={(e) => handleInlineSolutionClick(e, question)}
-                className={`ml-1 flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                className={`ml-1 flex-shrink-0 flex items-center justify-center rounded-full text-xs font-bold transition-colors ${
                   inlineGenerating[question._id]
-                    ? "bg-gray-200 text-gray-400 cursor-wait"
+                    ? "w-6 h-6 bg-gray-200 text-gray-400 cursor-wait"
                     : solutionStatusMap[question._id]
-                      ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
-                      : "bg-purple-100 text-purple-600 hover:bg-purple-200"
+                      ? ""
+                      : "w-6 h-6 bg-purple-100 text-purple-600 hover:bg-purple-200"
                 }`}
               >
                 {inlineGenerating[question._id] ? (
@@ -1724,7 +1756,11 @@ const fetchUserQuestions = async (
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                ) : solutionStatusMap[question._id] ? "✓" : "⚡"}
+                ) : solutionStatusMap[question._id] ? (
+                  <span className="px-2 py-0.5 text-xs font-semibold text-white bg-gradient-to-r from-purple-400 via-violet-400 to-indigo-400 rounded-full shadow-sm">
+                    SOL
+                  </span>
+                ) : "⚡"}
               </button>
             </div>
             {/* ── Inline solution accordion ── */}
