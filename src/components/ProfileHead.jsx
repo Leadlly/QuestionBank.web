@@ -211,7 +211,7 @@ const [totalMyUntagged, setTotalMyUntagged] = useState(0);
   // map of { questionId: true } for questions that already have a solution
   const [solutionStatusMap, setSolutionStatusMap] = useState({});
   // inline accordion state per question in the list
-  const [inlineOpenId, setInlineOpenId]           = useState(null);   // which row is expanded
+  const [inlineOpenId, setInlineOpenId]           = useState(new Set()); // set of open accordion ids
   const [inlineGenerating, setInlineGenerating]   = useState({});     // { [id]: true }
   const [inlineGenerated, setInlineGenerated]     = useState({});     // { [id]: content string }
   const [inlineSolution, setInlineSolution]       = useState({});     // { [id]: solutionDoc }
@@ -739,17 +739,17 @@ const fetchUserQuestions = async (
 
   // ── Inline list solution handlers ──────────────────────────────────────────
   const handleInlineSolutionClick = async (e, question) => {
-    e.stopPropagation(); // don't also select the question row
+    e.stopPropagation();
     const id = question._id;
 
     // toggle closed if already open
-    if (inlineOpenId === id) {
-      setInlineOpenId(null);
+    if (inlineOpenId.has(id)) {
+      setInlineOpenId((prev) => { const next = new Set(prev); next.delete(id); return next; });
       return;
     }
 
-    setInlineOpenId(id);
-    // default to body expanded
+    // open it
+    setInlineOpenId((prev) => new Set(prev).add(id));
     setInlineBodyOpen((prev) => ({ ...prev, [id]: true }));
 
     // if we already loaded/generated it, just open
@@ -773,7 +773,7 @@ const fetchUserQuestions = async (
         }
       } catch (err) {
         toast.error(err?.response?.data?.message || "Failed to generate solution.");
-        setInlineOpenId(null);
+        setInlineOpenId((prev) => { const next = new Set(prev); next.delete(id); return next; });
       } finally {
         setInlineGenerating((prev) => ({ ...prev, [id]: false }));
       }
@@ -811,7 +811,7 @@ const fetchUserQuestions = async (
 
   const handleInlineDiscard = (id) => {
     setInlineGenerated((prev) => { const n = { ...prev }; delete n[id]; return n; });
-    setInlineOpenId(null);
+    setInlineOpenId((prev) => { const next = new Set(prev); next.delete(id); return next; });
     toast("Solution discarded.");
   };
 
@@ -1659,7 +1659,7 @@ const fetchUserQuestions = async (
                                   </button>
                                 </div>
                                 {/* ── Inline solution accordion ── */}
-                                {inlineOpenId === question._id && renderInlineAccordion(question._id)}
+                                {inlineOpenId.has(question._id) && renderInlineAccordion(question._id)}
                               </div>
                             ))
                           )}
@@ -1753,7 +1753,7 @@ const fetchUserQuestions = async (
               </button>
             </div>
             {/* ── Inline solution accordion ── */}
-            {inlineOpenId === question._id && renderInlineAccordion(question._id)}
+            {inlineOpenId.has(question._id) && renderInlineAccordion(question._id)}
           </div>
         ))
       )}
