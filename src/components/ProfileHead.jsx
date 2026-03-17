@@ -1260,218 +1260,193 @@ const fetchUserQuestions = async (
 
   return (
     <>
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="w-full max-w-md px-2 py-4 sm:px-2">
+      <div className="flex justify-center items-start min-h-screen py-6">
+        <div className="w-full max-w-4xl px-4 sm:px-6">
           <ViewChapTop />
-          <div className="flex space-x-4 mb-4">
-            <div className="w-1/2">
-              {activeTabIndex === 0 ? (
-                <h3 className=" border-blue-600 border-2 p-2 bg-blue-900 rounded-lg">
-                  Over All Total Questions: {fixedTotalQuestions}
-                </h3>
+
+          {/* ── Stats row ─────────────────────────────────────────────────── */}
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-blue-700 bg-blue-900/60 text-sm font-medium text-blue-100">
+              <span className="text-blue-300">📊</span>
+              {activeTabIndex === 0
+                ? <>Total Questions: <strong className="text-white ml-1">{fixedTotalQuestions}</strong></>
+                : <>My Questions: <strong className="text-white ml-1">{fixedMyTotalQuestions}</strong></>
+              }
+            </div>
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-yellow-700 bg-yellow-900/50 text-sm text-yellow-100">
+              <span>🏆</span>
+              {topperUser?.name?.name ? (
+                <>
+                  Topper:{" "}
+                  <strong className="text-yellow-300 mx-1">{topperUser.name.name.toUpperCase()}</strong>
+                  — {topperUser.QuestionsCount} questions
+                </>
               ) : (
-                <h3 className=" border-blue-600 border-2 p-2 bg-blue-900 rounded-lg">
-                  Over All Total Questions of User: {fixedMyTotalQuestions}
-                </h3>
-              )}
-            </div>
-            <div className="w-1/2">
-              {questions && (
-                <button className=" border-yellow-600 border-2 p-2 bg-yellow-900 rounded-lg">
-                  Todays Topper is{" "}
-                  <strong className=" text-red-600 bg-red-200 ">
-                    {topperUser?.name?.name?.toUpperCase()}
-                  </strong>{" "}
-                  with <strong>{topperUser?.QuestionsCount} questions</strong>
-                </button>
+                <span className="text-yellow-600 italic">No data yet</span>
               )}
             </div>
           </div>
-          <div className="flex space-x-4 mb-4">
-            <div className="w-1/2">
-              {isAdmin && activeTabIndex === 0 && (
-                <div className="mb-4">
-                  <label className="text-white-500 text-sm dark:text-white-400">
-                    User
-                  </label>
-                  <Select
-                    style={{ width: 200 }}
-                    showSearch
-                    value={selectedUser}
-                    onChange={handleUserChange}
-                    filterOption={(input, option) =>
-                      (option.label ?? "")
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }
-                    options={users.map((user) => ({
-                      value: user._id,
-                      label: user.name,
-                    }))}
-                  />
-                </div>
-              )}
-            </div>
-            <div className="w-1/2 m-5">
-              <button
-                className=" border-green-600 border-2 p-2 bg-green-900 rounded-lg"
-                onClick={handleResetFilters}
-              >
-                Reset Filters
-              </button>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center space-x-4">
-         
-<select
-  className="border-blue-600 border-2 p-2 bg-blue-900 text-white rounded-lg"
-  value={isTagged}
-  tabIndex={1} 
-  onChange={(e) => {
-    const value = e.target.value;
-    setIsTagged(value);
 
-    if (document.activeElement.tabIndex === 1) {
-      if (value === "tagged") {
-        fetchUserQuestions("tagged");
-      } else if (value === "untagged") {
-        fetchUserQuestions("untagged");
-      } else {
-        fetchQuestions("");
-      }
-    }
-  }}
->
-  <option value="">All Questions</option>
-  <option value="tagged">Tagged</option>
-  <option value="untagged">Untagged</option>
-</select>
-
-<div className="flex items-center">
-  <label className="inline-flex items-center cursor-pointer">
-    <input 
-      type="checkbox" 
-      className="sr-only peer" 
-      checked={isNew} 
-      onChange={() => setIsNew(!isNew)}
-    />
-    <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-    <span className="ms-3 text-sm font-medium text-gray-900 dark:text-white">New</span>
-  </label>
-</div>
-
-      </div>
-
-          <div className="flex space-x-4 mb-4">
-            <div className="w-1/2">
-              <div className="mb-4">
-                <label className="text-white-500 text-sm dark:text-white-400">
-                  Standard
-                </label>
+          {/* ── User filter + Reset ────────────────────────────────────────── */}
+          <div className="flex items-end justify-between gap-4 mb-5">
+            {isAdmin && activeTabIndex === 0 ? (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">User</label>
                 <Select
-                  style={{ width: 200 }}
+                  style={{ width: 220 }}
                   showSearch
-                  value={selectedStandard}
-                  onChange={(value) => {
-                    setSelectedStandard(value);
-                    setSelectedSubject("");
-                    setSelectedChapter("");
-                    setSelectedTopic("");
-                    setSelectedQuestion(null);
-                    setCurrentPage(1)
-                    setMyCurrentPage(1)
-                  }}
-                  options={standards.map((standard) => ({
-                    value: standard.value,
-                    label: standard.label,
-                  }))}
-                />
-              </div>
-            </div>
-            <div className="w-1/2">
-              <div className="mb-4">
-                <label className="text-white-500 text-sm dark:text-white-400">
-                  Subject
-                </label>
-                <Select
-                  style={{ width: 200 }}
-                  showSearch
-                  value={selectedSubject}
-                  onChange={(value) => {
-                    setSelectedSubject(value);
-                    setSelectedChapter("");
-                    setSelectedTopic("");
-                    setSelectedQuestion(null);
-                    setCurrentPage(1)
-                    setMyCurrentPage(1)
-                  }}
+                  value={selectedUser}
+                  onChange={handleUserChange}
                   filterOption={(input, option) =>
-                    (option.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
+                    (option.label ?? "").toLowerCase().includes(input.toLowerCase())
                   }
-                  options={subjectList?.map((name) => ({
-                    value: name,
-                    label: name,
+                  options={users.map((user) => ({
+                    value: user._id,
+                    label: user.name,
                   }))}
                 />
               </div>
+            ) : <div />}
+            <button
+              className="px-4 py-2 rounded-lg border border-green-600 bg-green-900/60 hover:bg-green-800 text-green-200 text-sm font-medium transition-colors"
+              onClick={handleResetFilters}
+            >
+              ↺ Reset Filters
+            </button>
+          </div>
+
+          {/* ── Tag filter + New toggle ────────────────────────────────────── */}
+          <div className="flex flex-wrap items-center gap-4 mb-5 p-3 rounded-xl border border-gray-700/50 bg-gray-800/40">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Filter</label>
+              <select
+                className="border border-blue-700 rounded-lg px-3 py-2 bg-blue-900/70 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={isTagged}
+                tabIndex={1}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setIsTagged(value);
+                  if (document.activeElement.tabIndex === 1) {
+                    if (value === "tagged") fetchUserQuestions("tagged");
+                    else if (value === "untagged") fetchUserQuestions("untagged");
+                    else fetchQuestions("");
+                  }
+                }}
+              >
+                <option value="">All Questions</option>
+                <option value="tagged">Tagged</option>
+                <option value="untagged">Untagged</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">New only</label>
+              <label className="inline-flex items-center cursor-pointer gap-2">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={isNew}
+                  onChange={() => setIsNew(!isNew)}
+                />
+                <div className="relative w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
+                <span className="text-sm text-gray-300">{isNew ? "On" : "Off"}</span>
+              </label>
             </div>
           </div>
-          <div className="flex space-x-4 mb-4">
-            <div className="w-1/2">
-              <div className="mb-4">
-                <label className="text-white-500 text-sm dark:text-white-400">
-                  Chapter
-                </label>
-                <Select
-  style={{ width: 200 }}
-  showSearch
-  value={selectedChapter}  // Ensure selectedChapter holds the chapter ID
-  onChange={(value) => {
-    setSelectedChapter(value); // Set the chapter ID as selectedChapter
-    setSelectedTopic("");
-    setSelectedQuestion(null);
-    setCurrentPage(1);
-    setMyCurrentPage(1);
-  }}
-  filterOption={(input, option) =>
-    (option.label ?? "").toLowerCase().includes(input.toLowerCase())
-  }
-  options={chapterList?.map((chapter) => ({
-    value: chapter._id, // Use chapter ID here
-    label: chapter.name,
-  }))}
-/>
 
-              </div>
+          {/* ── Curriculum filters ────────────────────────────────────────── */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-6">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Standard</label>
+              <Select
+                style={{ width: "100%" }}
+                showSearch
+                value={selectedStandard}
+                onChange={(value) => {
+                  setSelectedStandard(value);
+                  setSelectedSubject("");
+                  setSelectedChapter("");
+                  setSelectedTopic("");
+                  setSelectedQuestion(null);
+                  setCurrentPage(1);
+                  setMyCurrentPage(1);
+                }}
+                options={standards.map((standard) => ({
+                  value: standard.value,
+                  label: standard.label,
+                }))}
+              />
             </div>
-            <div className="w-1/2">
-              <div className="mb-4">
-                <label className="text-white-500 text-sm dark:text-white-400">
-                  Topic
-                </label>
-                <Select
-  style={{ width: 200 }}
-  showSearch
-  value={selectedTopic} // selectedTopic should hold the topic ID
-  filterOption={(input, option) =>
-    (option.label ?? "").toLowerCase().includes(input.toLowerCase())
-  }
-  onChange={(value) => {
-    setSelectedTopic(value); // value will now be the topic ID
-    setCurrentPage(1);
-    setMyCurrentPage(1);
-  }}
-  options={topicList?.map((el) => ({
-    value: el._id, // Assuming each topic has a unique `_id` for its ID
-    label: el.name,
-  }))}
-/>
 
-              </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Subject</label>
+              <Select
+                style={{ width: "100%" }}
+                showSearch
+                value={selectedSubject}
+                onChange={(value) => {
+                  setSelectedSubject(value);
+                  setSelectedChapter("");
+                  setSelectedTopic("");
+                  setSelectedQuestion(null);
+                  setCurrentPage(1);
+                  setMyCurrentPage(1);
+                }}
+                filterOption={(input, option) =>
+                  (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
+                options={subjectList?.map((name) => ({
+                  value: name,
+                  label: name,
+                }))}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Chapter</label>
+              <Select
+                style={{ width: "100%" }}
+                showSearch
+                value={selectedChapter}
+                onChange={(value) => {
+                  setSelectedChapter(value);
+                  setSelectedTopic("");
+                  setSelectedQuestion(null);
+                  setCurrentPage(1);
+                  setMyCurrentPage(1);
+                }}
+                filterOption={(input, option) =>
+                  (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
+                options={chapterList?.map((chapter) => ({
+                  value: chapter._id,
+                  label: chapter.name,
+                }))}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Topic</label>
+              <Select
+                style={{ width: "100%" }}
+                showSearch
+                value={selectedTopic}
+                filterOption={(input, option) =>
+                  (option.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
+                onChange={(value) => {
+                  setSelectedTopic(value);
+                  setCurrentPage(1);
+                  setMyCurrentPage(1);
+                }}
+                options={topicList?.map((el) => ({
+                  value: el._id,
+                  label: el.name,
+                }))}
+              />
             </div>
           </div>
+
           {subjectList && chapterList && topicList ? (
             <Tab.Group selectedIndex={activeTabIndex} onChange={handleTabChange}>
               <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
@@ -1518,7 +1493,7 @@ const fetchUserQuestions = async (
                     Todays Rank: {userRank}
                   </button>
                 )}
-                <div className="max-w-md mx-auto mb-2">
+                <div className="w-full mb-2">
                   {activeTabIndex === 0 && (
                     <div className="flex items-center bg-white rounded-lg overflow-hidden shadow-md">
                       <input
@@ -2007,9 +1982,9 @@ const fetchUserQuestions = async (
               )}
             </div>
             <div className="flex flex-col items-center">
-            <div className="flex items-center justify-between w-full max-w-md p-4">
+            <div className="flex items-center justify-between w-full p-4">
             {activeTabIndex === 0 && (
-  <div className="flex justify-between p-4 w-full max-w-md">
+  <div className="flex justify-between p-4 w-full">
     <button
       onClick={handlePrevQuestion}
       disabled={!selectedQuestion || filteredQuestions.findIndex(q => q._id === selectedQuestion?._id) === 0}
@@ -2034,7 +2009,7 @@ const fetchUserQuestions = async (
 )}
 
 {activeTabIndex === 1 && (
-  <div className="flex justify-between p-4 w-full max-w-md">
+  <div className="flex justify-between p-4 w-full">
     <button
       onClick={handleMyPrevPage}
       disabled={!selectedQuestion || filteredMyQuestions.findIndex(q => q._id === selectedQuestion?._id) === 0}
