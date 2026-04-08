@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "antd";
 import { useDispatch, useSelector } from "react-redux";
@@ -12,7 +12,8 @@ const Navbar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [dbMode, setDbMode] = useState(null);      // "test" | "live"
+  // Read mode directly from localStorage — no API call needed
+  const [dbMode, setDbMode] = useState(() => localStorage.getItem("dbMode") || "test");
   const [dbSwitching, setDbSwitching] = useState(false);
 
   const handleLogout = () => {
@@ -26,15 +27,6 @@ const Navbar = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  // Fetch current DB mode once the admin is authenticated
-  useEffect(() => {
-    if (!isAdmin) return;
-    axios
-      .get(`${server}/api/db/mode`, { withCredentials: true })
-      .then((res) => setDbMode(res.data.mode))
-      .catch(() => {});
-  }, [isAdmin]);
-
   const handleDbToggle = async () => {
     if (dbSwitching) return;
     const next = dbMode === "live" ? "test" : "live";
@@ -46,19 +38,11 @@ const Navbar = () => {
     );
     if (!confirmed) return;
     setDbSwitching(true);
-    try {
-      await axios.post(
-        `${server}/api/db/mode`,
-        { mode: next },
-        { withCredentials: true }
-      );
-      // Hard reload — clears all Redux state and re-fetches everything
-      // from the newly active database
-      window.location.reload();
-    } catch (err) {
-      alert(err?.response?.data?.message || "Failed to switch database");
-      setDbSwitching(false);
-    }
+    // Save to localStorage and update axios header — backend will pick it up
+    localStorage.setItem("dbMode", next);
+    axios.defaults.headers.common["x-db-mode"] = next;
+    // Reload clears Redux state so all data re-fetches from the new DB
+    window.location.reload();
   };
 
   return (
@@ -173,7 +157,7 @@ const Navbar = () => {
 
           <div className="absolute inset-y-0 right-0 flex items-center gap-3 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
             {/* ── DB Mode Toggle (admin only) ─────────────────────────── */}
-            {isAdmin && dbMode !== null && (
+            {isAdmin && (
               <button
                 onClick={handleDbToggle}
                 disabled={dbSwitching}
