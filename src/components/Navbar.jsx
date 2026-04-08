@@ -47,15 +47,16 @@ const Navbar = () => {
     if (!confirmed) return;
     setDbSwitching(true);
     try {
-      const res = await axios.post(
+      await axios.post(
         `${server}/api/db/mode`,
         { mode: next },
         { withCredentials: true }
       );
-      setDbMode(res.data.mode);
+      // Hard reload — clears all Redux state and re-fetches everything
+      // from the newly active database
+      window.location.reload();
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to switch database");
-    } finally {
       setDbSwitching(false);
     }
   };
