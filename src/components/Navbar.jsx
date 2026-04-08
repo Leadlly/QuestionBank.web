@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../actions/userAction";
+import axios from "axios";
+import { server } from "../main.jsx";
 
 const Navbar = () => {
   const { isAuthenticated, user } = useSelector((state) => state.user);
@@ -10,6 +12,8 @@ const Navbar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [dbMode, setDbMode] = useState(null);      // "test" | "live"
+  const [dbSwitching, setDbSwitching] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -20,6 +24,40 @@ const Navbar = () => {
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  // Fetch current DB mode once the admin is authenticated
+  useEffect(() => {
+    if (!isAdmin) return;
+    axios
+      .get(`${server}/api/db/mode`, { withCredentials: true })
+      .then((res) => setDbMode(res.data.mode))
+      .catch(() => {});
+  }, [isAdmin]);
+
+  const handleDbToggle = async () => {
+    if (dbSwitching) return;
+    const next = dbMode === "live" ? "test" : "live";
+    const confirmed = window.confirm(
+      `Switch database to ${next.toUpperCase()}?\n\n` +
+      (next === "live"
+        ? "⚠️  LIVE mode reads from the PRODUCTION database. Be careful!"
+        : "You will be reading from the TEST database.")
+    );
+    if (!confirmed) return;
+    setDbSwitching(true);
+    try {
+      const res = await axios.post(
+        `${server}/api/db/mode`,
+        { mode: next },
+        { withCredentials: true }
+      );
+      setDbMode(res.data.mode);
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to switch database");
+    } finally {
+      setDbSwitching(false);
+    }
   };
 
   return (
@@ -132,7 +170,26 @@ const Navbar = () => {
             </div>
           </div>
 
-          <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+          <div className="absolute inset-y-0 right-0 flex items-center gap-3 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+            {/* ── DB Mode Toggle (admin only) ─────────────────────────── */}
+            {isAdmin && dbMode !== null && (
+              <button
+                onClick={handleDbToggle}
+                disabled={dbSwitching}
+                title={`Currently connected to the ${dbMode === "live" ? "LIVE (Production)" : "TEST (Development)"} database. Click to switch.`}
+                className={`
+                  relative flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold
+                  transition-all duration-200 select-none
+                  ${dbSwitching ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                  ${dbMode === "live"
+                    ? "bg-red-600 text-white ring-2 ring-red-400 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                    : "bg-emerald-700 text-white ring-2 ring-emerald-400"}
+                `}
+              >
+                <span className={`h-2 w-2 rounded-full ${dbMode === "live" ? "bg-red-200 animate-pulse" : "bg-emerald-300"}`} />
+                {dbSwitching ? "Switching…" : dbMode === "live" ? "LIVE DB" : "TEST DB"}
+              </button>
+            )}
             {isAdmin && (
               <>
 
