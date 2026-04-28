@@ -8,6 +8,9 @@ import {
     QUESTION_EDIT_REQUEST,
     QUESTION_EDIT_SUCCESS,
     QUESTION_EDIT_FAIL,
+    RELOCATE_QUESTIONS_REQUEST,
+    RELOCATE_QUESTIONS_SUCCESS,
+    RELOCATE_QUESTIONS_FAIL,
     CLEAR_ERRORS
 } from "../constants/questionConstants.js"
 
@@ -131,4 +134,23 @@ export const checkQuestionExists = async (questionData) => {
 
 export const clearErrors = () => (dispatch) => {
     dispatch({ type: CLEAR_ERRORS });
+};
+
+export const relocateQuestions = (questionIds, destination) => async (dispatch) => {
+    try {
+        dispatch({ type: RELOCATE_QUESTIONS_REQUEST });
+
+        const { data } = await axios.put(
+            `${server}/api/questions/relocate`,
+            { questionIds, destination },
+            { withCredentials: true }
+        );
+
+        dispatch({ type: RELOCATE_QUESTIONS_SUCCESS, payload: data });
+        return data;
+    } catch (error) {
+        const msg = error.response?.data?.message || error.message;
+        dispatch({ type: RELOCATE_QUESTIONS_FAIL, payload: msg });
+        throw new Error(msg);
+    }
 };

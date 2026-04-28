@@ -8,6 +8,9 @@ import {
     QUESTION_EDIT_REQUEST,
     QUESTION_EDIT_SUCCESS,
     QUESTION_EDIT_FAIL,
+    RELOCATE_QUESTIONS_REQUEST,
+    RELOCATE_QUESTIONS_SUCCESS,
+    RELOCATE_QUESTIONS_FAIL,
     CLEAR_ERRORS,
 } from "../constants/questionConstants";
 
@@ -84,26 +87,25 @@ export const deleteQuestionReducer = (state = initialState, action) => {
 export const editQuestionReducer = (state = initialState, action) => {
     switch (action.type) {
       case QUESTION_EDIT_REQUEST:
-        return {
-          ...state,
-          isloading: true,
-        };
+        return { ...state, isloading: true };
       case QUESTION_EDIT_SUCCESS:
-        return {
-          ...state,
-          isloading: false,
-          success: true,
-          error: null,
-        };
+        return { ...state, isloading: false, success: true, error: null };
       case QUESTION_EDIT_FAIL:
-        return {
-          ...state,
-          isloading: false,
-          success: false,
-          error: action.payload,
-        };
+        return { ...state, isloading: false, success: false, error: action.payload };
       default:
         return state;
     }
-  };
-  
+};
+
+export const relocateQuestionsReducer = (state = { isLoading: false, success: false, error: null }, action) => {
+    switch (action.type) {
+        case RELOCATE_QUESTIONS_REQUEST:
+            return { isLoading: true, success: false, error: null };
+        case RELOCATE_QUESTIONS_SUCCESS:
+            return { isLoading: false, success: true, error: null, data: action.payload };
+        case RELOCATE_QUESTIONS_FAIL:
+            return { isLoading: false, success: false, error: action.payload };
+        default:
+            return state;
+    }
+};

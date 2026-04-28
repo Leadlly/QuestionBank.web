@@ -15,6 +15,7 @@ import { clearErrors, profile } from "./actions/userAction";
 import EditDetails from "./pages/EditDetails";
 import ProfileHead from "./components/ProfileHead";
 import HomePage from "./components/HomePage";
+import RelocateQuestions from "./pages/RelocateQuestions";
 
 function App() {
   const dispatch = useDispatch();
@@ -71,6 +72,10 @@ function App() {
             <Route
               path="/editdetails"
               element={isAuthenticated ? <EditDetails /> : <Login />}
+            />
+            <Route
+              path="/relocate"
+              element={isAuthenticated ? <RelocateQuestions /> : <Login />}
             />
           </>
         )}
