@@ -163,6 +163,9 @@ const RelocateQuestions = () => {
   // ── Relocating ───────────────────────────────────────────────────────────────
   const { isLoading: relocating } = useSelector((state) => state.relocate);
 
+  // ── AI access gate ───────────────────────────────────────────────────────────
+  const hasAiAccess = useSelector((state) => !!state.user?.user?.aiAccess);
+
   // ── Shared dropdown data ─────────────────────────────────────────────────────
   const { subjectList: srcSubjectList, isLoading: srcSubjectsLoading } = useSelector((s) => s.getSubject);
   const { chapterList: srcChapterList, isLoading: srcChaptersLoading } = useSelector((s) => s.getChapter);
@@ -390,7 +393,7 @@ const RelocateQuestions = () => {
 
   const srcReady = !!srcChapter;
   const dstReady = !!dstChapter;
-  const canAiFilter = hasLoaded && questions.length > 0 && dstReady && !agentLoading && !listLoading;
+  const canAiFilter = hasAiAccess && hasLoaded && questions.length > 0 && dstReady && !agentLoading && !listLoading;
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8">
@@ -469,8 +472,8 @@ const RelocateQuestions = () => {
             {listLoading ? "Loading…" : "Load Questions"}
           </button>
 
-          {/* AI Filter button — shown once questions are loaded */}
-          {hasLoaded && (
+          {/* AI Filter button — shown once questions are loaded and user has AI access */}
+          {hasLoaded && hasAiAccess && (
             <button
               onClick={handleAiFilter}
               disabled={!canAiFilter}
@@ -507,7 +510,7 @@ const RelocateQuestions = () => {
         </div>
 
         {/* ── AI hint banner ── */}
-        {hasLoaded && !dstReady && (
+        {hasLoaded && hasAiAccess && !dstReady && (
           <div className="mb-4 flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-xl px-4 py-3 text-sm text-violet-700">
             <FiZap className="w-4 h-4 flex-shrink-0" />
             <span>Select a <strong>destination</strong> chapter to unlock AI filtering.</span>
