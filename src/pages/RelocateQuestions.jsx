@@ -396,7 +396,7 @@ const RelocateQuestions = () => {
   const canAiFilter = hasAiAccess && hasLoaded && questions.length > 0 && dstReady && !agentLoading && !listLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8">
+    <div className="min-h-screen bg-gray-50 px-4 py-8 pb-28">
       <div className="max-w-7xl mx-auto">
         {/* ── Header ── */}
         <div className="mb-8">
@@ -615,9 +615,9 @@ const RelocateQuestions = () => {
           </div>
         )}
 
-        {/* ── Relocate action bar ── */}
+        {/* ── Relocate action bar (floating) ── */}
         {hasLoaded && (
-          <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-4">
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl flex items-center justify-between bg-white rounded-2xl border border-gray-200 shadow-xl px-6 py-4">
             <div className="text-sm text-gray-600">
               {selectedIds.size === 0 ? (
                 <span className="text-gray-400">Select questions to relocate</span>
