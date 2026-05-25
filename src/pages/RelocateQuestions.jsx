@@ -321,7 +321,7 @@ const RelocateQuestions = () => {
     setAgentLoading(true);
     try {
       const payload = {
-        questions: questions.map((q) => ({ _id: q._id, question: q.question })),
+        questionIds: questions.map((q) => q._id),
         source: {
           chapter: srcChapter.name,
           topic: srcTopic?.name || null,
