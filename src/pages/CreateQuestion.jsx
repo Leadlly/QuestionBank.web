@@ -50,6 +50,11 @@ const CreateQuestion = () => {
   const [includeSolutions, setIncludeSolutions] = useState(false);
   // Tracks which question cards have their solution accordion open
   const [openSolutions, setOpenSolutions] = useState(new Set());
+  // Async job tracking
+  const [activeJobId, setActiveJobId] = useState(null);
+  const [jobStatus, setJobStatus] = useState(null); // "pending"|"generating"|"done"|"failed"
+  const [autoAssignSubtopics, setAutoAssignSubtopics] = useState(false);
+  const pollIntervalRef = useRef(null);
 
   // const [topicList, setTopicList] =useState([])
   const { subjectList } = useSelector((state) => state.getSubject);
@@ -643,26 +648,37 @@ const CreateQuestion = () => {
 
     const count = Math.max(1, Math.min(20, Number(aiCount) || 5));
     const safeChapter   = (chapter || []).filter((c) => c && c._id);
-    const chapterNames  = safeChapter.map((c) => c.name).join(", ");
-    const topicNames    = topic && topic.length > 0 ? topic.filter(Boolean).map((t) => t.name).join(", ") : null;
+    const chapterNames  = safeChapter.map((c) => c.name);
+    const chapterStr    = chapterNames.join(", ");
+    const topicNames    = topic && topic.length > 0 ? topic.filter(Boolean).map((t) => t.name) : [];
+    const topicStr      = topicNames.length > 0 ? topicNames.join(", ") : null;
     const subtopicNames = selectedSubtopics && selectedSubtopics.length > 0
-      ? selectedSubtopics.filter(Boolean).map((s) => s.name).join(", ")
-      : null;
+      ? selectedSubtopics.filter(Boolean).map((s) => s.name)
+      : [];
+    const subtopicStr   = subtopicNames.length > 0 ? subtopicNames.join(", ") : null;
 
-    // Use the (possibly customized) prompt from the textarea
     const message = customPrompt.trim() || buildDefaultPrompt(count);
 
+    // Clear previous results
     setAiLoading(true);
     setAiGeneratedQuestions([]);
     setInsertedSet(new Set());
     setInsertingSet(new Set());
     setOpenSolutions(new Set());
     setShowAiPanel(true);
+    setActiveJobId(null);
+    setJobStatus(null);
+    setAutoAssignSubtopics(false);
+
+    // Clear any previous poll interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
 
     try {
-      // Use the SSE streaming endpoint — keeps connection alive while Bedrock
-      // generates, avoiding Vercel's serverless function timeout.
-      const res = await fetch(`${server}/api/agent/stream`, {
+      // 1. Fire async generation request — returns immediately with a jobId
+      const res = await fetch(`${server}/api/agent/generate-async`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -670,61 +686,99 @@ const CreateQuestion = () => {
           message,
           standard,
           subject,
-          chapter: chapterNames,
-          ...(topicNames    && { topic: topicNames }),
-          ...(subtopicNames && { subtopic: subtopicNames }),
-          ...(level         && { level }),
+          chapter: chapterStr,
+          ...(topicStr    && { topic: topicStr }),
+          ...(subtopicStr && { subtopic: subtopicStr }),
+          ...(level       && { level }),
           includeSolutions,
           customSystemPrompt: customPrompt.trim(),
+          // Pass structured IDs so the backend worker can populate DB fields correctly
+          chaptersId:    safeChapter.map((c) => c._id),
+          chapterNames,
+          topicsId:      (topic || []).filter(Boolean).map((t) => t._id),
+          topicNames,
+          subtopicsId:   (selectedSubtopics || []).filter(Boolean).map((s) => s._id),
+          subtopicNames,
         }),
       });
 
-      if (!res.ok || !res.body) {
+      if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
         throw new Error(errJson?.message || `Server error ${res.status}`);
       }
 
-      const reader  = res.body.getReader();
-      const decoder = new TextDecoder();
-      let   buffer  = "";
-      let   streamedQuestions = [];
+      const { jobId, autoAssignSubtopics: willAutoAssign } = await res.json();
+      setActiveJobId(jobId);
+      setJobStatus("pending");
+      setAutoAssignSubtopics(!!willAutoAssign);
 
-      // Parse Server-Sent Events line by line from the stream
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // 2. Poll the job status every 3 seconds until done or failed
+      let knownCount = 0;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop(); // keep incomplete last line for next chunk
+      const poll = async () => {
+        try {
+          const pollRes = await fetch(`${server}/api/agent/job/${jobId}`, {
+            credentials: "include",
+          });
 
-        let currentEvent = "";
-        for (const line of lines) {
-          if (line.startsWith("event: ")) {
-            currentEvent = line.slice(7).trim();
-          } else if (line.startsWith("data: ")) {
-            const payload = JSON.parse(line.slice(6));
+          if (!pollRes.ok) return; // transient error — retry next tick
 
-            if (currentEvent === "question") {
-              // Each question arrives individually as soon as it's parsed on the server
-              streamedQuestions = [...streamedQuestions, payload.question];
-              setAiGeneratedQuestions([...streamedQuestions]);
-            } else if (currentEvent === "done") {
-              toast.success(`${payload.total} question${payload.total !== 1 ? "s" : ""} generated!`);
-            } else if (currentEvent === "error") {
-              throw new Error(payload.message || "Stream error");
-            }
-            currentEvent = "";
+          const data = await pollRes.json();
+
+          setJobStatus(data.status);
+
+          // Update questions list if new ones have been inserted since last poll
+          if (Array.isArray(data.questions) && data.questions.length > knownCount) {
+            knownCount = data.questions.length;
+            // Map DB question format to the shape the UI already knows
+            const mapped = data.questions.map((q) => ({
+              question: q.question,
+              options: (q.options || []).map((o) => ({
+                name: o.name,
+                isCorrect: o.tag === "Correct",
+              })),
+              level: q.level,
+              topics: q.topics || [],
+              subtopics: q.subtopics || [],
+              solution: q.solution || null,
+              _id: q._id,
+              _savedToDB: true, // flag: already in DB, no Insert button needed
+            }));
+            setAiGeneratedQuestions(mapped);
           }
+
+          if (data.status === "done") {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+            setAiLoading(false);
+            toast.success(`${data.insertedCount} question${data.insertedCount !== 1 ? "s" : ""} generated & saved!`);
+          } else if (data.status === "failed") {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+            setAiLoading(false);
+            toast.error(data.error || "AI generation failed.");
+          }
+        } catch (pollErr) {
+          console.error("[AI Poll]", pollErr);
         }
-      }
+      };
+
+      // Poll immediately then every 3 s
+      poll();
+      pollIntervalRef.current = setInterval(poll, 3000);
     } catch (err) {
       console.error("[AI Generate]", err);
       toast.error(err?.message || "AI generation failed. Please try again.");
-    } finally {
       setAiLoading(false);
     }
   };
+
+  // Cleanup poll on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, []);
 
   return (
     <main className="p-4">
@@ -1010,12 +1064,14 @@ const CreateQuestion = () => {
                 <FaRobot /> AI Generated Questions
                 {!aiLoading && aiGeneratedQuestions.length > 0 && (
                   <span className="text-xs text-gray-400 font-normal">
-                    ({insertedSet.size}/{aiGeneratedQuestions.length} saved)
+                    {aiGeneratedQuestions.every((q) => q._savedToDB)
+                      ? `(${aiGeneratedQuestions.length} saved to DB)`
+                      : `(${insertedSet.size}/${aiGeneratedQuestions.length} saved)`}
                   </span>
                 )}
               </h2>
               <div className="flex items-center gap-2">
-                {!aiLoading && aiGeneratedQuestions.length > 0 && (
+                {!aiLoading && aiGeneratedQuestions.length > 0 && !aiGeneratedQuestions.every((q) => q._savedToDB) && (
                   <button
                     type="button"
                     disabled={insertAllLoading || insertedSet.size === aiGeneratedQuestions.length}
@@ -1053,8 +1109,21 @@ const CreateQuestion = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
-                <p className="text-purple-300 text-sm animate-pulse">AI is generating questions…</p>
-                <p className="text-gray-500 text-xs">This may take 30–60 seconds</p>
+                <p className="text-purple-300 text-sm animate-pulse">
+                  {jobStatus === "generating"
+                    ? autoAssignSubtopics
+                      ? "AI is generating, assigning subtopics & saving to DB…"
+                      : "AI is generating & saving questions to DB…"
+                    : "Starting generation job…"}
+                </p>
+                <p className="text-gray-500 text-xs">
+                  {autoAssignSubtopics
+                    ? "Questions will be auto-assigned to subtopics before saving"
+                    : "Questions appear below as they are saved"}
+                </p>
+                {aiGeneratedQuestions.length > 0 && (
+                  <p className="text-green-400 text-xs font-medium">{aiGeneratedQuestions.length} saved so far…</p>
+                )}
               </div>
             )}
 
@@ -1153,16 +1222,33 @@ const CreateQuestion = () => {
                               {q.level}
                             </span>
                           )}
-                          {q.topics && q.topics.map((t, ti) => (
-                            <span key={ti} className="text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">
+                          {/* Chapter tags */}
+                          {q._savedToDB && Array.isArray(q.chapter) && q.chapter.map((ch, chi) => (
+                            <span key={`ch-${chi}`} className="text-xs px-2 py-0.5 rounded-full bg-indigo-900/50 text-indigo-300 border border-indigo-700">
+                              📖 {ch}
+                            </span>
+                          ))}
+                          {/* Topic tags */}
+                          {Array.isArray(q.topics) && q.topics.map((t, ti) => (
+                            <span key={`tp-${ti}`} className="text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">
                               {t.name || t}
+                            </span>
+                          ))}
+                          {/* Subtopic tags — shown when auto-assigned or explicitly set */}
+                          {q._savedToDB && Array.isArray(q.subtopics) && q.subtopics.length > 0 && q.subtopics.map((st, sti) => (
+                            <span key={`st-${sti}`} className="text-xs px-2 py-0.5 rounded-full bg-purple-900/50 text-purple-300 border border-purple-700">
+                              ↳ {st}
                             </span>
                           ))}
                         </div>
 
                         {/* Insert / Discard buttons */}
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          {isInserted ? (
+                          {q._savedToDB ? (
+                            <span className="flex items-center gap-1 text-xs text-green-400 font-medium border border-green-700 bg-green-950/40 px-2 py-1 rounded-lg">
+                              <FaCheck className="text-xs" /> Saved to DB
+                            </span>
+                          ) : isInserted ? (
                             <span className="flex items-center gap-1 text-xs text-green-400 font-medium">
                               <FaCheck /> Inserted
                             </span>
@@ -1186,7 +1272,7 @@ const CreateQuestion = () => {
                               )}
                             </button>
                           )}
-                          {!isInserted && (
+                          {!isInserted && !q._savedToDB && (
                             <button
                               type="button"
                               disabled={isInserting}
